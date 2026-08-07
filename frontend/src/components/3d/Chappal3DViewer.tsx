@@ -1,14 +1,24 @@
 import React, { useRef, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls, Stage } from '@react-three/drei';
 import * as THREE from 'three';
 import type { LeatherColor, SoleType, BuckleFinish } from '../../types';
+
+interface ProductImages {
+  front?: string;
+  back?: string;
+  left?: string;
+  right?: string;
+  top?: string;
+  sole?: string;
+}
 
 interface ChappalMeshProps {
   leatherColor?: LeatherColor;
   soleType?: SoleType;
   buckleFinish?: BuckleFinish;
   autoRotate?: boolean;
+  images?: ProductImages;
 }
 
 const COLOR_MAP: Record<LeatherColor, string> = {
@@ -34,11 +44,25 @@ const SOLE_COLOR_MAP: Record<SoleType, string> = {
   'traditional-raw': '#654321',
 };
 
+// 3D Texture Plane for photogrammetry images
+const TexturePlane: React.FC<{ url: string; position: [number, number, number]; rotation: [number, number, number]; scale?: [number, number, number] }> = ({ url, position, rotation, scale = [1.8, 1.2, 1] }) => {
+  const texture = useLoader(THREE.TextureLoader, url);
+  texture.colorSpace = THREE.SRGBColorSpace;
+
+  return (
+    <mesh position={position} rotation={rotation} scale={scale}>
+      <planeGeometry args={[1, 1]} />
+      <meshStandardMaterial map={texture} transparent={true} alphaTest={0.1} side={THREE.DoubleSide} roughness={0.5} />
+    </mesh>
+  );
+};
+
 const ChappalMesh: React.FC<ChappalMeshProps> = ({
   leatherColor = 'saddle-tan',
   soleType = 'tire-recycled',
   buckleFinish = 'aged-brass',
   autoRotate = true,
+  images,
 }) => {
   const groupRef = useRef<THREE.Group>(null);
 
@@ -73,8 +97,32 @@ const ChappalMesh: React.FC<ChappalMeshProps> = ({
     });
   }, [buckleFinish]);
 
+  const hasCustomImages = images && (images.front || images.left || images.right);
+
   return (
     <group ref={groupRef} position={[0, -0.1, 0]} rotation={[0.2, -0.4, 0]}>
+      {/* If custom product images are available, render photogrammetry 3D texture projection */}
+      {hasCustomImages && images?.front && (
+        <React.Suspense fallback={null}>
+          <TexturePlane url={images.front} position={[0, 0.25, 0.45]} rotation={[0, 0, 0]} scale={[1.8, 1.2, 1]} />
+        </React.Suspense>
+      )}
+      {hasCustomImages && images?.back && (
+        <React.Suspense fallback={null}>
+          <TexturePlane url={images.back} position={[0, 0.25, -0.45]} rotation={[0, Math.PI, 0]} scale={[1.8, 1.2, 1]} />
+        </React.Suspense>
+      )}
+      {hasCustomImages && images?.left && (
+        <React.Suspense fallback={null}>
+          <TexturePlane url={images.left} position={[-0.45, 0.25, 0]} rotation={[0, -Math.PI / 2, 0]} scale={[1.8, 1.2, 1]} />
+        </React.Suspense>
+      )}
+      {hasCustomImages && images?.right && (
+        <React.Suspense fallback={null}>
+          <TexturePlane url={images.right} position={[0.45, 0.25, 0]} rotation={[0, Math.PI / 2, 0]} scale={[1.8, 1.2, 1]} />
+        </React.Suspense>
+      )}
+
       {/* Base Sole - Authentic Oval Chappal Shape */}
       <mesh position={[0, 0, 0]} material={soleMaterial} castShadow receiveShadow>
         <cylinderGeometry args={[0.9, 0.95, 0.12, 32]} />
@@ -126,12 +174,14 @@ export const Chappal3DViewer: React.FC<{
   buckleFinish?: BuckleFinish;
   autoRotate?: boolean;
   className?: string;
+  images?: ProductImages;
 }> = ({
   leatherColor = 'saddle-tan',
   soleType = 'tire-recycled',
   buckleFinish = 'aged-brass',
   autoRotate = true,
   className = 'h-80 w-full',
+  images,
 }) => {
   return (
     <div className={`relative ${className}`}>
@@ -147,6 +197,7 @@ export const Chappal3DViewer: React.FC<{
             soleType={soleType}
             buckleFinish={buckleFinish}
             autoRotate={autoRotate}
+            images={images}
           />
         </Stage>
 

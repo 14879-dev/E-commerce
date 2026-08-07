@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Edit, Trash2, Box, RefreshCw, AlertCircle, Check, X, Filter } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Box, RefreshCw, AlertCircle, Check, X, Filter, Upload, Sparkles } from 'lucide-react';
 import { apiService } from '../../services/api';
 import type { Product, LeatherColor, SoleType, BuckleFinish } from '../../types';
+import { removeImageBackground } from '../../utils/backgroundRemoval';
+import { Chappal3DViewer } from '../../components/3d/Chappal3DViewer';
 
 export const ProductsTab: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -40,7 +42,38 @@ export const ProductsTab: React.FC = () => {
       top: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&q=80&w=800',
       sole: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=800'
     }
-  });
+  const [processingAngle, setProcessingAngle] = useState<string | null>(null);
+
+  const handleAngleFileUpload = (angle: keyof typeof formData.images, file: File) => {
+    setProcessingAngle(angle);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const rawSrc = e.target?.result as string;
+      // Auto-remove background to produce clean transparent PNG
+      const transparentPng = await removeImageBackground(rawSrc);
+      setFormData(prev => ({
+        ...prev,
+        images: { ...prev.images, [angle]: transparentPng }
+      }));
+      setProcessingAngle(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAutoRemoveAllBg = async () => {
+    setProcessingAngle('all');
+    const angles = ['front', 'back', 'left', 'right', 'top', 'sole'] as const;
+    const newImages = { ...formData.images };
+
+    for (const ang of angles) {
+      if (newImages[ang]) {
+        newImages[ang] = await removeImageBackground(newImages[ang]);
+      }
+    }
+
+    setFormData(prev => ({ ...prev, images: newImages }));
+    setProcessingAngle(null);
+  };
 
   useEffect(() => {
     loadProducts();
@@ -455,34 +488,80 @@ export const ProductsTab: React.FC = () => {
                 />
               </div>
 
-              {/* 6-Angle Image Upload Fields with Thumbnail Previews */}
+              {/* 6-Angle Image Upload Fields with Auto Background Removal & Photogrammetry 3D Conversion */}
               <div className="space-y-3 pt-2 border-t border-slate-200">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-blue-600">
-                    6-Angle Photogrammetry Image Assets (Required for 3D Orbiting)
-                  </label>
-                  <span className="text-[10px] text-slate-400">All 6 angles required</span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-blue-600">
+                      6-Angle Product Photogrammetry & 3D Conversion
+                    </label>
+                    <span className="text-[11px] text-slate-500 block">
+                      Upload photo for any angle — background is automatically removed to generate clean 3D transparent textures.
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAutoRemoveAllBg}
+                    disabled={processingAngle !== null}
+                    className="px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 text-xs font-bold flex items-center gap-1.5 shrink-0 self-start sm:self-auto transition-all"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                    {processingAngle === 'all' ? 'Stripping Backgrounds...' : 'Auto-Remove All Backgrounds'}
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {(['front', 'back', 'left', 'right', 'top', 'sole'] as const).map(angle => (
-                    <div key={angle} className="space-y-1">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">{angle} Camera Shot</span>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          required
-                          value={formData.images[angle]}
-                          onChange={e => setFormData({
-                            ...formData,
-                            images: { ...formData.images, [angle]: e.target.value }
-                          })}
-                          className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 text-[11px] focus:border-blue-600 focus:outline-none"
-                        />
-                        <img src={formData.images[angle]} alt={angle} className="w-8 h-8 rounded object-cover border border-slate-200 bg-slate-100 shrink-0" />
+                    <div key={angle} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+                      <div className="flex items-center justify-between text-[10px] font-bold text-slate-700 uppercase">
+                        <span>{angle} Angle</span>
+                        {processingAngle === angle && (
+                          <span className="text-blue-600 animate-pulse font-semibold">Processing BG...</span>
+                        )}
+                      </div>
+
+                      <div className="relative aspect-video rounded-lg overflow-hidden bg-white border border-slate-200 flex items-center justify-center">
+                        {formData.images[angle] ? (
+                          <img src={formData.images[angle]} alt={angle} className="w-full h-full object-contain p-1" />
+                        ) : (
+                          <span className="text-[10px] text-slate-400">No image</span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <label className="flex-1 px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-blue-600 hover:bg-blue-50 cursor-pointer text-center block transition-all shadow-2xs">
+                          Upload Photo
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={e => {
+                              const file = e.target.files?.[0];
+                              if (file) handleAngleFileUpload(angle, file);
+                            }}
+                            className="hidden"
+                          />
+                        </label>
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Real-time 3D Photogrammetry Interactive Mesh Preview */}
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
+                    <Box className="w-4 h-4 text-blue-400" /> Interactive 3D Model Real-Time Preview
+                  </span>
+                  <span className="text-[10px] text-slate-400">360° Orbit Drag & Scroll Zoom</span>
+                </div>
+                <div className="h-64 w-full rounded-xl overflow-hidden bg-slate-950/80 border border-slate-800/80">
+                  <Chappal3DViewer
+                    autoRotate={true}
+                    images={formData.images}
+                    className="h-full w-full"
+                  />
                 </div>
               </div>
 
