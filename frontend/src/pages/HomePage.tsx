@@ -58,7 +58,27 @@ export const HomePage: React.FC = () => {
               Hand-tanned full-grain cowhide leather, double-stitched by master craftsmen in Khyber Pakhtunkhwa. Designed for enduring elegance, modern ergonomic arch comfort, and personalized 3D customization.
             </p>
 
-            {/* Action Buttons */}
+            {/* Mobile-Only 3D Product Viewer (Renders directly after description on mobile) */}
+            <div className="lg:hidden relative flex flex-col items-center justify-center my-4 py-2">
+              <div className="w-full flex items-center justify-between z-10 mb-2 px-1">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-blue-700 flex items-center gap-1.5 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+                  <Box className="w-3.5 h-3.5 text-blue-600" /> Live 3D Product Model
+                </span>
+                <span className="text-[10px] text-slate-500 bg-slate-100/80 px-2.5 py-0.5 rounded-full border border-slate-200">
+                  360° Drag • Touch Zoom
+                </span>
+              </div>
+
+              <Chappal3DViewer
+                leatherColor="saddle-tan"
+                soleType="double-leather"
+                buckleFinish="aged-brass"
+                autoRotate={true}
+                className="h-72 w-full filter drop-shadow-[0_15px_30px_rgba(15,23,42,0.15)]"
+              />
+            </div>
+
+            {/* Action Buttons (Appears after 3D Product View on Mobile, side-by-side on Desktop) */}
             <div className="flex flex-wrap items-center gap-3 sm:gap-4 pt-1">
               <Link to="/products" className="btn-copper text-sm sm:text-base py-3 px-6 sm:px-8 flex items-center gap-2">
                 Explore Catalog
@@ -88,8 +108,8 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Hero 3D Model Floating Canvas */}
-          <div className="lg:col-span-6 relative flex flex-col items-center justify-center">
+          {/* Right Hero 3D Model Floating Canvas (Desktop Only) */}
+          <div className="hidden lg:flex lg:col-span-6 relative flex-col items-center justify-center">
             
             {/* Header Hint Tag */}
             <div className="w-full flex items-center justify-between z-10 mb-2 px-1">
