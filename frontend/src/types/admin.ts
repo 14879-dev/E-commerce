@@ -62,6 +62,7 @@ export interface StoreSettings {
   supportEmail: string;
   supportPhone: string;
   currency: string;
+  freeShippingMode: 'all' | 'threshold' | 'product-specific' | 'none';
   freeShippingThreshold: number;
   standardShippingFee: number;
   expressShippingFee: number;

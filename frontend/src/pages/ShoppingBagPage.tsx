@@ -60,7 +60,16 @@ export const ShoppingBagPage: React.FC = () => {
   }
 
   const effectiveSubtotal = Math.max(0, subtotal - discountAmount);
-  const shippingFee = effectiveSubtotal > settings.freeShippingThreshold || itemCount === 0 ? 0 : settings.standardShippingFee;
+
+  // Free shipping policy rule matching Admin Settings
+  const isFreeShipping = 
+    itemCount === 0 ||
+    settings.freeShippingMode === 'all' ||
+    (settings.freeShippingMode === 'threshold' && effectiveSubtotal >= settings.freeShippingThreshold) ||
+    (settings.freeShippingMode === 'product-specific' && items.some(i => i.product.freeShipping)) ||
+    items.some(i => i.product.freeShipping);
+
+  const shippingFee = isFreeShipping ? 0 : settings.standardShippingFee;
   const total = effectiveSubtotal + shippingFee;
   const hasCustomizedItems = items.some(item => item.isCustomized);
 
@@ -80,7 +89,15 @@ export const ShoppingBagPage: React.FC = () => {
           Your Shopping Bag
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          {itemCount} {itemCount === 1 ? 'item' : 'items'} in your cart. Free shipping on orders over {formatPrice(settings.freeShippingThreshold)}.
+          {itemCount} {itemCount === 1 ? 'item' : 'items'} in your cart. {
+            settings.freeShippingMode === 'all'
+              ? 'Free Nationwide Shipping on all orders!'
+              : settings.freeShippingMode === 'threshold'
+              ? `Free shipping on orders over ${formatPrice(settings.freeShippingThreshold)}.`
+              : settings.freeShippingMode === 'product-specific'
+              ? 'Free shipping available on eligible items.'
+              : 'Nationwide standard delivery rates apply.'
+          }
         </p>
       </div>
 
@@ -249,9 +266,9 @@ export const ShoppingBagPage: React.FC = () => {
                 </span>
               </div>
 
-              {shippingFee > 0 && (
+              {shippingFee > 0 && settings.freeShippingMode === 'threshold' && effectiveSubtotal < settings.freeShippingThreshold && (
                 <p className="text-[11px] text-blue-600">
-                  Add {formatPrice(settings.freeShippingThreshold - effectiveSubtotal)} more for free express delivery.
+                  Add {formatPrice(settings.freeShippingThreshold - effectiveSubtotal)} more for free delivery.
                 </p>
               )}
             </div>

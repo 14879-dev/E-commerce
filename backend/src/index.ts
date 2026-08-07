@@ -56,6 +56,7 @@ const ProductSchema = new Schema({
   averageRating: { type: Number, default: 0 },
   reviewCount: { type: Number, default: 0 },
   featured: { type: Boolean, default: false },
+  freeShipping: { type: Boolean, default: false },
   inStock: { type: Boolean, default: true },
   stockCount: { type: Number, default: 100 },
 }, { timestamps: true });
@@ -265,6 +266,7 @@ app.post('/api/products', authenticateAdmin, async (req: Request, res: Response)
     averageRating: 0,
     reviewCount: 0,
     featured: body.featured ?? false,
+    freeShipping: body.freeShipping ?? false,
     inStock: true,
     stockCount: body.stockCount || 100,
   };

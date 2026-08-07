@@ -49,6 +49,7 @@ export interface Product {
   averageRating: number;
   reviewCount: number;
   featured?: boolean;
+  freeShipping?: boolean;
 }
 
 export interface CustomizationSelection {

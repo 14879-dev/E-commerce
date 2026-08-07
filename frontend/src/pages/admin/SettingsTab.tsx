@@ -179,15 +179,30 @@ export const SettingsTab: React.FC<{
             <Truck className="w-5 h-5 text-blue-600" /> Nationwide Shipping & Delivery Rules
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+            <div>
+              <label className="block font-semibold text-slate-600 mb-1">Free Shipping Policy / Scope</label>
+              <select
+                value={settings.freeShippingMode || 'threshold'}
+                onChange={e => setSettings({ ...settings, freeShippingMode: e.target.value as any })}
+                disabled={currentRole !== 'superadmin'}
+                className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:border-blue-600 focus:outline-none font-medium"
+              >
+                <option value="threshold">Order Threshold (Free over PKR Amount)</option>
+                <option value="all">Free Nationwide Shipping (All Orders Free)</option>
+                <option value="product-specific">Product Specific (Only checked products free)</option>
+                <option value="none font-medium">No Free Shipping (Rates always apply)</option>
+              </select>
+            </div>
+
             <div>
               <label className="block font-semibold text-slate-600 mb-1">Free Shipping Threshold (PKR Rs.)</label>
               <input
                 type="number"
                 value={settings.freeShippingThreshold}
                 onChange={e => setSettings({ ...settings, freeShippingThreshold: Number(e.target.value) })}
-                disabled={currentRole !== 'superadmin'}
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:border-blue-600 focus:outline-none"
+                disabled={currentRole !== 'superadmin' || settings.freeShippingMode === 'all'}
+                className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:border-blue-600 focus:outline-none disabled:opacity-50"
               />
             </div>
 

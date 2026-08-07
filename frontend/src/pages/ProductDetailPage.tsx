@@ -15,7 +15,7 @@ export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
-  const { formatPrice } = useStoreSettings();
+  const { formatPrice, settings } = useStoreSettings();
   const navigate = useNavigate();
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -167,6 +167,11 @@ export const ProductDetailPage: React.FC = () => {
                   {product.originalPrice && (
                     <span className="text-xs bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full font-bold">
                       {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
+                    </span>
+                  )}
+                  {(product.freeShipping || settings.freeShippingMode === 'all' || (settings.freeShippingMode === 'threshold' && product.price >= settings.freeShippingThreshold)) && (
+                    <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-full font-bold">
+                      Free Delivery Eligible
                     </span>
                   )}
                 </div>

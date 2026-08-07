@@ -6,6 +6,7 @@ interface StoreSettings {
   supportEmail: string;
   supportPhone: string;
   currency: 'USD ($)' | 'PKR (Rs.)' | 'GBP (£)' | 'EUR (€)' | 'AED (د.إ)';
+  freeShippingMode: 'all' | 'threshold' | 'product-specific' | 'none';
   freeShippingThreshold: number;
   standardShippingFee: number;
   expressShippingFee: number;
@@ -29,6 +30,7 @@ const DEFAULT_SETTINGS: StoreSettings = {
   supportEmail: 'concierge@peshawarichappal.com',
   supportPhone: '+92 91 111 222 333',
   currency: 'PKR (Rs.)',
+  freeShippingMode: 'threshold',
   freeShippingThreshold: 4500,
   standardShippingFee: 250,
   expressShippingFee: 450,

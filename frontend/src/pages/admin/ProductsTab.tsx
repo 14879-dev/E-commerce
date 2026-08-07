@@ -31,6 +31,7 @@ export const ProductsTab: React.FC = () => {
     craftingTime: '12 Hours Master Work',
     availableSizes: [39, 40, 41, 42, 43, 44, 45],
     availableColors: ['saddle-tan', 'espresso'] as LeatherColor[],
+    freeShipping: false,
     images: {
       front: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&q=80&w=800',
       back: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=800',
@@ -66,6 +67,7 @@ export const ProductsTab: React.FC = () => {
       craftingTime: '12 Hours Master Work',
       availableSizes: [39, 40, 41, 42, 43, 44, 45],
       availableColors: ['saddle-tan', 'espresso'],
+      freeShipping: false,
       images: {
         front: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&q=80&w=800',
         back: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=800',
@@ -92,6 +94,7 @@ export const ProductsTab: React.FC = () => {
       craftingTime: product.craftingTime || '12 Hours',
       availableSizes: product.availableSizes || [39, 40, 41, 42, 43, 44, 45],
       availableColors: product.availableColors || ['saddle-tan'],
+      freeShipping: product.freeShipping || false,
       images: product.images
     });
     setShowModal(true);
@@ -111,6 +114,7 @@ export const ProductsTab: React.FC = () => {
       craftingTime: formData.craftingTime,
       availableSizes: formData.availableSizes,
       availableColors: formData.availableColors,
+      freeShipping: formData.freeShipping,
       images: formData.images,
       status3D: 'ready'
     };
@@ -316,9 +320,16 @@ export const ProductsTab: React.FC = () => {
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-bold">
-                        {product.category}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-bold">
+                          {product.category}
+                        </span>
+                        {product.freeShipping && (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 text-[9px] font-bold">
+                            Free Shipping
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-4 font-serif font-bold text-slate-900 text-sm">
                       Rs. {product.price.toLocaleString()}
@@ -419,6 +430,18 @@ export const ProductsTab: React.FC = () => {
                     className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:border-blue-600 focus:outline-none"
                   />
                 </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
+                <label className="flex items-center gap-2 text-xs font-bold text-emerald-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.freeShipping}
+                    onChange={e => setFormData({ ...formData, freeShipping: e.target.checked })}
+                    className="accent-emerald-600 w-4 h-4 rounded"
+                  />
+                  <span>Offer Free Shipping on this Product (Overrides standard shipping charges)</span>
+                </label>
               </div>
 
               <div>

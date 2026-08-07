@@ -25,7 +25,7 @@ export const CheckoutPage: React.FC = () => {
     country: 'Pakistan'
   });
 
-  const [shippingMethod, setShippingMethod] = useState<'standard' | 'express' | 'artisan-courier'>('artisan-courier');
+  const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'easypaisa' | 'jazzcash'>('cod');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -85,7 +85,18 @@ export const CheckoutPage: React.FC = () => {
   }
 
   const effectiveSubtotal = Math.max(0, subtotal - discountAmount);
-  const shippingFee = shippingMethod === 'standard' ? (effectiveSubtotal > settings.freeShippingThreshold ? 0 : settings.standardShippingFee) : shippingMethod === 'express' ? settings.expressShippingFee : 18;
+
+  // Free shipping policy rule matching Admin Settings
+  const isFreeShipping = 
+    settings.freeShippingMode === 'all' ||
+    (settings.freeShippingMode === 'threshold' && effectiveSubtotal >= settings.freeShippingThreshold) ||
+    (settings.freeShippingMode === 'product-specific' && items.some(i => i.product.freeShipping)) ||
+    items.some(i => i.product.freeShipping);
+
+  const shippingFee = shippingMethod === 'standard'
+    ? (isFreeShipping ? 0 : settings.standardShippingFee)
+    : settings.expressShippingFee;
+
   const total = effectiveSubtotal + shippingFee;
   const hasCustomizedItems = items.some(item => item.isCustomized);
 
@@ -201,11 +212,20 @@ export const CheckoutPage: React.FC = () => {
           <div className="space-y-4 pb-6 border-b border-slate-200">
             <h2 className="font-serif font-bold text-xl text-slate-900">2. Shipping Method</h2>
             
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
-                { id: 'standard', label: 'Standard Delivery', price: formatPrice(settings.standardShippingFee), note: '3-5 Days' },
-                { id: 'express', label: 'Express Air', price: formatPrice(settings.expressShippingFee), note: '2 Days' },
-                { id: 'artisan-courier', label: 'Artisan Courier', price: formatPrice(18), note: 'Hand Delivery' }
+                {
+                  id: 'standard',
+                  label: 'Standard Delivery (3-5 Days)',
+                  price: isFreeShipping ? 'FREE' : formatPrice(settings.standardShippingFee),
+                  note: isFreeShipping ? 'Free shipping applied' : 'Nationwide tracked delivery'
+                },
+                {
+                  id: 'express',
+                  label: 'Express Courier (1-2 Days)',
+                  price: formatPrice(settings.expressShippingFee),
+                  note: 'Priority dispatch & fast delivery'
+                }
               ].map(method => (
                 <button
                   key={method.id}
@@ -219,7 +239,9 @@ export const CheckoutPage: React.FC = () => {
                 >
                   <div className="flex items-center justify-between font-bold text-xs">
                     <span>{method.label}</span>
-                    <span className="text-blue-600">{method.price}</span>
+                    <span className={method.price === 'FREE' ? 'text-emerald-600 font-extrabold' : 'text-blue-600'}>
+                      {method.price}
+                    </span>
                   </div>
                   <span className="text-[11px] text-slate-500 block mt-1">{method.note}</span>
                 </button>
