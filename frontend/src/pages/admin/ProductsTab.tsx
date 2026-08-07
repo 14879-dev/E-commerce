@@ -40,8 +40,9 @@ export const ProductsTab: React.FC = () => {
       left: 'https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&q=80&w=800',
       right: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&q=80&w=800',
       top: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&q=80&w=800',
-      sole: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=800'
     }
+  });
+
   const [processingAngle, setProcessingAngle] = useState<string | null>(null);
 
   const handleAngleFileUpload = (angle: keyof typeof formData.images, file: File) => {
