@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Allow: /products
+Allow: /products/
+Allow: /about
+Allow: /size-finder
+Allow: /outfit-match
+
+Disallow: /admin
+Disallow: /admin/
+Disallow: /checkout
+Disallow: /bag
+Disallow: /orders
+Disallow: /wishlist
+
+Sitemap: https://peshawari-chappal.com/sitemap.xml

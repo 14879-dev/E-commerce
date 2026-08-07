@@ -1,0 +1,137 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-white text-text-primary font-sans antialiased selection:bg-copper selection:text-white min-h-screen overflow-x-hidden;
+    background-image: 
+      radial-gradient(circle at 15% 10%, rgba(37, 99, 235, 0.07) 0%, transparent 45%),
+      radial-gradient(circle at 85% 65%, rgba(30, 64, 175, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, rgba(248, 250, 252, 0.8) 0%, transparent 90%);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif tracking-tight text-text-primary;
+  }
+}
+
+@layer components {
+  /* Premium Light Glass Panel Spec */
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 24px;
+    box-shadow: 0 10px 30px 0 rgba(15, 23, 42, 0.06);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Inner light highlight on top edge */
+  .glass-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.3), transparent);
+    pointer-events: none;
+  }
+
+  .glass-panel-interactive {
+    @apply glass-panel transition-all duration-300 hover:border-copper/50 hover:bg-white hover:-translate-y-1 hover:shadow-copper-glow/20;
+  }
+
+  /* Floating Dock Glass Pill (Navy/Black glass with blue highlights) */
+  .glass-dock {
+    background: rgba(15, 23, 42, 0.92);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 9999px;
+    box-shadow: 0 12px 40px 0 rgba(15, 23, 42, 0.25);
+  }
+
+  /* Primary Glass Blue Button */
+  .btn-copper {
+    @apply relative inline-flex items-center justify-center px-6 py-3 rounded-full font-medium text-white transition-all duration-300 overflow-hidden cursor-pointer active:scale-95;
+    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+    box-shadow: 0 4px 20px rgba(37, 99, 235, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .btn-copper:hover {
+    box-shadow: 0 6px 28px rgba(37, 99, 235, 0.5);
+    transform: translateY(-2px);
+  }
+
+  /* Secondary Glass Button */
+  .btn-glass {
+    @apply relative inline-flex items-center justify-center px-6 py-3 rounded-full font-medium text-text-primary transition-all duration-300 cursor-pointer active:scale-95;
+    background: rgba(241, 245, 249, 0.9);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+  }
+
+  .btn-glass:hover {
+    background: #FFFFFF;
+    border-color: rgba(37, 99, 235, 0.4);
+    color: #2563EB;
+    transform: translateY(-2px);
+  }
+
+  /* Text Gradient Utilities */
+  .gradient-gold {
+    background: linear-gradient(135deg, #0F172A 0%, #1E40AF 50%, #2563EB 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .gradient-copper {
+    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 60%, #1E40AF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: marquee 22s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F8FAFC;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2563EB;
+}

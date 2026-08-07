@@ -1,0 +1,165 @@
+import React, { useRef, useMemo } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, Stage } from '@react-three/drei';
+import * as THREE from 'three';
+import type { LeatherColor, SoleType, BuckleFinish } from '../../types';
+
+interface ChappalMeshProps {
+  leatherColor?: LeatherColor;
+  soleType?: SoleType;
+  buckleFinish?: BuckleFinish;
+  autoRotate?: boolean;
+}
+
+const COLOR_MAP: Record<LeatherColor, string> = {
+  'saddle-tan': '#8B5A34',
+  'espresso': '#2E1A11',
+  'burnt-copper': '#C1602E',
+  'mustard-gold': '#C9A24B',
+  'midnight-black': '#1A1817',
+  'vintage-tan': '#A46E45',
+};
+
+const BUCKLE_MAP: Record<BuckleFinish, { color: string; metalness: number; roughness: number }> = {
+  'aged-brass': { color: '#C9A24B', metalness: 0.9, roughness: 0.25 },
+  'burnt-copper': { color: '#C1602E', metalness: 0.85, roughness: 0.3 },
+  'antique-silver': { color: '#D1D5DB', metalness: 0.95, roughness: 0.2 },
+  'matte-black': { color: '#262626', metalness: 0.5, roughness: 0.7 },
+};
+
+const SOLE_COLOR_MAP: Record<SoleType, string> = {
+  'tire-recycled': '#171717',
+  'double-leather': '#4A2E1B',
+  'cushioned-foam': '#292524',
+  'traditional-raw': '#654321',
+};
+
+const ChappalMesh: React.FC<ChappalMeshProps> = ({
+  leatherColor = 'saddle-tan',
+  soleType = 'tire-recycled',
+  buckleFinish = 'aged-brass',
+  autoRotate = true,
+}) => {
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame((_, delta) => {
+    if (autoRotate && groupRef.current) {
+      groupRef.current.rotation.y += delta * 0.4;
+    }
+  });
+
+  const upperMaterial = useMemo(() => {
+    return new THREE.MeshStandardMaterial({
+      color: new THREE.Color(COLOR_MAP[leatherColor] || COLOR_MAP['saddle-tan']),
+      roughness: 0.4,
+      metalness: 0.1,
+    });
+  }, [leatherColor]);
+
+  const soleMaterial = useMemo(() => {
+    return new THREE.MeshStandardMaterial({
+      color: new THREE.Color(SOLE_COLOR_MAP[soleType] || SOLE_COLOR_MAP['tire-recycled']),
+      roughness: 0.85,
+      metalness: 0.05,
+    });
+  }, [soleType]);
+
+  const buckleSpec = BUCKLE_MAP[buckleFinish] || BUCKLE_MAP['aged-brass'];
+  const buckleMaterial = useMemo(() => {
+    return new THREE.MeshStandardMaterial({
+      color: new THREE.Color(buckleSpec.color),
+      roughness: buckleSpec.roughness,
+      metalness: buckleSpec.metalness,
+    });
+  }, [buckleFinish]);
+
+  return (
+    <group ref={groupRef} position={[0, -0.1, 0]} rotation={[0.2, -0.4, 0]}>
+      {/* Base Sole - Authentic Oval Chappal Shape */}
+      <mesh position={[0, 0, 0]} material={soleMaterial} castShadow receiveShadow>
+        <cylinderGeometry args={[0.9, 0.95, 0.12, 32]} />
+      </mesh>
+
+      {/* Cushioned Insole Leather Layer */}
+      <mesh position={[0, 0.07, 0]} material={upperMaterial} castShadow>
+        <cylinderGeometry args={[0.88, 0.88, 0.04, 32]} />
+      </mesh>
+
+      {/* Heel Cup & Raised Rim */}
+      <mesh position={[0, 0.15, -0.55]} rotation={[0.3, 0, 0]} material={upperMaterial} castShadow>
+        <cylinderGeometry args={[0.65, 0.68, 0.18, 16, 1, false, 0, Math.PI]} />
+      </mesh>
+
+      {/* Front Toe Cap Guard (Signature Peshawari High Curve) */}
+      <mesh position={[0, 0.22, 0.55]} rotation={[-0.45, 0, 0]} material={upperMaterial} castShadow>
+        <cylinderGeometry args={[0.6, 0.65, 0.25, 16, 1, false, 0, Math.PI]} />
+      </mesh>
+
+      {/* Main Diagonal T-Strap Cross Over */}
+      <mesh position={[-0.15, 0.24, 0.1]} rotation={[0.2, -0.3, 0.3]} material={upperMaterial} castShadow>
+        <boxGeometry args={[1.1, 0.05, 0.35]} />
+      </mesh>
+
+      <mesh position={[0.15, 0.26, 0.1]} rotation={[0.2, 0.3, -0.3]} material={upperMaterial} castShadow>
+        <boxGeometry args={[1.1, 0.05, 0.35]} />
+      </mesh>
+
+      {/* Back Ankle Strap */}
+      <mesh position={[0, 0.25, -0.45]} rotation={[0.1, 0, 0]} material={upperMaterial} castShadow>
+        <torusGeometry args={[0.65, 0.035, 16, 32, Math.PI]} />
+      </mesh>
+
+      {/* Handcrafted Solid Buckle Hardware */}
+      <mesh position={[0.55, 0.26, -0.2]} rotation={[0, Math.PI / 2, 0]} material={buckleMaterial} castShadow>
+        <boxGeometry args={[0.18, 0.14, 0.04]} />
+      </mesh>
+      <mesh position={[0.55, 0.26, -0.2]} rotation={[0, Math.PI / 2, 0]} material={buckleMaterial}>
+        <cylinderGeometry args={[0.015, 0.015, 0.16, 8]} />
+      </mesh>
+    </group>
+  );
+};
+
+export const Chappal3DViewer: React.FC<{
+  leatherColor?: LeatherColor;
+  soleType?: SoleType;
+  buckleFinish?: BuckleFinish;
+  autoRotate?: boolean;
+  className?: string;
+}> = ({
+  leatherColor = 'saddle-tan',
+  soleType = 'tire-recycled',
+  buckleFinish = 'aged-brass',
+  autoRotate = true,
+  className = 'h-80 w-full',
+}) => {
+  return (
+    <div className={`relative ${className}`}>
+      <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 1.8, 3.8], fov: 45 }}>
+        <ambientLight intensity={1.1} />
+        <directionalLight position={[5, 8, 5]} intensity={1.8} castShadow shadow-mapSize={1024} />
+        <directionalLight position={[-5, 3, -3]} intensity={0.7} color="#93C5FD" />
+        <pointLight position={[0, -2, 2]} intensity={0.5} color="#3B82F6" />
+
+        <Stage environment="city" intensity={0.6} adjustCamera={false}>
+          <ChappalMesh
+            leatherColor={leatherColor}
+            soleType={soleType}
+            buckleFinish={buckleFinish}
+            autoRotate={autoRotate}
+          />
+        </Stage>
+
+        <OrbitControls
+          enableZoom={true}
+          minDistance={2.4}
+          maxDistance={5.5}
+          minPolarAngle={0}
+          maxPolarAngle={Math.PI}
+          enablePan={false}
+          rotateSpeed={0.8}
+        />
+      </Canvas>
+    </div>
+  );
+};
