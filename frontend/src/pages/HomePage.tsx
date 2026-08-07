@@ -27,7 +27,7 @@ export const HomePage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-20 py-4">
+    <div className="space-y-8 sm:space-y-12 py-2">
       <SEOHelmet
         title="Authentic Handcrafted Leather Peshawari Chappals"
         description="Experience 3D product viewing, live customizer, and camera foot size finder for authentic handcrafted Peshawari Chappals."
@@ -151,7 +151,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* Category Section - Fully Visible & Scrollable on Mobile & Desktop */}
-      <section className="space-y-6 pt-4 border-t border-slate-200">
+      <section className="space-y-6 pt-2 mt-0 border-t border-slate-200">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
           <div>
             <span className="text-[11px] font-bold uppercase tracking-widest text-blue-600 block mb-1">
