@@ -27,7 +27,7 @@ export const HomePage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-8 sm:space-y-12 py-2">
+    <div className="space-y-4 sm:space-y-4 py-2">
       <SEOHelmet
         title="Authentic Handcrafted Leather Peshawari Chappals"
         description="Experience 3D product viewing, live customizer, and camera foot size finder for authentic handcrafted Peshawari Chappals."
@@ -36,7 +36,7 @@ export const HomePage: React.FC = () => {
       {/* Hero Section - Open, Clean, Seamless Layout */}
       <section className="relative pt-2 pb-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          
+
           {/* Left Hero Text Content */}
           <div className="lg:col-span-6 space-y-6">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-700 uppercase tracking-widest">
@@ -110,7 +110,7 @@ export const HomePage: React.FC = () => {
 
           {/* Right Hero 3D Model Floating Canvas (Desktop Only) */}
           <div className="hidden lg:flex lg:col-span-6 relative flex-col items-center justify-center">
-            
+
             {/* Header Hint Tag */}
             <div className="w-full flex items-center justify-between z-10 mb-2 px-1">
               <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-blue-700 flex items-center gap-1.5 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
@@ -151,7 +151,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* Category Section - Fully Visible & Scrollable on Mobile & Desktop */}
-      <section className="space-y-6 pt-2 mt-0 border-t border-slate-200">
+      <section className="space-y-0 pt-2 mt-0 border-t border-slate-200">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
           <div>
             <span className="text-[11px] font-bold uppercase tracking-widest text-blue-600 block mb-1">
@@ -166,13 +166,13 @@ export const HomePage: React.FC = () => {
           </Link>
         </div>
 
-        {/* Touch-Scrollable Category Cards Grid for Mobile & Desktop */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
+        {/* Touch-Scrollable Category Cards — horizontal scroll on mobile, grid on sm+ */}
+        <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide sm:grid sm:grid-cols-3 md:grid-cols-5 sm:overflow-x-visible sm:pb-0 sm:gap-4">
           {categoriesList.map(cat => (
             <Link
               key={cat.name}
               to={`/products?category=${cat.name}`}
-              className="group bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 hover:border-blue-600 hover:shadow-md transition-all flex flex-col justify-between"
+              className="group bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 hover:border-blue-600 hover:shadow-md transition-all flex flex-col justify-between flex-shrink-0 w-[68vw] sm:w-auto snap-start"
             >
               <div className="aspect-[4/3] rounded-xl overflow-hidden bg-slate-50 mb-3">
                 <img

@@ -25,7 +25,7 @@ const maskPhone = (phone: string): string => {
 
 export const OrderTrackingPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [searchId, setSearchId] = useState(id || 'PSH-89210');
+  const [searchId, setSearchId] = useState(id || '');
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,9 +38,8 @@ export const OrderTrackingPage: React.FC = () => {
   useEffect(() => {
     if (id) {
       loadOrder(id);
-    } else {
-      loadOrder('PSH-89210');
     }
+    // no auto-load of demo order
   }, [id]);
 
   const loadOrder = async (orderId: string) => {

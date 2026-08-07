@@ -16,12 +16,12 @@ export const CheckoutPage: React.FC = () => {
   const { formatPrice, settings } = useStoreSettings();
 
   const [address, setAddress] = useState<ShippingAddress>({
-    fullName: 'Hamza Afridi',
-    email: 'hamza.afridi@example.com',
-    phone: '+92 300 1234567',
-    address: 'House 14-B, Street 9, Sector F-8/3',
-    city: 'Islamabad',
-    postalCode: '44000',
+    fullName: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    postalCode: '',
     country: 'Pakistan'
   });
 
