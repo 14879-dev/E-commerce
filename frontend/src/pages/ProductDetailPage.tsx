@@ -103,6 +103,8 @@ export const ProductDetailPage: React.FC = () => {
               soleType="double-leather"
               buckleFinish="aged-brass"
               autoRotate={true}
+              images={product.images}
+              model3dUrl={product.model3dUrl}
               className="h-96 sm:h-[450px] w-full"
             />
 
