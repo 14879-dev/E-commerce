@@ -4,6 +4,7 @@ import { OrbitControls, Stage } from '@react-three/drei';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
 import type { LeatherColor, SoleType, BuckleFinish } from '../../types';
+import { ImageContour3DMesh } from './ImageContour3DMesh';
 
 interface ProductImages {
   front?: string;
@@ -64,41 +65,11 @@ const GltfModel: React.FC<{ url: string; autoRotate?: boolean }> = ({ url, autoR
   );
 };
 
-// Dynamic Image Texture Applier for 3D Mesh Parts
-const TextureMeshPart: React.FC<{
-  imageUrl?: string;
-  fallbackMaterial: THREE.Material;
-  children: (material: THREE.Material) => React.ReactNode;
-}> = ({ imageUrl, fallbackMaterial, children }) => {
-  const loadedTexture = useLoader(
-    THREE.TextureLoader,
-    imageUrl || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
-  );
-
-  const material = useMemo(() => {
-    if (imageUrl && loadedTexture) {
-      loadedTexture.colorSpace = THREE.SRGBColorSpace;
-      loadedTexture.wrapS = THREE.RepeatWrapping;
-      loadedTexture.wrapT = THREE.RepeatWrapping;
-      return new THREE.MeshStandardMaterial({
-        map: loadedTexture,
-        roughness: 0.35,
-        metalness: 0.1,
-        side: THREE.DoubleSide,
-      });
-    }
-    return fallbackMaterial;
-  }, [imageUrl, loadedTexture, fallbackMaterial]);
-
-  return <>{children(material)}</>;
-};
-
-const ChappalMesh: React.FC<ChappalMeshProps> = ({
+const DefaultChappalMesh: React.FC<ChappalMeshProps> = ({
   leatherColor = 'saddle-tan',
   soleType = 'tire-recycled',
   buckleFinish = 'aged-brass',
   autoRotate = true,
-  images,
 }) => {
   const groupRef = useRef<THREE.Group>(null);
 
@@ -108,7 +79,7 @@ const ChappalMesh: React.FC<ChappalMeshProps> = ({
     }
   });
 
-  const upperFallbackMaterial = useMemo(() => {
+  const upperMaterial = useMemo(() => {
     return new THREE.MeshStandardMaterial({
       color: new THREE.Color(COLOR_MAP[leatherColor] || COLOR_MAP['saddle-tan']),
       roughness: 0.4,
@@ -116,7 +87,7 @@ const ChappalMesh: React.FC<ChappalMeshProps> = ({
     });
   }, [leatherColor]);
 
-  const soleFallbackMaterial = useMemo(() => {
+  const soleMaterial = useMemo(() => {
     return new THREE.MeshStandardMaterial({
       color: new THREE.Color(SOLE_COLOR_MAP[soleType] || SOLE_COLOR_MAP['tire-recycled']),
       roughness: 0.85,
@@ -133,74 +104,38 @@ const ChappalMesh: React.FC<ChappalMeshProps> = ({
     });
   }, [buckleFinish]);
 
-  const frontImg = images?.front;
-  const topImg = images?.top || images?.front;
-  const soleImg = images?.sole;
-
   return (
     <group ref={groupRef} position={[0, -0.1, 0]} rotation={[0.2, -0.4, 0]}>
-      {/* Base Sole - Authentic Oval Chappal Shape with Sole Texture */}
-      <React.Suspense fallback={null}>
-        <TextureMeshPart imageUrl={soleImg} fallbackMaterial={soleFallbackMaterial}>
-          {(mat) => (
-            <mesh position={[0, 0, 0]} material={mat} castShadow receiveShadow>
-              <cylinderGeometry args={[0.9, 0.95, 0.12, 32]} />
-            </mesh>
-          )}
-        </TextureMeshPart>
-      </React.Suspense>
+      {/* Base Sole - Authentic Oval Chappal Shape */}
+      <mesh position={[0, 0, 0]} material={soleMaterial} castShadow receiveShadow>
+        <cylinderGeometry args={[0.9, 0.95, 0.12, 32]} />
+      </mesh>
 
-      {/* Cushioned Insole Leather Layer with Top Product Texture */}
-      <React.Suspense fallback={null}>
-        <TextureMeshPart imageUrl={topImg} fallbackMaterial={upperFallbackMaterial}>
-          {(mat) => (
-            <mesh position={[0, 0.07, 0]} material={mat} castShadow>
-              <cylinderGeometry args={[0.88, 0.88, 0.04, 32]} />
-            </mesh>
-          )}
-        </TextureMeshPart>
-      </React.Suspense>
+      {/* Cushioned Insole Leather Layer */}
+      <mesh position={[0, 0.07, 0]} material={upperMaterial} castShadow>
+        <cylinderGeometry args={[0.88, 0.88, 0.04, 32]} />
+      </mesh>
 
       {/* Heel Cup & Raised Rim */}
-      <React.Suspense fallback={null}>
-        <TextureMeshPart imageUrl={frontImg} fallbackMaterial={upperFallbackMaterial}>
-          {(mat) => (
-            <mesh position={[0, 0.15, -0.55]} rotation={[0.3, 0, 0]} material={mat} castShadow>
-              <cylinderGeometry args={[0.65, 0.68, 0.18, 16, 1, false, 0, Math.PI]} />
-            </mesh>
-          )}
-        </TextureMeshPart>
-      </React.Suspense>
+      <mesh position={[0, 0.15, -0.55]} rotation={[0.3, 0, 0]} material={upperMaterial} castShadow>
+        <cylinderGeometry args={[0.65, 0.68, 0.18, 16, 1, false, 0, Math.PI]} />
+      </mesh>
 
-      {/* Front Toe Cap Guard (Signature Peshawari High Curve) with Front Product Texture */}
-      <React.Suspense fallback={null}>
-        <TextureMeshPart imageUrl={frontImg} fallbackMaterial={upperFallbackMaterial}>
-          {(mat) => (
-            <mesh position={[0, 0.22, 0.55]} rotation={[-0.45, 0, 0]} material={mat} castShadow>
-              <cylinderGeometry args={[0.6, 0.65, 0.25, 16, 1, false, 0, Math.PI]} />
-            </mesh>
-          )}
-        </TextureMeshPart>
-      </React.Suspense>
+      {/* Front Toe Cap Guard (Signature Peshawari High Curve) */}
+      <mesh position={[0, 0.22, 0.55]} rotation={[-0.45, 0, 0]} material={upperMaterial} castShadow>
+        <cylinderGeometry args={[0.6, 0.65, 0.25, 16, 1, false, 0, Math.PI]} />
+      </mesh>
 
-      {/* Main Diagonal T-Strap Cross Over with Upper Product Texture */}
-      <React.Suspense fallback={null}>
-        <TextureMeshPart imageUrl={frontImg} fallbackMaterial={upperFallbackMaterial}>
-          {(mat) => (
-            <>
-              <mesh position={[-0.15, 0.24, 0.1]} rotation={[0.2, -0.3, 0.3]} material={mat} castShadow>
-                <boxGeometry args={[1.1, 0.05, 0.35]} />
-              </mesh>
-              <mesh position={[0.15, 0.26, 0.1]} rotation={[0.2, 0.3, -0.3]} material={mat} castShadow>
-                <boxGeometry args={[1.1, 0.05, 0.35]} />
-              </mesh>
-            </>
-          )}
-        </TextureMeshPart>
-      </React.Suspense>
+      {/* Main Diagonal T-Strap Cross Over */}
+      <mesh position={[-0.15, 0.24, 0.1]} rotation={[0.2, -0.3, 0.3]} material={upperMaterial} castShadow>
+        <boxGeometry args={[1.1, 0.05, 0.35]} />
+      </mesh>
+      <mesh position={[0.15, 0.26, 0.1]} rotation={[0.2, 0.3, -0.3]} material={upperMaterial} castShadow>
+        <boxGeometry args={[1.1, 0.05, 0.35]} />
+      </mesh>
 
       {/* Back Ankle Strap */}
-      <mesh position={[0, 0.25, -0.45]} rotation={[0.1, 0, 0]} material={upperFallbackMaterial} castShadow>
+      <mesh position={[0, 0.25, -0.45]} rotation={[0.1, 0, 0]} material={upperMaterial} castShadow>
         <torusGeometry args={[0.65, 0.035, 16, 32, Math.PI]} />
       </mesh>
 
@@ -232,6 +167,8 @@ export const Chappal3DViewer: React.FC<{
   images,
   model3dUrl,
 }) => {
+  const frontImage = images?.front;
+
   return (
     <div className={`relative ${className}`}>
       <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 1.8, 3.8], fov: 45 }}>
@@ -242,24 +179,19 @@ export const Chappal3DViewer: React.FC<{
 
         <Stage environment="city" intensity={0.6} adjustCamera={false}>
           {model3dUrl ? (
-            <React.Suspense fallback={
-              <ChappalMesh
-                leatherColor={leatherColor}
-                soleType={soleType}
-                buckleFinish={buckleFinish}
-                autoRotate={autoRotate}
-                images={images}
-              />
-            }>
+            <React.Suspense fallback={<DefaultChappalMesh leatherColor={leatherColor} soleType={soleType} buckleFinish={buckleFinish} autoRotate={autoRotate} />}>
               <GltfModel url={model3dUrl} autoRotate={autoRotate} />
             </React.Suspense>
+          ) : frontImage ? (
+            <React.Suspense fallback={<DefaultChappalMesh leatherColor={leatherColor} soleType={soleType} buckleFinish={buckleFinish} autoRotate={autoRotate} />}>
+              <ImageContour3DMesh imageUrl={frontImage} autoRotate={autoRotate} />
+            </React.Suspense>
           ) : (
-            <ChappalMesh
+            <DefaultChappalMesh
               leatherColor={leatherColor}
               soleType={soleType}
               buckleFinish={buckleFinish}
               autoRotate={autoRotate}
-              images={images}
             />
           )}
         </Stage>

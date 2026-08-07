@@ -34,6 +34,7 @@ export const ProductsTab: React.FC = () => {
     availableSizes: [39, 40, 41, 42, 43, 44, 45],
     availableColors: ['saddle-tan', 'espresso'] as LeatherColor[],
     freeShipping: false,
+    model3dUrl: '',
     images: {
       front: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&q=80&w=800',
       back: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=800',
@@ -102,6 +103,7 @@ export const ProductsTab: React.FC = () => {
       availableSizes: [39, 40, 41, 42, 43, 44, 45],
       availableColors: ['saddle-tan', 'espresso'],
       freeShipping: false,
+      model3dUrl: '',
       images: {
         front: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&q=80&w=800',
         back: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=800',
@@ -129,6 +131,7 @@ export const ProductsTab: React.FC = () => {
       availableSizes: product.availableSizes || [39, 40, 41, 42, 43, 44, 45],
       availableColors: product.availableColors || ['saddle-tan'],
       freeShipping: product.freeShipping || false,
+      model3dUrl: product.model3dUrl || '',
       images: product.images
     });
     setShowModal(true);
@@ -149,6 +152,7 @@ export const ProductsTab: React.FC = () => {
       availableSizes: formData.availableSizes,
       availableColors: formData.availableColors,
       freeShipping: formData.freeShipping,
+      model3dUrl: formData.model3dUrl || undefined,
       images: formData.images,
       status3D: 'ready'
     };
