@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { FileText, ChevronRight } from 'lucide-react';
 import { SEOHelmet } from '../components/common/SEOHelmet';
+import { useStoreSettings } from '../context/StoreSettingsContext';
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <section className="space-y-3">
@@ -11,11 +12,16 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
 );
 
 export const TermsOfServicePage: React.FC = () => {
+  const { settings } = useStoreSettings();
+  const supportEmail = settings.supportEmail || 'concierge@peshawarichappal.com';
+  const supportPhone = settings.supportPhone || '+92 91 111 222 333';
+  const storeName = settings.storeName || 'Peshawari Chappal Co.';
+
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-8">
       <SEOHelmet
-        title="Terms of Service — Peshawari Chappal Co."
-        description="Read our terms and conditions governing purchases, returns, customization, and use of the Peshawari Chappal website."
+        title={`Terms of Service — ${storeName}`}
+        description="Read our terms and conditions governing purchases, returns, deliveries, and use of the Peshawari Chappal website."
       />
 
       {/* Header */}
@@ -62,12 +68,12 @@ export const TermsOfServicePage: React.FC = () => {
         </p>
         <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2 text-sm">
           <div className="flex justify-between border-b border-slate-100 pb-1.5">
-            <span className="font-semibold text-slate-700">Standard Chappal</span>
+            <span className="font-semibold text-slate-700">Standard Catalog Chappal</span>
             <span>3–5 business days crafting + shipping</span>
           </div>
           <div className="flex justify-between border-b border-slate-100 pb-1.5">
-            <span className="font-semibold text-slate-700">Customized / Personalized</span>
-            <span>7–14 business days crafting + shipping</span>
+            <span className="font-semibold text-slate-700">Artisan Double-Stitched</span>
+            <span>5–7 business days crafting + shipping</span>
           </div>
           <div className="flex justify-between">
             <span className="font-semibold text-slate-700">Limited / Royal Edition</span>
@@ -101,13 +107,7 @@ export const TermsOfServicePage: React.FC = () => {
       </Section>
 
       <Section title="6. Returns & Replacements">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-3">
-          <p className="font-bold text-amber-800 text-sm">Important — Customized Items Are Non-Returnable</p>
-          <p className="text-amber-700 text-xs mt-1">
-            Items produced to your personal specifications (custom color, initials, size adjustments from the 3D customizer) cannot be returned or exchanged. This is clearly indicated on the product page before purchase.
-          </p>
-        </div>
-        <p><strong>Standard (non-customized) items:</strong></p>
+        <p><strong>Our 7-Day Exchange & Return Policy:</strong></p>
         <ul className="list-disc pl-5 space-y-1">
           <li>You may request a size exchange or replacement within <strong>7 days</strong> of delivery</li>
           <li>Items must be unused, unworn, and in original packaging</li>
@@ -115,7 +115,7 @@ export const TermsOfServicePage: React.FC = () => {
           <li>We arrange doorstep pickup at no additional cost within Pakistan</li>
           <li>Refunds (for defective/incorrect items) are processed within 5–7 business days after we receive the returned item</li>
         </ul>
-        <p className="mt-2"><strong>We do not accept returns for:</strong> size issues on customized orders, normal leather wear and tear, or items damaged by the buyer.</p>
+        <p className="mt-2"><strong>We do not accept returns for:</strong> normal leather wear and tear, or items damaged by the buyer after delivery.</p>
       </Section>
 
       <Section title="7. Product Descriptions & Accuracy">
@@ -123,13 +123,13 @@ export const TermsOfServicePage: React.FC = () => {
           We make every effort to display our products accurately. However, actual leather colors, textures, and tones may vary slightly from photographs due to natural material variation and screen display differences. Handcrafted items may have minor natural imperfections — these are characteristics of artisan craftsmanship, not defects.
         </p>
         <p className="mt-2">
-          3D product views are rendered approximations for visualization purposes and may not perfectly match the final physical product.
+          Digital product previews and leather swatches are rendered approximations for visualization purposes and may not perfectly match the final physical handcrafted leather.
         </p>
       </Section>
 
       <Section title="8. Intellectual Property">
         <p>
-          All content on this website — including product photographs, 3D models, design assets, brand name, logo, and written content — is the exclusive property of Peshawari Chappal Co. and protected by copyright law. You may not reproduce, distribute, or use our content without written permission.
+          All content on this website — including product photographs, bespoke designs, brand name, logo, and written content — is the exclusive property of Peshawari Chappal Co. and protected by copyright law. You may not reproduce, distribute, or use our content without written permission.
         </p>
       </Section>
 
@@ -164,15 +164,16 @@ export const TermsOfServicePage: React.FC = () => {
       <Section title="13. Contact">
         <p>For questions about these terms:</p>
         <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-1 text-sm">
-          <p className="font-bold text-slate-900">Peshawari Chappal Co.</p>
-          <p>Email: <a href="mailto:legal@peshawarichappal.com" className="text-blue-600 hover:underline">legal@peshawarichappal.com</a></p>
-          <p>Phone: +92 91 111 222 333</p>
+          <p className="font-bold text-slate-900">{storeName}</p>
+          <p>Email: <a href={`mailto:${supportEmail}`} className="text-blue-600 hover:underline">{supportEmail}</a></p>
+          <p>Phone: <a href={`tel:${supportPhone.replace(/[^0-9+]/g, '')}`} className="text-blue-600 hover:underline">{supportPhone}</a></p>
           <p>Address: Qissa Khwani Bazaar, Peshawar, Khyber Pakhtunkhwa, Pakistan</p>
         </div>
       </Section>
 
       {/* Footer Navigation */}
       <div className="pt-6 border-t border-slate-200 flex flex-wrap gap-4 text-xs text-slate-500">
+        <Link to="/contact" className="hover:text-blue-600 transition-colors">Contact Us</Link>
         <Link to="/privacy" className="hover:text-blue-600 transition-colors">Privacy Policy</Link>
         <Link to="/about" className="hover:text-blue-600 transition-colors">About Us</Link>
         <Link to="/" className="hover:text-blue-600 transition-colors">← Back to Store</Link>

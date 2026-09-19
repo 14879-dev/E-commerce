@@ -56,9 +56,20 @@ export interface SizeMapping {
   widthNote: string;
 }
 
+export interface SocialLinks {
+  whatsapp?: string;
+  instagram?: string;
+  facebook?: string;
+  tiktok?: string;
+  twitter?: string;
+  youtube?: string;
+}
+
 export interface StoreSettings {
   storeName: string;
   logoUrl: string;
+  faviconUrl?: string;
+  socialLinks?: SocialLinks;
   supportEmail: string;
   supportPhone: string;
   currency: string;
@@ -68,7 +79,11 @@ export interface StoreSettings {
   expressShippingFee: number;
   codEnabled: boolean;
   easypaisaEnabled: boolean;
+  cardEnabled?: boolean;
   walletEnabled: boolean;
   lowStockThreshold: number;
   sizeChartMap: SizeMapping[];
+  hideCategories?: boolean;
+  heroMediaUrl?: string | null;
+  heroMediaType?: 'image' | 'video' | null;
 }

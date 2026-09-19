@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Download, Filter, Eye, Check, X, RefreshCw, Truck, Clock, ShieldCheck } from 'lucide-react';
+import { Search, Download, Eye, X, RefreshCw } from 'lucide-react';
 import { apiService } from '../../services/api';
 import type { Order } from '../../types';
 
@@ -10,7 +10,6 @@ export const OrdersTab: React.FC = () => {
   // Filter States
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
-  const [selectedType, setSelectedType] = useState<'All' | 'customized' | 'standard'>('All');
   const [activeSubTab, setActiveSubTab] = useState<'orders' | 'replacements'>('orders');
 
   // Detail Modal State
@@ -41,7 +40,7 @@ export const OrdersTab: React.FC = () => {
   };
 
   const handleExportCSV = () => {
-    const headers = ['Order Number', 'Date', 'Customer Name', 'Email', 'Items Count', 'Status', 'Is Customized', 'Total Payable'];
+    const headers = ['Order Number', 'Date', 'Customer Name', 'Email', 'Items Count', 'Status', 'Total Payable'];
     const rows = orders.map(o => [
       o.orderNumber,
       o.date,
@@ -49,7 +48,6 @@ export const OrdersTab: React.FC = () => {
       o.shippingAddress.email,
       o.items.length,
       o.status,
-      o.isCustomizedOrder ? 'Yes' : 'No',
       `$${o.total}`
     ]);
 
@@ -71,8 +69,6 @@ export const OrdersTab: React.FC = () => {
     if (selectedStatus !== 'All' && o.status !== selectedStatus) {
       return false;
     }
-    if (selectedType === 'customized' && !o.isCustomizedOrder) return false;
-    if (selectedType === 'standard' && o.isCustomizedOrder) return false;
     return true;
   });
 
@@ -83,7 +79,7 @@ export const OrdersTab: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
           <h2 className="font-serif font-bold text-2xl text-slate-900">Order Management & Fulfillment</h2>
-          <p className="text-xs text-slate-500">Track production status, custom 3D specs, courier handovers & exchanges.</p>
+          <p className="text-xs text-slate-500">Track production status, courier handovers & customer size exchange requests.</p>
         </div>
 
         <button onClick={handleExportCSV} className="btn-copper text-xs py-2 px-5 flex items-center gap-2">
@@ -143,16 +139,6 @@ export const OrdersTab: React.FC = () => {
             <option value="Delivered">Delivered</option>
             <option value="Cancelled">Cancelled</option>
           </select>
-
-          <select
-            value={selectedType}
-            onChange={e => setSelectedType(e.target.value as any)}
-            className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
-          >
-            <option value="All">All Order Types</option>
-            <option value="customized">Bespoke 3D Customized</option>
-            <option value="standard">Standard Catalog</option>
-          </select>
         </div>
       </div>
 
@@ -166,7 +152,6 @@ export const OrdersTab: React.FC = () => {
                 <th className="py-3 px-4">Date</th>
                 <th className="py-3 px-4">Customer Info</th>
                 <th className="py-3 px-4">Order Details</th>
-                <th className="py-3 px-4">Customized?</th>
                 <th className="py-3 px-4">Fulfillment Status</th>
                 <th className="py-3 px-4 text-right">Total</th>
                 <th className="py-3 px-4 text-right">Action</th>
@@ -175,11 +160,11 @@ export const OrdersTab: React.FC = () => {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400">Loading orders...</td>
+                  <td colSpan={7} className="py-8 text-center text-slate-400">Loading orders...</td>
                 </tr>
               ) : filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400">No orders found matching parameters.</td>
+                  <td colSpan={7} className="py-8 text-center text-slate-400">No orders found matching parameters.</td>
                 </tr>
               ) : (
                 filteredOrders.map(order => (
@@ -192,15 +177,6 @@ export const OrdersTab: React.FC = () => {
                     </td>
                     <td className="py-3 px-4 text-slate-700">
                       {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
-                    </td>
-                    <td className="py-3 px-4">
-                      {order.isCustomizedOrder ? (
-                        <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-bold">
-                          3D Custom
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 text-[11px]">Standard</span>
-                      )}
                     </td>
                     <td className="py-3 px-4">
                       <select
@@ -297,19 +273,9 @@ export const OrdersTab: React.FC = () => {
                         </div>
                       </div>
                       <span className="font-serif font-bold text-slate-900 text-sm">
-                        Rs. {((item.customizationDetails ? item.customizationDetails.customPrice : item.product.price) * item.quantity).toLocaleString()}
+                        Rs. {(item.product.price * item.quantity).toLocaleString()}
                       </span>
                     </div>
-
-                    {/* Custom 3D Specifications */}
-                    {item.customizationDetails && (
-                      <div className="p-2.5 rounded-lg bg-blue-50/80 border border-blue-200 text-xs text-blue-900 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <div><strong className="block text-[10px] text-blue-600 uppercase">Leather Shade</strong> {item.customizationDetails.leatherColor}</div>
-                        <div><strong className="block text-[10px] text-blue-600 uppercase">Outsole Type</strong> {item.customizationDetails.soleType}</div>
-                        <div><strong className="block text-[10px] text-blue-600 uppercase">Buckle Finish</strong> {item.customizationDetails.buckleFinish}</div>
-                        <div><strong className="block text-[10px] text-blue-600 uppercase">Gold Monogram</strong> {item.customizationDetails.initials || 'None'}</div>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>

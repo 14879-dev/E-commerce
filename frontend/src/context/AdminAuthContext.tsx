@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
-interface AdminUser {
+export interface AdminUser {
   username: string;
-  role: 'superadmin' | 'staff';
+  role: 'superadmin' | 'manager' | 'staff';
+  name?: string;
 }
 
 interface AdminAuthContextType {
@@ -11,6 +12,7 @@ interface AdminAuthContextType {
   token: string | null;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  updateCredentials: (newUsername?: string, newPassword?: string) => Promise<{ success: boolean; error?: string }>;
   isLoading: boolean;
 }
 
@@ -18,12 +20,16 @@ const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefin
 
 const SESSION_KEY = 'psh_admin_token';
 const SESSION_USER_KEY = 'psh_admin_user';
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const getApiBase = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  return '';
+};
+const API_BASE = getApiBase();
 
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(() => sessionStorage.getItem(SESSION_KEY));
+  const [token, setToken] = useState<string | null>(() => sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY));
   const [user, setUser] = useState<AdminUser | null>(() => {
-    const stored = sessionStorage.getItem(SESSION_USER_KEY);
+    const stored = sessionStorage.getItem(SESSION_USER_KEY) || localStorage.getItem(SESSION_USER_KEY);
     return stored ? JSON.parse(stored) : null;
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -52,6 +58,8 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const clearSession = () => {
     sessionStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem(SESSION_USER_KEY);
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(SESSION_USER_KEY);
     setToken(null);
     setUser(null);
   };
@@ -73,9 +81,11 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       const adminUser: AdminUser = { username: data.username, role: data.role };
 
-      // Store in sessionStorage (clears when browser tab/window closes)
+      // Store in sessionStorage and localStorage for resilience
       sessionStorage.setItem(SESSION_KEY, data.token);
       sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(adminUser));
+      localStorage.setItem(SESSION_KEY, data.token);
+      localStorage.setItem(SESSION_USER_KEY, JSON.stringify(adminUser));
 
       setToken(data.token);
       setUser(adminUser);
@@ -95,6 +105,37 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     window.location.href = '/admin/login';
   }, []);
 
+  const updateCredentials = useCallback(async (newUsername?: string, newPassword?: string): Promise<{ success: boolean; error?: string }> => {
+    if (!token) return { success: false, error: 'Not authenticated' };
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/credentials`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ newUsername, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { success: false, error: data.error || 'Failed to update credentials' };
+
+      const updatedUser: AdminUser = {
+        username: data.username,
+        role: data.role,
+        name: data.username,
+      };
+      sessionStorage.setItem(SESSION_KEY, data.token);
+      sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(updatedUser));
+      localStorage.setItem(SESSION_KEY, data.token);
+      localStorage.setItem(SESSION_USER_KEY, JSON.stringify(updatedUser));
+      setToken(data.token);
+      setUser(updatedUser);
+      return { success: true };
+    } catch {
+      return { success: false, error: 'Network error updating credentials' };
+    }
+  }, [token]);
+
   return (
     <AdminAuthContext.Provider value={{
       isAuthenticated: !!token && !!user,
@@ -102,6 +143,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       token,
       login,
       logout,
+      updateCredentials,
       isLoading,
     }}>
       {children}

@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { CartItem, Product, CustomizationSelection, LeatherColor } from '../types';
+import type { CartItem, Product, LeatherColor } from '../types';
 
 interface CartContextType {
   items: CartItem[];
-  addToCart: (product: Product, size: number, color: LeatherColor, customization?: CustomizationSelection) => void;
+  addToCart: (product: Product, size: number, color: LeatherColor) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, delta: number) => void;
   clearCart: () => void;
@@ -23,16 +23,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('psh_cart', JSON.stringify(items));
   }, [items]);
 
-  const addToCart = (product: Product, size: number, color: LeatherColor, customization?: CustomizationSelection) => {
+  const addToCart = (product: Product, size: number, color: LeatherColor) => {
     setItems(prev => {
       const existingIdx = prev.findIndex(item => 
         item.product.id === product.id && 
         item.size === size && 
-        item.selectedColor === color && 
-        !item.isCustomized && !customization
+        item.selectedColor === color
       );
 
-      if (existingIdx !== -1 && !customization) {
+      if (existingIdx !== -1) {
         const updated = [...prev];
         updated[existingIdx].quantity += 1;
         return updated;
@@ -44,8 +43,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         size,
         selectedColor: color,
         quantity: 1,
-        isCustomized: !!customization,
-        customizationDetails: customization
       };
 
       return [...prev, newItem];
@@ -73,8 +70,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const subtotal = items.reduce((sum, item) => {
-    const itemPrice = item.customizationDetails ? item.customizationDetails.customPrice : item.product.price;
-    return sum + (itemPrice * item.quantity);
+    return sum + (item.product.price * item.quantity);
   }, 0);
 
   return (

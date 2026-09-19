@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
 import { AdminAuthProvider } from './context/AdminAuthContext';
@@ -16,20 +16,25 @@ import { WishlistPage } from './pages/WishlistPage';
 import { ShoppingBagPage } from './pages/ShoppingBagPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { OrderTrackingPage } from './pages/OrderTrackingPage';
-import { CustomizerPage } from './pages/CustomizerPage';
 import { FootSizeFinderPage } from './pages/FootSizeFinderPage';
 import { OutfitMatcherPage } from './pages/OutfitMatcherPage';
 import { AboutPage } from './pages/AboutPage';
+import { ContactPage } from './pages/ContactPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { TermsOfServicePage } from './pages/TermsOfServicePage';
+import { FAQPage } from './pages/FAQPage';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { apiService } from './services/api';
 
-// Scroll to Top helper on route change
+// Scroll to Top & Visitor tracking helper on route change
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
+    if (!pathname.startsWith('/admin')) {
+      apiService.recordSiteVisit();
+    }
   }, [pathname]);
   return null;
 };
@@ -37,6 +42,7 @@ const ScrollToTop = () => {
 const AppContent: React.FC = () => {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const isHomePage = location.pathname === '/';
 
   return (
     <div className="min-h-screen flex flex-col relative selection:bg-blue-600 selection:text-white bg-white">
@@ -44,7 +50,7 @@ const AppContent: React.FC = () => {
       {!isAdminRoute && <Header />}
 
       {/* Main Application Dedicated Page Routes */}
-      <main className={`flex-1 w-full mx-auto ${isAdminRoute ? 'px-4 sm:px-6 lg:px-8 py-6 sm:py-8' : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8'}`}>
+      <main className={`flex-1 w-full ${isHomePage ? '' : isAdminRoute ? 'px-4 sm:px-6 lg:px-8 py-6 sm:py-8' : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 mx-auto'}`}>
         <Routes>
           {/* Public Storefront Routes */}
           <Route path="/" element={<HomePage />} />
@@ -55,11 +61,14 @@ const AppContent: React.FC = () => {
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/orders" element={<OrderTrackingPage />} />
           <Route path="/orders/:id" element={<OrderTrackingPage />} />
-          <Route path="/customize/:productId" element={<CustomizerPage />} />
-          <Route path="/customize" element={<CustomizerPage />} />
+          <Route path="/customize/*" element={<Navigate to="/products" replace />} />
+          <Route path="/customize" element={<Navigate to="/products" replace />} />
           <Route path="/size-finder" element={<FootSizeFinderPage />} />
           <Route path="/outfit-match" element={<OutfitMatcherPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/faqs" element={<FAQPage />} />
+          <Route path="/faq" element={<Navigate to="/faqs" replace />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
 

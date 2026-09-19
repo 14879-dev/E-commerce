@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Shield, ChevronRight } from 'lucide-react';
 import { SEOHelmet } from '../components/common/SEOHelmet';
+import { useStoreSettings } from '../context/StoreSettingsContext';
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <section className="space-y-3">
@@ -11,10 +12,15 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
 );
 
 export const PrivacyPolicyPage: React.FC = () => {
+  const { settings } = useStoreSettings();
+  const supportEmail = settings.supportEmail || 'concierge@peshawarichappal.com';
+  const supportPhone = settings.supportPhone || '+92 91 111 222 333';
+  const storeName = settings.storeName || 'Peshawari Chappal Co.';
+
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-8">
       <SEOHelmet
-        title="Privacy Policy — Peshawari Chappal Co."
+        title={`Privacy Policy — ${storeName}`}
         description="Our privacy policy explains how we collect, use, and protect your personal information when you shop with us."
       />
 
@@ -112,7 +118,7 @@ export const PrivacyPolicyPage: React.FC = () => {
           <li>Database encryption at rest (MongoDB Atlas)</li>
           <li>No plain-text storage of passwords</li>
         </ul>
-        <p className="mt-2">Despite our best efforts, no system is 100% secure. If you suspect a security issue, contact us immediately at <a href="mailto:security@peshawarichappal.com" className="text-blue-600 hover:underline">security@peshawarichappal.com</a>.</p>
+        <p className="mt-2">Despite our best efforts, no system is 100% secure. If you suspect a security issue, contact us immediately at <a href={`mailto:${supportEmail}`} className="text-blue-600 hover:underline">{supportEmail}</a>.</p>
       </Section>
 
       <Section title="8. Your Rights">
@@ -124,7 +130,7 @@ export const PrivacyPolicyPage: React.FC = () => {
           <li><strong>Objection</strong> — opt out of marketing communications at any time</li>
           <li><strong>Portability</strong> — receive your data in a machine-readable format</li>
         </ul>
-        <p className="mt-2">To exercise any of these rights, email us at <a href="mailto:privacy@peshawarichappal.com" className="text-blue-600 hover:underline">privacy@peshawarichappal.com</a>. We will respond within 30 days.</p>
+        <p className="mt-2">To exercise any of these rights, email us at <a href={`mailto:${supportEmail}`} className="text-blue-600 hover:underline">{supportEmail}</a>. We will respond within 30 days.</p>
       </Section>
 
       <Section title="9. Children's Privacy">
@@ -138,15 +144,16 @@ export const PrivacyPolicyPage: React.FC = () => {
       <Section title="11. Contact Us">
         <p>For any privacy-related questions, requests, or concerns:</p>
         <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-1 text-sm">
-          <p className="font-bold text-slate-900">Peshawari Chappal Co.</p>
-          <p>Email: <a href="mailto:privacy@peshawarichappal.com" className="text-blue-600 hover:underline">privacy@peshawarichappal.com</a></p>
-          <p>Phone: +92 91 111 222 333</p>
+          <p className="font-bold text-slate-900">{storeName}</p>
+          <p>Email: <a href={`mailto:${supportEmail}`} className="text-blue-600 hover:underline">{supportEmail}</a></p>
+          <p>Phone: <a href={`tel:${supportPhone.replace(/[^0-9+]/g, '')}`} className="text-blue-600 hover:underline">{supportPhone}</a></p>
           <p>Address: Qissa Khwani Bazaar, Peshawar, Khyber Pakhtunkhwa, Pakistan</p>
         </div>
       </Section>
 
       {/* Footer Navigation */}
       <div className="pt-6 border-t border-slate-200 flex flex-wrap gap-4 text-xs text-slate-500">
+        <Link to="/contact" className="hover:text-blue-600 transition-colors">Contact Us</Link>
         <Link to="/terms" className="hover:text-blue-600 transition-colors">Terms of Service</Link>
         <Link to="/about" className="hover:text-blue-600 transition-colors">About Us</Link>
         <Link to="/" className="hover:text-blue-600 transition-colors">← Back to Store</Link>

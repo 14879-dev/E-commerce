@@ -1,589 +1,1513 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Plus, Edit, Trash2, Box, RefreshCw, AlertCircle, Check, X, Filter, Upload, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+  Search, Plus, Edit, Trash2, Box, X, Upload,
+  Sparkles, Filter, AlertCircle, Loader2, Key, ExternalLink,
+  Layers, CheckCircle2, Star, Image as ImageIcon
+} from 'lucide-react';
 import { apiService } from '../../services/api';
-import type { Product, LeatherColor, SoleType, BuckleFinish } from '../../types';
-import { removeImageBackground } from '../../utils/backgroundRemoval';
-import { Chappal3DViewer } from '../../components/3d/Chappal3DViewer';
+import type { Product, Category, LeatherColor } from '../../types';
+
+const LEATHER_COLORS: { id: LeatherColor; name: string; hex: string }[] = [
+  { id: 'saddle-tan', name: 'Saddle Tan', hex: '#7B4A28' },
+  { id: 'espresso', name: 'Espresso', hex: '#2A1708' },
+  { id: 'burnt-copper', name: 'Burnt Copper', hex: '#8C3A18' },
+  { id: 'mustard-gold', name: 'Mustard Gold', hex: '#A07010' },
+  { id: 'midnight-black', name: 'Midnight Black', hex: '#161412' },
+  { id: 'vintage-tan', name: 'Vintage Tan', hex: '#9A5E35' },
+];
+
+const STANDARD_SIZES = [39, 40, 41, 42, 43, 44, 45, 46];
+
+interface CustomColorItem {
+  id: string;
+  name: string;
+  hex: string;
+}
+
+const getStoredCustomColors = (): CustomColorItem[] => {
+  try {
+    const saved = localStorage.getItem('psh_custom_colors');
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveStoredCustomColors = (list: CustomColorItem[]) => {
+  try {
+    localStorage.setItem('psh_custom_colors', JSON.stringify(list));
+  } catch {}
+};
 
 export const ProductsTab: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Table Filters & Selection State
-  const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [selected3DStatus, setSelected3DStatus] = useState<string>('All');
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [bulkCategory, setBulkCategory] = useState<string>('Kaptaan');
+  // Search and filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [stockFilter, setStockFilter] = useState<'all' | 'in-stock' | 'low-stock' | 'out-of-stock'>('all');
 
-  // Modal State
-  const [showModal, setShowModal] = useState(false);
+  // Modals
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
 
-  // Product Form Fields
-  const [formData, setFormData] = useState({
-    name: '',
-    subtitle: '',
-    price: 150,
-    originalPrice: 180,
-    category: 'Kaptaan' as Product['category'],
-    description: '',
-    featuresStr: '100% Genuine Tanned Leather, Recycled Tire Sole, Solid Brass Buckle',
-    materials: 'Full grain leather upper, rubber tread sole',
-    craftingTime: '12 Hours Master Work',
-    availableSizes: [39, 40, 41, 42, 43, 44, 45],
-    availableColors: ['saddle-tan', 'espresso'] as LeatherColor[],
-    freeShipping: false,
-    model3dUrl: '',
-    images: {
-      front: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&q=80&w=800',
-      back: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=800',
-      left: 'https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&q=80&w=800',
-      right: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&q=80&w=800',
-      top: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&q=80&w=800',
-    }
+  // Custom Colors State (for Admin & Manager)
+  const [customColors, setCustomColors] = useState<CustomColorItem[]>(getStoredCustomColors);
+  const [newColorName, setNewColorName] = useState('');
+  const [newColorHex, setNewColorHex] = useState('#2A3A4A');
+
+  // Remove.bg API key configuration
+  const [removeBgKey, setRemoveBgKey] = useState<string>('');
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [keySaveMsg, setKeySaveMsg] = useState('');
+
+  // Form State
+  const [formData, setFormData] = useState<{
+    articleTag: string;
+    name: string;
+    subtitle: string;
+    category: string;
+    price: number;
+    costPrice: number;
+    originalPrice?: number;
+    description: string;
+    features: string[];
+    materials: string;
+    craftingTime: string;
+    stockCount: number;
+    featured: boolean;
+    availableSizes: number[];
+    availableColors: (LeatherColor | string)[];
+  }>({
+    articleTag: 'KDM-00001',
+    name: 'KDM-00001',
+    subtitle: 'Handcrafted Double Sole Peshawari Chappal',
+    category: 'None',
+    price: 4500,
+    costPrice: 2200,
+    originalPrice: 5500,
+    description: '100% pure handcrafted full-grain leather chappal with ergonomic comfort tire sole.',
+    features: ['100% Genuine Full-Grain Leather', 'Dual Rubber Tire Sole', 'Hand-stitched with waxed linen thread'],
+    materials: 'Saddle Tan Cowhide Upper, Recycled Tire Sole, Brass Hardware',
+    craftingTime: '12 Hours Master Artisan Handwork',
+    stockCount: 50,
+    featured: false,
+    availableSizes: [40, 41, 42, 43, 44],
+    availableColors: ['saddle-tan', 'espresso'],
   });
 
-  const [processingAngle, setProcessingAngle] = useState<string | null>(null);
+  // Dynamic Multi-Image Gallery State (No rigid angle limits)
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [coverIndex, setCoverIndex] = useState<number>(0);
+  const [newImageUrl, setNewImageUrl] = useState<string>('');
+  const [removingBgIndex, setRemovingBgIndex] = useState<number | null>(null);
 
-  const handleAngleFileUpload = (angle: keyof typeof formData.images, file: File) => {
-    setProcessingAngle(angle);
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const rawSrc = e.target?.result as string;
-      // Auto-remove background to produce clean transparent PNG
-      const transparentPng = await removeImageBackground(rawSrc);
-      setFormData(prev => ({
-        ...prev,
-        images: { ...prev.images, [angle]: transparentPng }
-      }));
-      setProcessingAngle(null);
-    };
-    reader.readAsDataURL(file);
-  };
+  const [featureInput, setFeatureInput] = useState('');
+  const [formSubmitting, setFormSubmitting] = useState(false);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const handleAutoRemoveAllBg = async () => {
-    setProcessingAngle('all');
-    const angles = ['front', 'back', 'left', 'right', 'top', 'sole'] as const;
-    const newImages = { ...formData.images };
+  // Multi-file upload ref
+  const multipleFileInputRef = useRef<HTMLInputElement | null>(null);
 
-    for (const ang of angles) {
-      if (newImages[ang]) {
-        newImages[ang] = await removeImageBackground(newImages[ang]);
+  // Helper to generate next sequential article code (e.g. KDM-00001, KDM-00002)
+  const generateNextTag = (prods: Product[]): string => {
+    let maxNum = 0;
+    prods.forEach((p) => {
+      const tagStr = p.articleTag || p.name || '';
+      const match = tagStr.match(/KDM-(\d+)/i);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num) && num > maxNum) maxNum = num;
       }
-    }
-
-    setFormData(prev => ({ ...prev, images: newImages }));
-    setProcessingAngle(null);
+    });
+    const next = maxNum + 1;
+    return `KDM-${String(next).padStart(5, '0')}`;
   };
 
   useEffect(() => {
-    loadProducts();
+    loadAllData();
+    const savedKey = apiService.getRemoveBgApiKey();
+    setRemoveBgKey(savedKey);
+
+    const handleCategoriesChanged = () => {
+      loadAllData();
+    };
+    window.addEventListener('psh:categories-changed', handleCategoriesChanged);
+    return () => {
+      window.removeEventListener('psh:categories-changed', handleCategoriesChanged);
+    };
   }, []);
 
-  const loadProducts = async () => {
+  const loadAllData = async () => {
     setLoading(true);
-    const list = await apiService.getProducts();
-    setProducts(list);
-    setLoading(false);
+    try {
+      const [prods, cats] = await Promise.all([
+        apiService.getProducts(true),
+        apiService.getCategories(true),
+      ]);
+      setProducts(prods);
+      setCategories(cats);
+    } catch {
+      showNotification('error', 'Failed to load products or categories');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleOpenAdd = () => {
+  const showNotification = (type: 'success' | 'error', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 3500);
+  };
+
+  const handleSaveApiKey = () => {
+    apiService.setRemoveBgApiKey(removeBgKey);
+    setKeySaveMsg('Remove.bg API Key saved successfully!');
+    setTimeout(() => {
+      setKeySaveMsg('');
+      setShowKeyModal(false);
+    }, 1500);
+  };
+
+  // Custom Color Handlers
+  const handleAddCustomColor = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = newColorName.trim();
+    if (!trimmed) {
+      showNotification('error', 'Please enter a color name.');
+      return;
+    }
+    const colorId = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const existing = customColors.find(c => c.id === colorId || c.name.toLowerCase() === trimmed.toLowerCase());
+    if (!existing) {
+      const newColor: CustomColorItem = {
+        id: colorId,
+        name: trimmed,
+        hex: newColorHex || '#334155',
+      };
+      const updatedList = [...customColors, newColor];
+      setCustomColors(updatedList);
+      saveStoredCustomColors(updatedList);
+    }
+    if (!formData.availableColors.includes(colorId)) {
+      setFormData(prev => ({
+        ...prev,
+        availableColors: [...prev.availableColors, colorId],
+      }));
+    }
+    setNewColorName('');
+    showNotification('success', `Color "${trimmed}" added!`);
+  };
+
+  const handleRemoveCustomColorDefinition = (colorId: string) => {
+    const updated = customColors.filter(c => c.id !== colorId);
+    setCustomColors(updated);
+    saveStoredCustomColors(updated);
+    setFormData(prev => ({
+      ...prev,
+      availableColors: prev.availableColors.filter(c => c !== colorId),
+    }));
+  };
+
+  // Open Add Product Modal with auto-generated internal tag & customer-facing title
+  const handleOpenAddModal = () => {
+    const nextTag = generateNextTag(products);
     setEditingProduct(null);
     setFormData({
+      articleTag: nextTag,
       name: '',
       subtitle: '',
-      price: 150,
-      originalPrice: 180,
-      category: 'Kaptaan',
-      description: '',
-      featuresStr: '100% Genuine Tanned Leather, Recycled Tire Sole, Solid Brass Buckle',
-      materials: 'Full grain leather upper, rubber tread sole',
-      craftingTime: '12 Hours Master Work',
-      availableSizes: [39, 40, 41, 42, 43, 44, 45],
+      category: 'None',
+      price: 4500,
+      costPrice: 2200,
+      originalPrice: 5500,
+      description: '100% pure handcrafted full-grain leather chappal with ergonomic comfort tire sole.',
+      features: ['100% Genuine Full-Grain Leather', 'Dual Rubber Tire Sole', 'Hand-stitched with waxed linen thread'],
+      materials: 'Saddle Tan Cowhide Upper, Recycled Tire Sole, Brass Hardware',
+      craftingTime: '12 Hours Master Artisan Handwork',
+      stockCount: 50,
+      featured: false,
+      availableSizes: [40, 41, 42, 43, 44],
       availableColors: ['saddle-tan', 'espresso'],
-      freeShipping: false,
-      model3dUrl: '',
-      images: {
-        front: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&q=80&w=800',
-        back: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=800',
-        left: 'https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&q=80&w=800',
-        right: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&q=80&w=800',
-        top: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&q=80&w=800',
-        sole: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=800'
-      }
     });
-    setShowModal(true);
+    setGalleryImages([]);
+    setCoverIndex(0);
+    setNewImageUrl('');
+    setFeatureInput('');
+    setIsFormModalOpen(true);
   };
 
-  const handleOpenEdit = (product: Product) => {
-    setEditingProduct(product);
+  // Open Edit Product Modal
+  const handleOpenEditModal = (p: Product) => {
+    setEditingProduct(p);
+    const existingTag = p.articleTag || (p.name && /^KDM-\d+/i.test(p.name) ? p.name : '');
     setFormData({
-      name: product.name,
-      subtitle: product.subtitle || '',
-      price: product.price,
-      originalPrice: product.originalPrice || product.price,
-      category: product.category,
-      description: product.description || '',
-      featuresStr: product.features ? product.features.join(', ') : '',
-      materials: product.materials || '',
-      craftingTime: product.craftingTime || '12 Hours',
-      availableSizes: product.availableSizes || [39, 40, 41, 42, 43, 44, 45],
-      availableColors: product.availableColors || ['saddle-tan'],
-      freeShipping: product.freeShipping || false,
-      model3dUrl: product.model3dUrl || '',
-      images: product.images
+      articleTag: existingTag,
+      name: p.name || existingTag || '',
+      subtitle: p.subtitle || '',
+      category: p.category || 'None',
+      price: p.price || 0,
+      costPrice: (p as any).costPrice ?? 0,
+      originalPrice: (p.originalPrice && p.originalPrice > 0) ? p.originalPrice : undefined,
+      description: p.description || '',
+      features: Array.isArray(p.features) ? [...p.features] : [],
+      materials: p.materials || '',
+      craftingTime: p.craftingTime || '12 Hours Master Artisan Handwork',
+      stockCount: (p as any).stockCount ?? 50,
+      featured: !!p.featured,
+      availableSizes: p.availableSizes ? [...p.availableSizes] : [40, 41, 42, 43, 44],
+      availableColors: p.availableColors ? [...p.availableColors] : ['saddle-tan'],
     });
-    setShowModal(true);
+
+    const extracted: string[] = [];
+    if (Array.isArray((p.images as any)?.gallery) && (p.images as any).gallery.length > 0) {
+      extracted.push(...(p.images as any).gallery.filter(Boolean));
+    } else if (p.images) {
+      const angles = ['front', 'back', 'left', 'right', 'top', 'sole'] as const;
+      for (const a of angles) {
+        if (p.images[a]) extracted.push(p.images[a]!);
+      }
+    }
+    setGalleryImages(extracted);
+    setCoverIndex(0);
+    setNewImageUrl('');
+    setFeatureInput('');
+    setIsFormModalOpen(true);
   };
 
-  const handleSaveProduct = async (e: React.FormEvent) => {
+  // Handle Form Submission (Create or Update)
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const payload: Partial<Product> = {
-      name: formData.name,
-      subtitle: formData.subtitle,
-      price: formData.price,
-      originalPrice: formData.originalPrice,
-      category: formData.category,
-      description: formData.description,
-      features: formData.featuresStr.split(',').map(s => s.trim()).filter(Boolean),
-      materials: formData.materials,
-      craftingTime: formData.craftingTime,
-      availableSizes: formData.availableSizes,
-      availableColors: formData.availableColors,
-      freeShipping: formData.freeShipping,
-      model3dUrl: formData.model3dUrl || undefined,
-      images: formData.images,
-      status3D: 'ready'
+    if (!formData.name.trim()) {
+      showNotification('error', 'Product name is required.');
+      return;
+    }
+
+    setFormSubmitting(true);
+    const primaryFront = galleryImages[coverIndex] || galleryImages[0] || '';
+    const imagesPayload = {
+      front: primaryFront,
+      gallery: galleryImages,
+      back: galleryImages[1] || '',
+      left: galleryImages[2] || '',
+      right: galleryImages[3] || '',
+      top: galleryImages[4] || '',
+      sole: galleryImages[5] || '',
     };
 
-    if (editingProduct) {
-      await apiService.updateProduct(editingProduct.id, payload);
-    } else {
-      await apiService.createProduct(payload);
-    }
+    const sanitizedPayload = {
+      ...formData,
+      articleTag: (formData.articleTag || '').trim(),
+      costPrice: Number(formData.costPrice) || 0,
+      category: formData.category?.trim() || 'None',
+      originalPrice: (formData.originalPrice && Number(formData.originalPrice) > 0) ? Number(formData.originalPrice) : undefined,
+      images: imagesPayload,
+    };
 
-    setShowModal(false);
-    loadProducts();
-  };
-
-  const handleDeleteProduct = async (id: string) => {
-    if (confirm('Are you sure you want to delete this product?')) {
-      await apiService.deleteProduct(id);
-      loadProducts();
-    }
-  };
-
-  const handleRetry3D = async (id: string) => {
-    await apiService.retry3DPipeline(id);
-    loadProducts();
-  };
-
-  const handleToggleSelectAll = () => {
-    if (selectedIds.length === filteredProducts.length) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(filteredProducts.map(p => p.id));
+    try {
+      if (editingProduct) {
+        const updated = await apiService.updateProduct(editingProduct.id, sanitizedPayload);
+        setProducts(prev => prev.map(p => (p.id === editingProduct.id ? updated : p)));
+        showNotification('success', `Product "${updated.name}" updated successfully!`);
+      } else {
+        const created = await apiService.createProduct(sanitizedPayload);
+        setProducts(prev => [created, ...prev]);
+        showNotification('success', `Product "${created.name}" created successfully!`);
+      }
+      setIsFormModalOpen(false);
+    } catch (err: any) {
+      showNotification('error', err.message || 'Failed to save product.');
+    } finally {
+      setFormSubmitting(false);
     }
   };
 
-  const handleToggleSelectOne = (id: string) => {
-    if (selectedIds.includes(id)) {
-      setSelectedIds(selectedIds.filter(i => i !== id));
-    } else {
-      setSelectedIds([...selectedIds, id]);
+  // Handle Delete Product
+  const handleDeleteProduct = async () => {
+    if (!deletingProduct) return;
+    try {
+      await apiService.deleteProduct(deletingProduct.id);
+      setProducts(prev => prev.filter(p => p.id !== deletingProduct.id));
+      showNotification('success', `Product "${deletingProduct.name}" removed.`);
+      setDeletingProduct(null);
+    } catch {
+      showNotification('error', 'Failed to delete product.');
     }
   };
 
-  const handleApplyBulk = async (action: 'delete' | 'activate' | 'deactivate' | 'change-category') => {
-    if (selectedIds.length === 0) return;
-    await apiService.bulkUpdateProducts(selectedIds, action, { category: bulkCategory });
-    setSelectedIds([]);
-    loadProducts();
+  // Dynamic Image Gallery Handlers (Upload as many as desired)
+  const handleMultipleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileList = Array.from(files);
+    let loaded = 0;
+    const base64List: string[] = [];
+
+    fileList.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64Data = event.target?.result as string;
+        if (base64Data) {
+          base64List.push(base64Data);
+        }
+        loaded++;
+        if (loaded === fileList.length) {
+          setGalleryImages((prev) => [...prev, ...base64List]);
+          showNotification('success', `Added ${base64List.length} photo(s).`);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
   };
 
-  const filteredProducts = products.filter(p => {
-    if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.description.toLowerCase().includes(search.toLowerCase())) {
-      return false;
+  const handleAddImageUrl = () => {
+    if (!newImageUrl.trim()) return;
+    setGalleryImages((prev) => [...prev, newImageUrl.trim()]);
+    setNewImageUrl('');
+    showNotification('success', 'Image URL added to gallery.');
+  };
+
+  const handleRemoveImageAt = (index: number) => {
+    setGalleryImages((prev) => prev.filter((_, i) => i !== index));
+    if (coverIndex >= index && coverIndex > 0) {
+      setCoverIndex(coverIndex - 1);
     }
-    if (selectedCategory !== 'All' && p.category !== selectedCategory) {
-      return false;
+  };
+
+  const handleSetCoverPhoto = (index: number) => {
+    setCoverIndex(index);
+    showNotification('success', `Photo #${index + 1} marked as the Cover Photo.`);
+  };
+
+  const handleRemoveBackgroundForImage = async (index: number) => {
+    const img = galleryImages[index];
+    if (!img) return;
+    setRemovingBgIndex(index);
+    try {
+      const result = await apiService.removeBackground(img, removeBgKey);
+      if (result.success && result.image) {
+        setGalleryImages((prev) => {
+          const next = [...prev];
+          next[index] = result.image;
+          return next;
+        });
+        showNotification(
+          'success',
+          result.provider === 'remove.bg'
+            ? 'Background removed cleanly with Remove.bg API!'
+            : 'Background isolated using edge transparency filter.'
+        );
+      } else {
+        showNotification('error', result.error || 'Background removal failed. Check API key.');
+      }
+    } catch (err: any) {
+      showNotification('error', err.message || 'Background removal failed.');
+    } finally {
+      setRemovingBgIndex(null);
     }
-    if (selected3DStatus !== 'All' && p.status3D !== selected3DStatus) {
-      return false;
-    }
-    return true;
-  });
+  };
+
+  // Features List Helper
+  const addFeature = () => {
+    if (!featureInput.trim()) return;
+    setFormData(prev => ({
+      ...prev,
+      features: [...prev.features, featureInput.trim()],
+    }));
+    setFeatureInput('');
+  };
+
+  const removeFeature = (idx: number) => {
+    setFormData(prev => ({
+      ...prev,
+      features: prev.features.filter((_, i) => i !== idx),
+    }));
+  };
+
+  // Size toggle helper
+  const toggleSize = (size: number) => {
+    setFormData(prev => ({
+      ...prev,
+      availableSizes: prev.availableSizes.includes(size)
+        ? prev.availableSizes.filter(s => s !== size)
+        : [...prev.availableSizes, size].sort((a, b) => a - b),
+    }));
+  };
+
+  // Color toggle helper
+  const toggleColor = (colorId: LeatherColor | string) => {
+    setFormData(prev => ({
+      ...prev,
+      availableColors: prev.availableColors.includes(colorId)
+        ? prev.availableColors.filter(c => c !== colorId)
+        : [...prev.availableColors, colorId],
+    }));
+  };
+
+  // Filtered Products
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        (p.articleTag && p.articleTag.toLowerCase().includes(q)) ||
+        p.name.toLowerCase().includes(q) ||
+        (p.subtitle && p.subtitle.toLowerCase().includes(q)) ||
+        (p.category && p.category.toLowerCase().includes(q)) ||
+        (p.materials && p.materials.toLowerCase().includes(q));
+
+      if (!matchesSearch) return false;
+
+      if (categoryFilter !== 'all') {
+        if ((p.category || '').toLowerCase() !== categoryFilter.toLowerCase()) {
+          return false;
+        }
+      }
+
+      const stock = (p as any).stockCount ?? 50;
+      if (stockFilter === 'in-stock') return stock > 5;
+      if (stockFilter === 'low-stock') return stock > 0 && stock <= 5;
+      if (stockFilter === 'out-of-stock') return stock === 0;
+
+      return true;
+    });
+  }, [products, searchQuery, categoryFilter, stockFilter]);
 
   return (
     <div className="space-y-6">
-      
-      {/* Top Action Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+      {/* Header Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
-          <h2 className="font-serif font-bold text-2xl text-slate-900">Product Catalog Management</h2>
-          <p className="text-xs text-slate-500">Manage 6-angle photogrammetry assets, prices, categories, and stock.</p>
-        </div>
-
-        <button onClick={handleOpenAdd} className="btn-copper text-xs py-2.5 px-6 flex items-center gap-2">
-          <Plus className="w-4 h-4" /> Add New Chappal Model
-        </button>
-      </div>
-
-      {/* Filter & Search Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3 flex-1 min-w-[260px] max-w-md">
-          <div className="relative w-full">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search product name, category, or features..."
-              className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-blue-600"
-            />
+          <div className="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
+            <Box className="w-4 h-4" />
+            Inventory & Catalog Management
           </div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Products Catalog</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Full CRUD control: create, edit, remove products, categorize items, and manage transparent product images.
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <select
-            value={selectedCategory}
-            onChange={e => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+          {/* Remove.bg API key settings button */}
+          <button
+            onClick={() => setShowKeyModal(true)}
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+              removeBgKey
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+            }`}
+            title="Configure Remove.bg API Key"
           >
-            <option value="All">All Categories</option>
-            <option value="Kaptaan">Kaptaan Series</option>
-            <option value="Zalmi">Zalmi Series</option>
-            <option value="Norzi">Norzi Series</option>
-            <option value="Quetta">Quetta Series</option>
-            <option value="Royal">Royal Series</option>
-          </select>
+            <Key className="w-3.5 h-3.5" />
+            <span>{removeBgKey ? 'Remove.bg Connected' : 'Paste Remove.bg Key'}</span>
+          </button>
 
-          <select
-            value={selected3DStatus}
-            onChange={e => setSelected3DStatus(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+          {/* Add Product Button */}
+          <button
+            onClick={handleOpenAddModal}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-sm transition-all transform active:scale-98 cursor-pointer"
           >
-            <option value="All">All 3D Statuses</option>
-            <option value="ready">Ready (6 Angles)</option>
-            <option value="processing">Processing</option>
-            <option value="queued">Queued</option>
-            <option value="failed">Failed</option>
-          </select>
+            <Plus className="w-4 h-4" />
+            Add New Product
+          </button>
         </div>
       </div>
 
-      {/* Bulk Actions Control Bar */}
-      {selectedIds.length > 0 && (
-        <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 flex flex-wrap items-center justify-between gap-3 text-xs text-blue-900">
-          <span className="font-semibold">
-            {selectedIds.length} products selected for bulk operation:
-          </span>
-
+      {/* Notification Toast */}
+      {notification && (
+        <div
+          className={`p-4 rounded-xl border text-sm font-semibold flex items-center justify-between animate-in fade-in ${
+            notification.type === 'success'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+              : 'bg-red-50 border-red-200 text-red-800'
+          }`}
+        >
           <div className="flex items-center gap-2">
-            <button onClick={() => handleApplyBulk('activate')} className="px-3 py-1 bg-white border border-blue-200 rounded-lg font-bold text-emerald-600 hover:bg-emerald-50">
-              Activate Featured
-            </button>
-            <button onClick={() => handleApplyBulk('deactivate')} className="px-3 py-1 bg-white border border-blue-200 rounded-lg font-bold text-slate-600 hover:bg-slate-100">
-              Deactivate
-            </button>
+            {notification.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-red-600" />
+            )}
+            {notification.message}
+          </div>
+          <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-slate-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
-            <div className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-blue-200">
-              <select value={bulkCategory} onChange={e => setBulkCategory(e.target.value)} className="text-xs focus:outline-none bg-transparent">
-                <option value="Kaptaan">Kaptaan</option>
-                <option value="Zalmi">Zalmi</option>
-                <option value="Norzi">Norzi</option>
-                <option value="Quetta">Quetta</option>
-                <option value="Royal">Royal</option>
-              </select>
-              <button onClick={() => handleApplyBulk('change-category')} className="font-bold text-blue-600">Apply</button>
-            </div>
+      {/* KPI Stats Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
+          <div className="text-2xl font-black text-slate-900">{products.length}</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Products</div>
+        </div>
 
-            <button onClick={() => handleApplyBulk('delete')} className="px-3 py-1 bg-rose-600 text-white rounded-lg font-bold hover:bg-rose-700">
-              Delete Selected
-            </button>
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
+          <div className="text-2xl font-black text-emerald-600">
+            {products.filter(p => ((p as any).stockCount ?? 50) > 5).length}
+          </div>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-400">In Stock</div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
+          <div className="text-2xl font-black text-amber-600">
+            {products.filter(p => {
+              const count = (p as any).stockCount ?? 50;
+              return count > 0 && count <= 5;
+            }).length}
+          </div>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Low Stock (≤5)</div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
+          <div className="text-2xl font-black text-blue-600">{categories.length}</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Active Categories</div>
+        </div>
+      </div>
+
+      {/* Filters Toolbar */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* Search */}
+        <div className="relative w-full md:w-80">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search by title, materials, category..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Dropdowns */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Category Filter */}
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
+            <Layers className="w-3.5 h-3.5" />
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-500"
+            >
+              <option value="all">All Categories ({products.length})</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.name}>
+                  {c.name} {c.disabled ? '(Disabled)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Stock Filter */}
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
+            <Filter className="w-3.5 h-3.5" />
+            <select
+              value={stockFilter}
+              onChange={(e) => setStockFilter(e.target.value as any)}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-500"
+            >
+              <option value="all">All Stock Statuses</option>
+              <option value="in-stock">In Stock (&gt;5)</option>
+              <option value="low-stock">Low Stock (1-5)</option>
+              <option value="out-of-stock">Out of Stock (0)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Product Table */}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center p-16 bg-white rounded-2xl border border-slate-200">
+          <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-3" />
+          <p className="text-sm font-semibold text-slate-600">Loading Product Catalog...</p>
+        </div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-16 bg-white rounded-2xl border border-slate-200 text-center">
+          <Box className="w-12 h-12 text-slate-300 mb-3" />
+          <h3 className="text-base font-bold text-slate-800">No products match your criteria</h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm">
+            Try adjusting your search query or category filters, or click below to add a new product.
+          </p>
+          <button
+            onClick={handleOpenAddModal}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition-all cursor-pointer"
+          >
+            Add New Product
+          </button>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th className="py-3.5 px-4">Product</th>
+                  <th className="py-3.5 px-4">Category</th>
+                  <th className="py-3.5 px-4">Price</th>
+                  <th className="py-3.5 px-4">Inventory</th>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                {filteredProducts.map((product) => {
+                  const frontImg = product.images?.front || Object.values(product.images || {}).find(Boolean);
+                  const stock = (product as any).stockCount ?? 50;
+
+                  return (
+                    <tr key={product.id} className="hover:bg-slate-50/70 transition-colors">
+                      {/* Product Thumbnail & Name */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200/80 overflow-hidden shrink-0 relative">
+                            {frontImg ? (
+                              <img
+                                src={frontImg}
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                <Box className="w-5 h-5" />
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {product.articleTag && (
+                                <span className="px-2 py-0.5 rounded-md bg-slate-900 text-amber-400 font-mono text-[10px] font-bold tracking-wider shrink-0 shadow-xs border border-slate-800">
+                                  {product.articleTag}
+                                </span>
+                              )}
+                              <div className="font-bold text-slate-900 text-sm">{product.name}</div>
+                            </div>
+                            <div className="text-[11px] text-slate-500 line-clamp-1 max-w-xs">{product.subtitle}</div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Category */}
+                      <td className="py-3 px-4">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold text-[11px] border border-blue-100">
+                          {product.category && product.category !== 'None' ? product.category : 'General'}
+                        </span>
+                      </td>
+
+                      {/* Price & Confidential Supplier Cost */}
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-slate-900 text-sm">Rs. {product.price.toLocaleString()}</div>
+                        {Boolean(product.costPrice && product.costPrice > 0) && (
+                          <div className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 inline-block mt-0.5" title="Supplier Cost Price (Hidden from public)">
+                            Buy: Rs. {product.costPrice?.toLocaleString()}
+                          </div>
+                        )}
+                        {Boolean(product.originalPrice && product.originalPrice > product.price) && (
+                          <div className="text-[11px] text-slate-400 line-through mt-0.5">
+                            Rs. {product.originalPrice?.toLocaleString()}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Stock Count */}
+                      <td className="py-3 px-4 font-mono">
+                        <span className="font-bold text-slate-800">{stock}</span> units
+                      </td>
+
+                      {/* Inventory Status Badge */}
+                      <td className="py-3 px-4">
+                        {stock > 5 ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            In Stock
+                          </span>
+                        ) : stock > 0 ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                            Low Stock
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 text-red-700 text-[10px] font-bold border border-red-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                            Out of Stock
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3 px-4 text-right">
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            onClick={() => handleOpenEditModal(product)}
+                            className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-white border border-transparent hover:border-slate-200 transition-all cursor-pointer"
+                            title="Edit Product"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setDeletingProduct(product)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-white border border-transparent hover:border-slate-200 transition-all cursor-pointer"
+                            title="Delete Product"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
-      {/* Products Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
-                <th className="py-3 px-4">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.length > 0 && selectedIds.length === filteredProducts.length}
-                    onChange={handleToggleSelectAll}
-                    className="accent-blue-600"
-                  />
-                </th>
-                <th className="py-3 px-4">Model & Silhouette</th>
-                <th className="py-3 px-4">Category</th>
-                <th className="py-3 px-4">Price</th>
-                <th className="py-3 px-4">Sizes Available</th>
-                <th className="py-3 px-4">3D Pipeline Asset</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400">Loading catalog items...</td>
-                </tr>
-              ) : filteredProducts.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400">No products found matching filters.</td>
-                </tr>
-              ) : (
-                filteredProducts.map(product => (
-                  <tr key={product.id} className="hover:bg-slate-50/60">
-                    <td className="py-3 px-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.includes(product.id)}
-                        onChange={() => handleToggleSelectOne(product.id)}
-                        className="accent-blue-600"
-                      />
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-3">
-                        <img src={product.images.front} alt={product.name} className="w-11 h-11 object-cover rounded-lg bg-slate-100" />
-                        <div>
-                          <h4 className="font-serif font-bold text-slate-900 text-sm line-clamp-1">{product.name}</h4>
-                          <span className="text-[10px] text-slate-500 line-clamp-1">{product.subtitle}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-bold">
-                          {product.category}
-                        </span>
-                        {product.freeShipping && (
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 text-[9px] font-bold">
-                            Free Shipping
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 font-serif font-bold text-slate-900 text-sm">
-                      Rs. {product.price.toLocaleString()}
-                    </td>
-                    <td className="py-3 px-4 text-slate-600">
-                      EU {product.availableSizes.join(', ')}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                          product.status3D === 'ready'
-                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                            : 'bg-amber-50 text-amber-600 border border-amber-200'
-                        }`}>
-                          {product.status3D === 'ready' ? 'Ready (6 Angles)' : product.status3D}
-                        </span>
-                        <button onClick={() => handleRetry3D(product.id)} className="p-1 text-slate-400 hover:text-blue-600" title="Re-run 3D Render">
-                          <RefreshCw className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right space-x-2">
-                      <button onClick={() => handleOpenEdit(product)} className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-blue-600 transition-colors" title="Edit Product">
-                        <Edit className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => handleDeleteProduct(product.id)} className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-rose-500 transition-colors" title="Delete Product">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Add / Edit Product Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full border border-slate-200 shadow-2xl p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <h3 className="font-serif font-bold text-xl text-slate-900">
-                {editingProduct ? 'Edit Chappal Model' : 'Create New Chappal Model'}
-              </h3>
-              <button onClick={() => setShowModal(false)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400">
+      {/* Remove.bg API Key Configuration Modal */}
+      {showKeyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <Key className="w-4 h-4" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">Remove.bg API Key</h3>
+              </div>
+              <button
+                onClick={() => setShowKeyModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveProduct} className="space-y-6">
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <p className="text-xs text-slate-600">
+              Paste your free Remove.bg API key here. Product photo backgrounds will be automatically removed using the
+              official Remove.bg cloud API with flawless cutouts.
+            </p>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                API Key
+              </label>
+              <input
+                type="password"
+                placeholder="Paste your remove.bg key (e.g. abcd1234xyz...)"
+                value={removeBgKey}
+                onChange={(e) => setRemoveBgKey(e.target.value)}
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 font-mono focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            {keySaveMsg && <p className="text-xs font-bold text-emerald-600">{keySaveMsg}</p>}
+
+            <div className="flex items-center justify-between pt-2">
+              <a
+                href="https://www.remove.bg/api#api-reference"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[11px] font-bold text-blue-600 hover:underline inline-flex items-center gap-1"
+              >
+                Get API Key from remove.bg <ExternalLink className="w-3 h-3" />
+              </a>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowKeyModal(false)}
+                  className="px-3 py-1.5 text-xs font-bold text-slate-600 rounded-lg hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveApiKey}
+                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all"
+                >
+                  Save API Key
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create / Edit Product Form Modal */}
+      {isFormModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-3xl w-full border border-slate-200 shadow-2xl my-8 overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/70 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Box className="w-4 h-4" />
+                </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Model Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g. Kaptaan Royal Tan"
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:border-blue-600 focus:outline-none"
-                  />
+                  <h3 className="text-base font-bold text-slate-900">
+                    {editingProduct ? 'Edit Product' : 'Add New Product'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500">Configure product specifications and product photos.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsFormModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Scrollable Form */}
+            <form onSubmit={handleFormSubmit} className="p-6 overflow-y-auto space-y-6">
+              {/* ── 1. Article Tagging & Customer-Facing Title / Subtitle ── */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/90 space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 rounded-lg bg-slate-900 text-amber-400 font-mono text-xs font-black tracking-wider shadow-xs">
+                      INTERNAL TAG
+                    </span>
+                    <span className="text-xs font-bold text-slate-800">For Admin / Manager Search &amp; Inventory</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = generateNextTag(products);
+                      setFormData(prev => ({
+                        ...prev,
+                        articleTag: next,
+                      }));
+                      showNotification('success', `Assigned tag: ${next}`);
+                    }}
+                    className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" /> Auto-Generate Next Tag
+                  </button>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Article Code / Tag Input (Internal for finding & inventory) */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      Internal Article Tag / Code * <span className="text-slate-400 font-normal lowercase">(for staff tracking)</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. KDM-00001"
+                      value={formData.articleTag}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase();
+                        setFormData(prev => ({
+                          ...prev,
+                          articleTag: val,
+                        }));
+                      }}
+                      className="w-full px-3.5 py-2 text-xs font-mono font-bold text-slate-900 bg-white rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 uppercase"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Used by admin and manager to search and find this chappal in inventory.
+                    </p>
+                  </div>
+
+                  {/* Customer-Facing Product Title Input */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      Customer-Facing Product Title *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Kaptaan Signature Pure Leather Chappal"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full px-3.5 py-2 text-xs font-semibold text-slate-900 bg-white rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      The product title displayed to customers across the public storefront.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Customer-Facing Subtitle Input */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Category / Silhouette</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Customer-Facing Subtitle / Tagline
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Handcrafted from pure full-grain cowhide leather with durable tire sole"
+                    value={formData.subtitle}
+                    onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Shown directly below the title for public customers.
+                  </p>
+                </div>
+              </div>
+
+              {/* ── 2. Pricing & Category Grid ── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Category <span className="text-slate-400 font-normal lowercase">(optional)</span>
+                  </label>
                   <select
                     value={formData.category}
-                    onChange={e => setFormData({ ...formData, category: e.target.value as any })}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:border-blue-600 focus:outline-none"
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500"
                   >
-                    <option value="Kaptaan">Kaptaan Series</option>
-                    <option value="Zalmi">Zalmi Series</option>
-                    <option value="Norzi">Norzi Series</option>
-                    <option value="Quetta">Quetta Series</option>
-                    <option value="Royal">Royal Series</option>
+                    <option value="None">None / General</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.name}>
+                        {c.name} {c.disabled ? '(Disabled)' : ''}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Price (PKR Rs.)</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Selling Price (Rs.) *
+                  </label>
                   <input
                     type="number"
                     required
+                    min={0}
                     value={formData.price}
-                    onChange={e => setFormData({ ...formData, price: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:border-blue-600 focus:outline-none"
+                    onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) || 0 })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-semibold"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Original Price (PKR Rs.)</label>
+                  <label className="block text-xs font-bold text-emerald-800 uppercase tracking-wider mb-1 flex items-center justify-between">
+                    <span>Supplier Buy Price (Rs.) *</span>
+                    <span className="text-[10px] text-emerald-600 font-medium lowercase">dashboard only</span>
+                  </label>
                   <input
                     type="number"
-                    value={formData.originalPrice}
-                    onChange={e => setFormData({ ...formData, originalPrice: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:border-blue-600 focus:outline-none"
+                    min={0}
+                    value={formData.costPrice}
+                    onChange={(e) => setFormData({ ...formData, costPrice: Number(e.target.value) || 0 })}
+                    placeholder="e.g. 2200"
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-emerald-300 bg-emerald-50/40 text-emerald-950 font-semibold focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">
+                    Confidential: for inventory investment calc
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Original / Strike Price (Rs.)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={formData.originalPrice || ''}
+                    onChange={(e) => setFormData({ ...formData, originalPrice: Number(e.target.value) || undefined })}
+                    placeholder="Optional for discount"
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
-                <label className="flex items-center gap-2 text-xs font-bold text-emerald-800 cursor-pointer">
+              {/* Stock Count and Featured */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Stock Inventory Count
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={formData.freeShipping}
-                    onChange={e => setFormData({ ...formData, freeShipping: e.target.checked })}
-                    className="accent-emerald-600 w-4 h-4 rounded"
+                    type="number"
+                    min={0}
+                    value={formData.stockCount}
+                    onChange={(e) => setFormData({ ...formData, stockCount: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500"
                   />
-                  <span>Offer Free Shipping on this Product (Overrides standard shipping charges)</span>
-                </label>
+                </div>
+
+                <div className="flex items-center gap-6 pt-5">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.featured}
+                      onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
+                      className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-xs font-bold text-slate-700">Feature on Homepage</span>
+                  </label>
+                </div>
               </div>
 
+              {/* Description */}
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Description</label>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Description
+                </label>
                 <textarea
                   rows={3}
                   value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Authentic Peshawar handcrafting details..."
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:border-blue-600 focus:outline-none"
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Detailed description of craftsmanship, heritage cut, and comfort..."
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500"
                 />
               </div>
 
-              {/* 6-Angle Image Upload Fields with Auto Background Removal & Photogrammetry 3D Conversion */}
-              <div className="space-y-3 pt-2 border-t border-slate-200">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-blue-600">
-                      6-Angle Product Photogrammetry & 3D Conversion
-                    </label>
-                    <span className="text-[11px] text-slate-500 block">
-                      Upload photo for any angle — background is automatically removed to generate clean 3D transparent textures.
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleAutoRemoveAllBg}
-                    disabled={processingAngle !== null}
-                    className="px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 text-xs font-bold flex items-center gap-1.5 shrink-0 self-start sm:self-auto transition-all"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                    {processingAngle === 'all' ? 'Stripping Backgrounds...' : 'Auto-Remove All Backgrounds'}
-                  </button>
+              {/* Materials & Crafting Time */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Materials
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.materials}
+                    onChange={(e) => setFormData({ ...formData, materials: e.target.value })}
+                    placeholder="e.g. Grade-A Calfskin, Brass Buckles, Tire Sole"
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500"
+                  />
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {(['front', 'back', 'left', 'right', 'top', 'sole'] as const).map(angle => (
-                    <div key={angle} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
-                      <div className="flex items-center justify-between text-[10px] font-bold text-slate-700 uppercase">
-                        <span>{angle} Angle</span>
-                        {processingAngle === angle && (
-                          <span className="text-blue-600 animate-pulse font-semibold">Processing BG...</span>
-                        )}
-                      </div>
-
-                      <div className="relative aspect-video rounded-lg overflow-hidden bg-white border border-slate-200 flex items-center justify-center">
-                        {formData.images[angle] ? (
-                          <img src={formData.images[angle]} alt={angle} className="w-full h-full object-contain p-1" />
-                        ) : (
-                          <span className="text-[10px] text-slate-400">No image</span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        <label className="flex-1 px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-blue-600 hover:bg-blue-50 cursor-pointer text-center block transition-all shadow-2xs">
-                          Upload Photo
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={e => {
-                              const file = e.target.files?.[0];
-                              if (file) handleAngleFileUpload(angle, file);
-                            }}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Real-time 3D Photogrammetry Interactive Mesh Preview */}
-              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
-                    <Box className="w-4 h-4 text-blue-400" /> Interactive 3D Model Real-Time Preview
-                  </span>
-                  <span className="text-[10px] text-slate-400">360° Orbit Drag & Scroll Zoom</span>
-                </div>
-                <div className="h-64 w-full rounded-xl overflow-hidden bg-slate-950/80 border border-slate-800/80">
-                  <Chappal3DViewer
-                    autoRotate={true}
-                    images={formData.images}
-                    className="h-full w-full"
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Crafting Time
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.craftingTime}
+                    onChange={(e) => setFormData({ ...formData, craftingTime: e.target.value })}
+                    placeholder="e.g. 12 Hours Master Artisan Handwork"
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-glass text-xs py-2 px-5">
-                  Cancel
-                </button>
-                <button type="submit" className="btn-copper text-xs py-2 px-6">
-                  Save Product Model
-                </button>
+              {/* Sizes Selection */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  Available EU Sizes
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {STANDARD_SIZES.map((size) => {
+                    const isSelected = formData.availableSizes.includes(size);
+                    return (
+                      <button
+                        type="button"
+                        key={size}
+                        onClick={() => toggleSize(size)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        EU {size}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
+              {/* ── 3. Selected Colours (Presets + Admin/Manager Manual Adder) ── */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Selected Leather Colours / Shades *
+                    </label>
+                    <p className="text-[11px] text-slate-500">
+                      Choose from standard shades or add custom colors manually (Admin &amp; Manager).
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
+                    {formData.availableColors.length} Selected
+                  </span>
+                </div>
+
+                {/* Predefined Colors List */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {LEATHER_COLORS.map((c) => {
+                    const isSelected = formData.availableColors.includes(c.id);
+                    return (
+                      <button
+                        type="button"
+                        key={c.id}
+                        onClick={() => toggleColor(c.id)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                          isSelected
+                            ? 'bg-white text-slate-900 border-blue-600 shadow-xs ring-1 ring-blue-600'
+                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: c.hex }} />
+                        {c.name}
+                        {isSelected && <span className="text-blue-600 font-bold ml-0.5">✓</span>}
+                      </button>
+                    );
+                  })}
+
+                  {/* Custom Added Colors */}
+                  {customColors.map((c) => {
+                    const isSelected = formData.availableColors.includes(c.id);
+                    return (
+                      <div key={c.id} className="relative inline-flex items-center group">
+                        <button
+                          type="button"
+                          onClick={() => toggleColor(c.id)}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                            isSelected
+                              ? 'bg-white text-slate-900 border-purple-600 shadow-xs ring-1 ring-purple-600'
+                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: c.hex }} />
+                          {c.name}
+                          {isSelected && <span className="text-purple-600 font-bold ml-0.5">✓</span>}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCustomColorDefinition(c.id)}
+                          className="opacity-0 group-hover:opacity-100 -ml-2 mr-1 p-0.5 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-all cursor-pointer"
+                          title={`Delete ${c.name} color`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Manual Custom Color Addition Row */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/90 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                      <Plus className="w-3.5 h-3.5 text-blue-600" />
+                      Add Colour Manually
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400">Available to Admin &amp; Manager</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shrink-0">
+                      <input
+                        type="color"
+                        value={newColorHex}
+                        onChange={(e) => setNewColorHex(e.target.value)}
+                        className="w-6 h-6 rounded cursor-pointer border-0 bg-transparent p-0"
+                        title="Pick color swatch hex"
+                      />
+                      <span className="text-[10px] font-mono text-slate-500 uppercase">{newColorHex}</span>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Color name (e.g. Royal Navy, Dark Maroon, Olive Green, Smoke Grey)"
+                      value={newColorName}
+                      onChange={(e) => setNewColorName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddCustomColor();
+                        }
+                      }}
+                      className="flex-1 min-w-[200px] px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-blue-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleAddCustomColor()}
+                      className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add Color
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bullet Features */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Bullet Features
+                </label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    placeholder="Add a key feature (e.g. Memory foam cushioned footbed)"
+                    value={featureInput}
+                    onChange={(e) => setFeatureInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addFeature();
+                      }
+                    }}
+                    className="flex-1 px-3.5 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={addFeature}
+                    className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all"
+                  >
+                    Add
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {formData.features.map((feat, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-[11px] font-medium"
+                    >
+                      {feat}
+                      <button
+                        type="button"
+                        onClick={() => removeFeature(idx)}
+                        className="text-slate-400 hover:text-red-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>              {/* ── Dynamic Product Photo Gallery & Remove.bg ── */}
+              <div className="border-t border-slate-200 pt-5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-blue-600" />
+                      Product Photo Gallery &amp; Background Removal
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Upload as many pictures as you want (no angle restrictions). Choose any picture as the main cover photo, and remove backgrounds with Remove.bg.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-slate-600">
+                      {removeBgKey ? (
+                        <span className="text-emerald-700 flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Remove.bg Active
+                        </span>
+                      ) : (
+                        <span className="text-amber-700 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5" /> No API Key Set
+                        </span>
+                      )}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowKeyModal(true)}
+                      className="text-xs font-bold text-blue-600 hover:underline cursor-pointer"
+                    >
+                      {removeBgKey ? 'Change Key' : 'Configure Key'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Hidden Multi-file input */}
+                <input
+                  ref={multipleFileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleMultipleFiles}
+                />
+
+                {/* Upload & Add Bar */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 p-3 rounded-2xl bg-slate-100/70 border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => multipleFileInputRef.current?.click()}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs shrink-0 cursor-pointer"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Upload Pictures from Device</span>
+                  </button>
+
+                  <div className="flex items-center gap-2 flex-1">
+                    <input
+                      type="url"
+                      placeholder="Or paste an image web URL here..."
+                      value={newImageUrl}
+                      onChange={(e) => setNewImageUrl(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddImageUrl();
+                        }
+                      }}
+                      className="flex-1 px-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddImageUrl}
+                      className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all shrink-0 cursor-pointer"
+                    >
+                      Add Photo
+                    </button>
+                  </div>
+                </div>
+
+                {/* Photo Gallery Grid */}
+                {galleryImages.length === 0 ? (
+                  <div className="p-8 rounded-2xl border-2 border-dashed border-slate-200 text-center space-y-2 bg-slate-50/50">
+                    <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+                      <ImageIcon className="w-5 h-5" />
+                    </div>
+                    <p className="text-xs font-bold text-slate-700">No product photos added yet</p>
+                    <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+                      Click &quot;Upload Pictures from Device&quot; to pick multiple photos, or paste an image URL above. You can upload as many as you wish!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                    {galleryImages.map((url, idx) => {
+                      const isCover = idx === coverIndex;
+                      const isProcessing = removingBgIndex === idx;
+
+                      return (
+                        <div
+                          key={idx}
+                          className={`p-2.5 rounded-xl border transition-all space-y-2 flex flex-col justify-between ${
+                            isCover ? 'bg-blue-50/40 border-blue-400 ring-2 ring-blue-500/20' : 'bg-white border-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1 text-[11px]">
+                            <span className="font-bold text-slate-700 flex items-center gap-1">
+                              Photo #{idx + 1}
+                            </span>
+                            {isCover ? (
+                              <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white font-bold text-[10px] flex items-center gap-1 shadow-xs">
+                                <Star className="w-2.5 h-2.5 fill-current" /> Cover (Front)
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleSetCoverPhoto(idx)}
+                                className="text-[10px] font-bold text-slate-500 hover:text-blue-600 transition-colors"
+                              >
+                                Set as Cover
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Image Box */}
+                          <div
+                            className="h-28 rounded-lg border border-slate-200 overflow-hidden relative flex items-center justify-center bg-slate-50"
+                            style={{
+                              backgroundImage:
+                                'radial-gradient(#cbd5e1 1px, transparent 1px), radial-gradient(#cbd5e1 1px, #f8fafc 1px)',
+                              backgroundSize: '16px 16px',
+                              backgroundPosition: '0 0, 8px 8px',
+                            }}
+                          >
+                            <img
+                              src={url}
+                              alt={`Product photo ${idx + 1}`}
+                              className="max-h-full max-w-full object-contain p-1"
+                            />
+
+                            {isProcessing && (
+                              <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex flex-col items-center justify-center text-white p-2">
+                                <Loader2 className="w-5 h-5 animate-spin mb-1 text-blue-400" />
+                                <span className="text-[10px] font-bold">Removing BG...</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Photo Actions */}
+                          <div className="flex items-center gap-1 pt-1">
+                            <button
+                              type="button"
+                              disabled={isProcessing}
+                              onClick={() => handleRemoveBackgroundForImage(idx)}
+                              className="flex-1 px-2 py-1 text-[10px] font-bold bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 rounded-lg border border-slate-200 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                              title="Remove background with Remove.bg API"
+                            >
+                              <Sparkles className="w-3 h-3 text-blue-600" />
+                              <span>Remove BG</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImageAt(idx)}
+                              className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all cursor-pointer"
+                              title="Delete photo"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Form Footer Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsFormModalOpen(false)}
+                  className="px-5 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={formSubmitting}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {formSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {editingProduct ? 'Update Product' : 'Save New Product'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
       )}
 
+      {/* Delete Confirmation Modal */}
+      {deletingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-sm w-full border border-slate-200 shadow-2xl p-6 text-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Delete Product?</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Are you sure you want to delete <strong>"{deletingProduct.name}"</strong>? This product will be
+                permanently removed from your store catalog.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingProduct(null)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteProduct}
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+              >
+                Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

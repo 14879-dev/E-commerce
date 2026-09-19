@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, MailOpen, Send, CheckCircle, Clock } from 'lucide-react';
+import { Send, CheckCircle } from 'lucide-react';
 import { apiService } from '../../services/api';
 import type { CustomerMessage } from '../../types';
 

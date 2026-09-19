@@ -1,34 +1,83 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, Filter, RotateCcw } from 'lucide-react';
 import { ProductCard } from '../components/product/ProductCard';
 import { SEOHelmet } from '../components/common/SEOHelmet';
 import { apiService } from '../services/api';
-import type { Product, LeatherColor } from '../types';
+import type { Product, LeatherColor, Category } from '../types';
 
 import { useStoreSettings } from '../context/StoreSettingsContext';
 
 export const CatalogPage: React.FC = () => {
-  const { formatPrice } = useStoreSettings();
+  const { formatPrice, settings } = useStoreSettings();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const categoryParam = searchParams.get('category');
+
   // Filters State
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam || 'All');
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [selectedColor, setSelectedColor] = useState<LeatherColor | 'All'>('All');
   const [maxPrice, setMaxPrice] = useState<number>(25000);
   const [sortBy, setSortBy] = useState<'featured' | 'price-low' | 'price-high' | 'rating'>('featured');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
+    if (searchTerm.trim().length >= 3) {
+      const timer = setTimeout(() => {
+        apiService.recordSearchQuery(searchTerm.trim());
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [searchTerm]);
+
+  const loadCategories = () => {
+    apiService.getCategories().then(cats => {
+      setCategories(cats);
+    });
+  };
+
+  const loadProducts = () => {
     apiService.getProducts().then(data => {
       setProducts(data);
       setLoading(false);
     });
+  };
+
+  useEffect(() => {
+    loadCategories();
+    loadProducts();
+
+    const handleCategoriesChanged = () => {
+      loadCategories();
+      loadProducts();
+    };
+    const handleProductsChanged = () => {
+      loadProducts();
+    };
+
+    window.addEventListener('psh:categories-changed', handleCategoriesChanged);
+    window.addEventListener('psh:products-changed', handleProductsChanged);
+    return () => {
+      window.removeEventListener('psh:categories-changed', handleCategoriesChanged);
+      window.removeEventListener('psh:products-changed', handleProductsChanged);
+    };
   }, []);
 
-  const categories = ['All', 'Kaptaan', 'Zalmi', 'Norzi', 'Quetta', 'Royal'];
+  useEffect(() => {
+    if (categoryParam) {
+      setSelectedCategory(categoryParam);
+    }
+  }, [categoryParam]);
+
+  const categoryNames = useMemo(() => {
+    return ['All', ...categories.map(c => c.name)];
+  }, [categories]);
+
   const sizes = [39, 40, 41, 42, 43, 44, 45];
   const colors: { label: string; value: LeatherColor | 'All' }[] = [
     { label: 'All Colors', value: 'All' },
@@ -38,12 +87,23 @@ export const CatalogPage: React.FC = () => {
     { label: 'Mustard Gold', value: 'mustard-gold' },
   ];
 
+  const handleSelectCategory = (catName: string) => {
+    setSelectedCategory(catName);
+    const newParams = new URLSearchParams(searchParams);
+    if (catName === 'All') {
+      newParams.delete('category');
+    } else {
+      newParams.set('category', catName);
+    }
+    setSearchParams(newParams, { replace: true });
+  };
+
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
       if (searchTerm && !product.name.toLowerCase().includes(searchTerm.toLowerCase()) && !product.description.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
       }
-      if (selectedCategory !== 'All' && product.category !== selectedCategory) {
+      if (selectedCategory !== 'All' && (product.category || '').toLowerCase() !== selectedCategory.toLowerCase()) {
         return false;
       }
       if (selectedSize !== null && !product.availableSizes.includes(selectedSize)) {
@@ -69,15 +129,18 @@ export const CatalogPage: React.FC = () => {
     setSelectedCategory('All');
     setSelectedSize(null);
     setSelectedColor('All');
-    setMaxPrice(300);
+    setMaxPrice(25000);
     setSortBy('featured');
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('category');
+    setSearchParams(newParams, { replace: true });
   };
 
   return (
     <div className="space-y-8">
       <SEOHelmet
         title="Handcrafted Peshawari Chappal Catalog"
-        description="Browse our full collection of authentic Peshawari Chappals including Kaptaan, Zalmi, Norzi, and Quetta designs with interactive 3D viewing."
+        description="Browse our full collection of authentic Peshawari Chappals including Kaptaan, Zalmi, Norzi, and Quetta designs with interactive bespoke viewing."
       />
 
       {/* Header Banner - Open Layout with Divider Line */}
@@ -90,7 +153,9 @@ export const CatalogPage: React.FC = () => {
             Master Chappal Collection
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl">
-            Filter by iconic silhouette, EU foot size, organic leather shade, or price range.
+            {settings.hideCategories
+              ? 'Browse all authentic handcrafted models, filter by EU foot size, leather shade, or price range.'
+              : 'Filter by iconic silhouette, EU foot size, organic leather shade, or price range.'}
           </p>
         </div>
 
@@ -101,32 +166,34 @@ export const CatalogPage: React.FC = () => {
             type="text"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Search Kaptaan, Zalmi, leather shade, brass buckle..."
+            placeholder="Search products by model, leather shade, brass buckle..."
             className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:border-blue-600"
           />
         </div>
 
-        {/* Category Horizontal Pills Bar - Always Visible & Touch Scrollable on Mobile */}
-        <div className="pt-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-2">
-            Categories & Silhouettes
-          </span>
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
-                  selectedCategory === cat
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
-                }`}
-              >
-                {cat} {cat === 'All' ? 'Collection' : 'Chappal'}
-              </button>
-            ))}
+        {/* Category Horizontal Pills Bar - Hidden if hideCategories is enabled */}
+        {!settings.hideCategories && (
+          <div className="pt-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-2">
+              Categories & Silhouettes
+            </span>
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+              {categoryNames.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => handleSelectCategory(cat)}
+                  className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
+                    selectedCategory.toLowerCase() === cat.toLowerCase()
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                  }`}
+                >
+                  {cat} {cat === 'All' ? 'Collection' : 'Chappal'}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -146,27 +213,29 @@ export const CatalogPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Category Filter */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
-                Silhouette / Category
-              </label>
-              <div className="space-y-1.5">
-                {categories.map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                      selectedCategory === cat
-                        ? 'bg-blue-600 text-white font-bold'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                    }`}
-                  >
-                    {cat} {cat === 'All' ? '' : 'Chappal'}
-                  </button>
-                ))}
+            {/* Category Filter - Hidden if hideCategories is active */}
+            {!settings.hideCategories && (
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
+                  Silhouette / Category
+                </label>
+                <div className="space-y-1.5">
+                  {categoryNames.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => handleSelectCategory(cat)}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                        selectedCategory.toLowerCase() === cat.toLowerCase()
+                          ? 'bg-blue-600 text-white font-bold'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      {cat} {cat === 'All' ? '' : 'Chappal'}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Size Filter */}
             <div>

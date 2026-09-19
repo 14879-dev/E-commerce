@@ -1,7 +1,12 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import { SEOHelmet } from '../components/common/SEOHelmet';
+import { useStoreSettings } from '../context/StoreSettingsContext';
 
 export const AboutPage: React.FC = () => {
+  const { settings } = useStoreSettings();
+  const supportEmail = settings.supportEmail || 'concierge@peshawarichappal.com';
   return (
     <div className="space-y-16 max-w-5xl mx-auto py-2">
       <SEOHelmet
@@ -19,7 +24,7 @@ export const AboutPage: React.FC = () => {
           <span className="text-blue-600">Master Leathercraft</span>
         </h1>
         <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed">
-          From the ancient cobbler alleys of Old Peshawar to international runways. We preserve authentic Pashtun leatherwork while empowering artisans through modern 3D technology.
+          From the ancient cobbler alleys of Old Peshawar to international runways. We preserve authentic Pashtun leatherwork while empowering artisans through digital bespoke craftsmanship.
         </p>
       </div>
 
@@ -90,6 +95,26 @@ export const AboutPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Concierge & Inquiries Banner */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-blue-50/80 border border-blue-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div className="space-y-1">
+          <h3 className="font-serif font-bold text-xl text-slate-900">Have a Question for Our Master Artisans?</h3>
+          <p className="text-xs sm:text-sm text-slate-600">
+            For custom wedding orders, bespoke size consultations, or leather care inquiries, contact our concierge at{' '}
+            <a href={`mailto:${supportEmail}`} className="font-bold text-blue-600 underline">
+              {supportEmail}
+            </a>.
+          </p>
+        </div>
+        <Link
+          to="/contact"
+          className="btn-copper text-xs py-2.5 px-6 shrink-0 inline-flex items-center gap-2"
+        >
+          <span>Contact Concierge</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
     </div>
   );
 };

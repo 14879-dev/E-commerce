@@ -1,0 +1,71 @@
+{
+  "storeName": "Peshawari Chappal Co.",
+  "logoUrl": "/uploads/asset_1789685216898.png",
+  "faviconUrl": "/uploads/asset_1789685812306.png",
+  "heroMediaUrl": "/uploads/hero.webp",
+  "heroMediaType": "image",
+  "socialLinks": {
+    "whatsapp": "+923001234567",
+    "instagram": "https://instagram.com/peshawarichappal",
+    "facebook": "https://facebook.com/peshawarichappal",
+    "tiktok": "https://tiktok.com/@peshawarichappal",
+    "twitter": "https://x.com/peshawarichappal",
+    "youtube": "https://youtube.com/@peshawarichappal"
+  },
+  "supportEmail": "concierge@peshawarichappal.com",
+  "supportPhone": "+92 91 111 222 333",
+  "currency": "PKR (Rs.)",
+  "freeShippingMode": "threshold",
+  "freeShippingThreshold": 4500,
+  "standardShippingFee": 250,
+  "expressShippingFee": 450,
+  "codEnabled": true,
+  "easypaisaEnabled": true,
+  "walletEnabled": true,
+  "lowStockThreshold": 5,
+  "sizeChartMap": [
+    {
+      "eu": 39,
+      "uk": 5,
+      "mm": 245,
+      "widthNote": "Narrow bridge fit"
+    },
+    {
+      "eu": 40,
+      "uk": 6,
+      "mm": 252,
+      "widthNote": "Regular slim fit"
+    },
+    {
+      "eu": 41,
+      "uk": 7,
+      "mm": 260,
+      "widthNote": "Standard fit"
+    },
+    {
+      "eu": 42,
+      "uk": 8,
+      "mm": 268,
+      "widthNote": "Standard regular bridge"
+    },
+    {
+      "eu": 43,
+      "uk": 9,
+      "mm": 275,
+      "widthNote": "Wide bridge"
+    },
+    {
+      "eu": 44,
+      "uk": 10,
+      "mm": 283,
+      "widthNote": "Extra wide fit"
+    },
+    {
+      "eu": 45,
+      "uk": 11,
+      "mm": 290,
+      "widthNote": "Maximum comfort width"
+    }
+  ],
+  "hideCategories": true
+}

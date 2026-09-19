@@ -48,10 +48,10 @@ export const AngleImageUploader: React.FC<UploaderProps> = ({ images, onChange }
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-serif font-bold text-lg text-text-primary">
-            Automated 3D Mesh Reconstruction Input (6 Angles Required)
+            Product Photography Studio Angles (6 Angles)
           </h3>
           <p className="text-xs text-text-muted">
-            Upload exact camera shots per angle for background removal (`rembg`) & multi-image 3D photogrammetry.
+            Upload exact camera shots per angle for background removal and multi-angle product showcase.
           </p>
         </div>
 

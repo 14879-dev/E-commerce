@@ -1,13 +1,6 @@
-export type LeatherColor = 'saddle-tan' | 'espresso' | 'burnt-copper' | 'mustard-gold' | 'midnight-black' | 'vintage-tan';
+export type LeatherColor = 'saddle-tan' | 'espresso' | 'burnt-copper' | 'mustard-gold' | 'midnight-black' | 'vintage-tan' | (string & {});
 export type SoleType = 'tire-recycled' | 'double-leather' | 'cushioned-foam' | 'traditional-raw';
 export type BuckleFinish = 'aged-brass' | 'burnt-copper' | 'antique-silver' | 'matte-black';
-
-export interface ProductCustomizationOptions {
-  availableColors: LeatherColor[];
-  availableSoles: SoleType[];
-  availableBuckles: BuckleFinish[];
-  allowInitials: boolean;
-}
 
 export interface Review {
   id: string;
@@ -20,49 +13,47 @@ export interface Review {
   status: 'approved' | 'pending' | 'hidden';
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  image?: string;
+  disabled?: boolean;
+  productCount?: number;
+}
+
 export interface Product {
   id: string;
+  articleTag?: string; // e.g. KDM-00001 (Article code / tag)
   slug: string;
   name: string;
   subtitle: string;
   price: number;
+  costPrice?: number;
   originalPrice?: number;
-  category: 'Kaptaan' | 'Zalmi' | 'Norzi' | 'Quetta' | 'Royal';
+  category: string;
   description: string;
   features: string[];
   materials: string;
   craftingTime: string;
-  isCustomizable: boolean;
   images: {
     front: string;
-    back: string;
-    left: string;
-    right: string;
-    top: string;
-    sole: string;
+    back?: string;
+    left?: string;
+    right?: string;
+    top?: string;
+    sole?: string;
+    gallery?: string[];
+    [key: string]: any;
   };
-  model3dUrl?: string;
-  status3D: 'queued' | 'processing' | 'ready' | 'failed';
   availableSizes: number[]; // EU sizes: 39, 40, 41, 42, 43, 44, 45
-  availableColors: LeatherColor[];
-  customization: ProductCustomizationOptions;
+  availableColors: (LeatherColor | string)[];
   averageRating: number;
   reviewCount: number;
   featured?: boolean;
   freeShipping?: boolean;
-}
-
-export interface CustomizationSelection {
-  productId: string;
-  productName: string;
-  basePrice: number;
-  leatherColor: LeatherColor;
-  soleType: SoleType;
-  buckleFinish: BuckleFinish;
-  stitchingColor: 'matching' | 'contrast-brass' | 'cream-handstitched';
-  initials?: string;
-  size: number;
-  customPrice: number;
+  stockCount?: number;
 }
 
 export interface CartItem {
@@ -71,8 +62,6 @@ export interface CartItem {
   size: number;
   selectedColor: LeatherColor;
   quantity: number;
-  isCustomized: boolean;
-  customizationDetails?: CustomizationSelection;
 }
 
 export interface ShippingAddress {
@@ -106,7 +95,6 @@ export interface Order {
   total: number;
   status: 'Pending' | 'Crafting' | 'Quality Check' | 'Shipped' | 'Delivered' | 'Cancelled';
   trackingSteps: OrderTrackingStep[];
-  isCustomizedOrder: boolean;
   replacementRequested?: boolean;
   replacementStatus?: 'pending' | 'approved' | 'rejected';
   replacementReason?: string;

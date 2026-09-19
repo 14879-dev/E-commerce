@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Users, ShieldAlert, Eye, UserX, UserCheck, Heart, ShoppingBag, X } from 'lucide-react';
+import { Search, Eye, UserX, UserCheck, X, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { apiService } from '../../services/api';
 import type { AdminCustomer } from '../../types/admin';
 
@@ -8,9 +8,18 @@ export const CustomersTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<AdminCustomer | null>(null);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     loadCustomers();
+
+    const handleCustomersChanged = () => {
+      loadCustomers();
+    };
+    window.addEventListener('psh:customers-changed', handleCustomersChanged);
+    return () => {
+      window.removeEventListener('psh:customers-changed', handleCustomersChanged);
+    };
   }, []);
 
   const loadCustomers = async () => {
@@ -20,16 +29,39 @@ export const CustomersTab: React.FC = () => {
     setLoading(false);
   };
 
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 4000);
+  };
+
   const handleToggleStatus = async (id: string, newStatus: 'active' | 'flagged' | 'blocked') => {
     await apiService.toggleCustomerStatus(id, newStatus);
     loadCustomers();
     if (selectedCustomer && selectedCustomer.id === id) {
       setSelectedCustomer({ ...selectedCustomer, status: newStatus });
     }
+    showToast('success', `Customer status updated to ${newStatus}.`);
+  };
+
+  const handleDeleteCustomer = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to remove customer record "${name}"?`)) {
+      return;
+    }
+    await apiService.deleteCustomer(id);
+    if (selectedCustomer && selectedCustomer.id === id) {
+      setSelectedCustomer(null);
+    }
+    loadCustomers();
+    showToast('success', `Customer "${name}" removed successfully.`);
   };
 
   const filteredCustomers = customers.filter(c => {
-    if (search && !c.name.toLowerCase().includes(search.toLowerCase()) && !c.email.toLowerCase().includes(search.toLowerCase())) {
+    if (
+      search &&
+      !c.name.toLowerCase().includes(search.toLowerCase()) &&
+      !c.email.toLowerCase().includes(search.toLowerCase()) &&
+      !c.phone.toLowerCase().includes(search.toLowerCase())
+    ) {
       return false;
     }
     return true;
@@ -38,24 +70,55 @@ export const CustomersTab: React.FC = () => {
   return (
     <div className="space-y-6">
       
+      {/* Toast Notification */}
+      {notification && (
+        <div
+          className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between shadow-sm transition-all ${
+            notification.type === 'success'
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              : 'bg-rose-50 text-rose-800 border-rose-200'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {notification.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-600" />
+            )}
+            <span>{notification.message}</span>
+          </div>
+          <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-slate-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
-          <h2 className="font-serif font-bold text-2xl text-slate-900">Customer Account Directory</h2>
-          <p className="text-xs text-slate-500">View customer lifetime spend, saved addresses, wishlist items & moderation flags.</p>
+          <h2 className="font-serif font-bold text-2xl text-slate-900">Buyer & Customer Directory</h2>
+          <p className="text-xs text-slate-500">
+            Customer contact details, delivery addresses, order histories, and lifetime spend compiled from store orders.
+          </p>
         </div>
       </div>
 
-      {/* Search Input */}
-      <div className="max-w-md relative">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search by customer name, email, or phone..."
-          className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-blue-600"
-        />
+      {/* Search Input & Stats Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="max-w-md w-full relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by buyer name, email, or phone..."
+            className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-blue-600"
+          />
+        </div>
+
+        <div className="text-xs font-semibold text-slate-500">
+          Showing <span className="text-slate-900 font-bold">{filteredCustomers.length}</span> of {customers.length} buyers
+        </div>
       </div>
 
       {/* Customers Table */}
@@ -64,9 +127,9 @@ export const CustomersTab: React.FC = () => {
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
-                <th className="py-3 px-4">Customer Name</th>
+                <th className="py-3 px-4">Buyer Name</th>
                 <th className="py-3 px-4">Contact Info</th>
-                <th className="py-3 px-4">Joined Date</th>
+                <th className="py-3 px-4">First Order</th>
                 <th className="py-3 px-4">Total Orders</th>
                 <th className="py-3 px-4">Total Spend</th>
                 <th className="py-3 px-4">Last Order</th>
@@ -77,11 +140,11 @@ export const CustomersTab: React.FC = () => {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400">Loading customers...</td>
+                  <td colSpan={8} className="py-8 text-center text-slate-400">Loading customer records...</td>
                 </tr>
               ) : filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400">No customers found.</td>
+                  <td colSpan={8} className="py-8 text-center text-slate-400">No customer records found.</td>
                 </tr>
               ) : (
                 filteredCustomers.map(cust => (
@@ -106,20 +169,40 @@ export const CustomersTab: React.FC = () => {
                         {cust.status}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right space-x-2">
-                      <button onClick={() => setSelectedCustomer(cust)} className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-blue-600 transition-colors" title="View Customer Profile">
+                    <td className="py-3 px-4 text-right space-x-1.5">
+                      <button
+                        onClick={() => setSelectedCustomer(cust)}
+                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-blue-600 transition-colors"
+                        title="View Customer Profile"
+                      >
                         <Eye className="w-4 h-4" />
                       </button>
 
                       {cust.status === 'active' ? (
-                        <button onClick={() => handleToggleStatus(cust.id, 'flagged')} className="p-1.5 rounded-lg bg-slate-100 hover:bg-amber-50 text-amber-600 transition-colors" title="Flag Account">
+                        <button
+                          onClick={() => handleToggleStatus(cust.id, 'flagged')}
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-amber-50 text-amber-600 transition-colors"
+                          title="Flag Account"
+                        >
                           <UserX className="w-4 h-4" />
                         </button>
                       ) : (
-                        <button onClick={() => handleToggleStatus(cust.id, 'active')} className="p-1.5 rounded-lg bg-slate-100 hover:bg-emerald-50 text-emerald-600 transition-colors" title="Reactivate Account">
+                        <button
+                          onClick={() => handleToggleStatus(cust.id, 'active')}
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-emerald-50 text-emerald-600 transition-colors"
+                          title="Reactivate Account"
+                        >
                           <UserCheck className="w-4 h-4" />
                         </button>
                       )}
+
+                      <button
+                        onClick={() => handleDeleteCustomer(cust.id, cust.name)}
+                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-rose-600 transition-colors"
+                        title="Delete Customer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -181,9 +264,11 @@ export const CustomersTab: React.FC = () => {
               )}
             </div>
 
-            {/* Status Management */}
+            {/* Status Management & Delete */}
             <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
-              <span className="text-xs text-slate-600">Account Moderation Status: <strong className="uppercase">{selectedCustomer.status}</strong></span>
+              <span className="text-xs text-slate-600">
+                Account Moderation Status: <strong className="uppercase">{selectedCustomer.status}</strong>
+              </span>
               
               <div className="flex gap-2">
                 <button
@@ -193,6 +278,14 @@ export const CustomersTab: React.FC = () => {
                   }`}
                 >
                   {selectedCustomer.status === 'blocked' ? 'Unblock Account' : 'Block Account'}
+                </button>
+
+                <button
+                  onClick={() => handleDeleteCustomer(selectedCustomer.id, selectedCustomer.name)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-rose-50 text-rose-600 border border-rose-200 transition-colors flex items-center gap-1"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete</span>
                 </button>
               </div>
             </div>

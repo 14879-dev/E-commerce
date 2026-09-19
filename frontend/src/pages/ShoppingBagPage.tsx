@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, Plus, Minus, Trash2, ArrowRight, AlertTriangle, ShieldCheck, Tag, Check, AlertCircle } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Trash2, ArrowRight, ShieldCheck, Tag, Check, AlertCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useStoreSettings } from '../context/StoreSettingsContext';
 import { apiService } from '../services/api';
@@ -71,7 +71,6 @@ export const ShoppingBagPage: React.FC = () => {
 
   const shippingFee = isFreeShipping ? 0 : settings.standardShippingFee;
   const total = effectiveSubtotal + shippingFee;
-  const hasCustomizedItems = items.some(item => item.isCustomized);
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
@@ -111,7 +110,7 @@ export const ShoppingBagPage: React.FC = () => {
             Explore our collection of authentic handcrafted Peshawari Chappals to add your ideal size and style.
           </p>
           <Link to="/products" className="btn-copper text-sm py-3 px-8 inline-flex items-center gap-2">
-            Explore Catalog <ArrowRight className="w-4 h-4" />
+            Shop Now <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       ) : (
@@ -119,18 +118,8 @@ export const ShoppingBagPage: React.FC = () => {
           
           {/* Cart Item List */}
           <div className="lg:col-span-8 space-y-4">
-            
-            {hasCustomizedItems && (
-              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 text-xs flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
-                <span>
-                  <strong>Customized Product Notice:</strong> Items created via 3D Customizer Studio are bespoke handcrafted pieces and non-returnable per brand policy. Standard items remain eligible for exchange.
-                </span>
-              </div>
-            )}
-
             {items.map(item => {
-              const itemPrice = item.customizationDetails ? item.customizationDetails.customPrice : item.product.price;
+              const itemPrice = item.product.price;
               
               return (
                 <div key={item.id} className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 border-b border-slate-100 last:border-0 bg-white rounded-2xl border border-slate-200/80">
@@ -146,22 +135,10 @@ export const ShoppingBagPage: React.FC = () => {
                         <h3 className="font-serif font-bold text-base text-slate-900">
                           {item.product.name}
                         </h3>
-                        {item.isCustomized && (
-                          <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-bold uppercase tracking-wider">
-                            3D Customized
-                          </span>
-                        )}
                       </div>
 
                       <div className="text-xs text-slate-500 mt-1 space-y-0.5">
                         <p>Size: <strong className="text-slate-900">EU {item.size}</strong> • Color: <strong className="text-slate-900 capitalize">{item.selectedColor.replace('-', ' ')}</strong></p>
-                        
-                        {item.customizationDetails && (
-                          <p className="text-[11px] text-blue-600">
-                            Sole: {item.customizationDetails.soleType.replace('-', ' ')} • Buckle: {item.customizationDetails.buckleFinish.replace('-', ' ')}
-                            {item.customizationDetails.initials && ` • Initials: "${item.customizationDetails.initials}"`}
-                          </p>
-                        )}
                       </div>
 
                       <span className="font-serif font-bold text-base text-slate-900 block mt-1.5">

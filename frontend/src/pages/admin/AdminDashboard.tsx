@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Box, ShoppingBag, Users, Star, Tag, BarChart3, 
-  MessageSquare, Settings, Bell, Search, ShieldCheck, ChevronDown, Check, LogOut, Menu, X
+  MessageSquare, Settings, Bell, Search, ShieldCheck, ChevronDown, LogOut, Menu, X, Layers, KeyRound, UserCog
 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { DashboardTab } from './DashboardTab';
 import { ProductsTab } from './ProductsTab';
+import { CategoriesTab } from './CategoriesTab';
 import { OrdersTab } from './OrdersTab';
 import { CustomersTab } from './CustomersTab';
 import { ReviewsTab } from './ReviewsTab';
@@ -13,6 +14,8 @@ import { PromoCodesTab } from './PromoCodesTab';
 import { AnalyticsTab } from './AnalyticsTab';
 import { MessagesTab } from './MessagesTab';
 import { SettingsTab } from './SettingsTab';
+import { ManagersModal } from './ManagersModal';
+import { ChangeCredentialsModal } from './ChangeCredentialsModal';
 import { apiService } from '../../services/api';
 import type { AdminNotification } from '../../types/admin';
 import { SEOHelmet } from '../../components/common/SEOHelmet';
@@ -20,18 +23,38 @@ import { SEOHelmet } from '../../components/common/SEOHelmet';
 export const AdminDashboard: React.FC = () => {
   const { user, logout } = useAdminAuth();
   const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'products' | 'orders' | 'customers' | 'reviews' | 'promo-codes' | 'analytics' | 'messages' | 'settings'
+    'dashboard' | 'products' | 'categories' | 'orders' | 'customers' | 'reviews' | 'promo-codes' | 'analytics' | 'messages' | 'settings'
   >('dashboard');
 
-  const [currentRole, setCurrentRole] = useState<'superadmin' | 'staff'>(user?.role || 'staff');
+  const [currentRole, setCurrentRole] = useState<'superadmin' | 'manager' | 'staff'>(user?.role || 'staff');
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showManagersModal, setShowManagersModal] = useState(false);
+  const [showCredentialsModal, setShowCredentialsModal] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
+    if (user?.role) {
+      setCurrentRole(user.role);
+    }
+  }, [user?.role]);
+
+  const isManager = currentRole === 'manager';
+
+  // Manager is restricted to only: dashboard, products, orders, customers, reviews
+  useEffect(() => {
+    if (isManager && !['dashboard', 'products', 'orders', 'customers', 'reviews'].includes(activeTab)) {
+      setActiveTab('dashboard');
+    }
+  }, [isManager, activeTab]);
+
+  useEffect(() => {
     loadNotifications();
+    const handleNotifsChanged = () => loadNotifications();
+    window.addEventListener('psh:notifications-changed', handleNotifsChanged);
+    return () => window.removeEventListener('psh:notifications-changed', handleNotifsChanged);
   }, []);
 
   // Auto-close mobile sidebar when tab changes
@@ -49,13 +72,19 @@ export const AdminDashboard: React.FC = () => {
     loadNotifications();
   };
 
+  const handleClearAllNotifs = async () => {
+    await apiService.clearAllNotifications();
+    loadNotifications();
+  };
+
   const unreadNotifCount = notifications.filter(n => !n.read).length;
 
-  const sidebarNavItems = [
+  const allSidebarNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'products', label: 'Product Catalog', icon: Box },
+    { id: 'categories', label: 'Categories Catalog', icon: Layers },
     { id: 'orders', label: 'Orders & Fulfillment', icon: ShoppingBag },
-    { id: 'customers', label: 'Customers', icon: Users },
+    { id: 'customers', label: 'Buyer Directory', icon: Users },
     { id: 'reviews', label: 'Reviews & Ratings', icon: Star },
     { id: 'promo-codes', label: 'Promo Codes', icon: Tag },
     { id: 'analytics', label: 'Marketing & Analytics', icon: BarChart3 },
@@ -63,12 +92,24 @@ export const AdminDashboard: React.FC = () => {
     { id: 'settings', label: 'Settings & Roles', icon: Settings },
   ] as const;
 
+  // Filter out restricted items if user is manager
+  const sidebarNavItems = isManager
+    ? allSidebarNavItems.filter(item => ['dashboard', 'products', 'orders', 'customers', 'reviews'].includes(item.id))
+    : allSidebarNavItems;
+
   // Shared sidebar nav content rendered in both mobile overlay and desktop panel
   const SidebarContent = () => (
     <nav className="space-y-1">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 px-3 block mb-2">
-        Main Management
-      </span>
+      <div className="flex items-center justify-between px-3 mb-2">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+          {isManager ? 'Manager Portal' : 'Main Management'}
+        </span>
+        {isManager && (
+          <span className="text-[9px] bg-amber-500/10 text-amber-600 font-bold px-1.5 py-0.5 rounded border border-amber-500/20 uppercase">
+            Restricted
+          </span>
+        )}
+      </div>
       {sidebarNavItems.map(item => {
         const Icon = item.icon;
         const isActive = activeTab === item.id;
@@ -94,7 +135,7 @@ export const AdminDashboard: React.FC = () => {
     <div className="min-h-screen bg-slate-50/50 flex flex-col -mx-4 sm:-mx-6 lg:-mx-8 -my-6 sm:-my-8">
       <SEOHelmet
         title="Admin Control Center"
-        description="Protected administration portal for Peshawari Chappal products, 3D pipelines, order tracking, and reviews."
+        description="Protected administration portal for Peshawari Chappal products, categories catalog, order tracking, and reviews."
       />
 
       {/* Top Global Navigation Bar */}
@@ -156,29 +197,65 @@ export const AdminDashboard: React.FC = () => {
             {showNotificationsDropdown && (
               <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl border border-slate-200 shadow-2xl p-4 space-y-3 z-50">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                  <h4 className="font-serif font-bold text-sm text-slate-900">Live Admin Notifications</h4>
-                  <span className="text-[10px] text-blue-600 font-bold">{unreadNotifCount} unread</span>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-serif font-bold text-sm text-slate-900">Live Admin Notifications</h4>
+                    {unreadNotifCount > 0 && (
+                      <span className="text-[10px] bg-blue-50 text-blue-600 font-bold px-2 py-0.5 rounded-full border border-blue-200">
+                        {unreadNotifCount} unread
+                      </span>
+                    )}
+                  </div>
+                  {notifications.length > 0 && (
+                    <button
+                      onClick={handleClearAllNotifs}
+                      className="text-[11px] text-slate-400 hover:text-rose-600 transition-colors font-medium"
+                    >
+                      Clear All
+                    </button>
+                  )}
                 </div>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {notifications.map(n => (
-                    <div
-                      key={n.id}
-                      onClick={() => handleMarkNotifRead(n.id)}
-                      className={`p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
-                        !n.read ? 'bg-blue-50/70 border-blue-200' : 'bg-slate-50 border-slate-200 opacity-75'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between font-bold text-slate-900">
-                        <span>{n.title}</span>
-                        <span className="text-[10px] text-slate-400 font-normal">{n.timestamp}</span>
-                      </div>
-                      <p className="text-[11px] text-slate-600 mt-0.5">{n.description}</p>
+                  {notifications.length === 0 ? (
+                    <div className="py-6 text-center text-slate-400 text-xs">
+                      <Bell className="w-8 h-8 text-slate-300 mx-auto mb-2 opacity-50" />
+                      <p className="font-semibold text-slate-700">All caught up!</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5 max-w-xs mx-auto">
+                        Real-time alerts will appear here as orders, reviews, and stock changes occur.
+                      </p>
                     </div>
-                  ))}
+                  ) : (
+                    notifications.map(n => (
+                      <div
+                        key={n.id}
+                        onClick={() => handleMarkNotifRead(n.id)}
+                        className={`p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                          !n.read ? 'bg-blue-50/70 border-blue-200' : 'bg-slate-50 border-slate-200 opacity-75'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between font-bold text-slate-900">
+                          <span>{n.title}</span>
+                          <span className="text-[10px] text-slate-400 font-normal">{n.timestamp}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 mt-0.5">{n.description}</p>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}
           </div>
+
+          {/* Quick Manager Button (Superadmin Only) */}
+          {currentRole === 'superadmin' && (
+            <button
+              onClick={() => setShowManagersModal(true)}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 hover:bg-amber-500/20 text-xs font-bold transition-all shadow-xs"
+              title="Add or remove managers"
+            >
+              <UserCog className="w-4 h-4 text-amber-600" />
+              <span>Team & Managers</span>
+            </button>
+          )}
 
           {/* Profile Dropdown */}
           <div className="relative">
@@ -186,28 +263,59 @@ export const AdminDashboard: React.FC = () => {
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center gap-2.5 p-1.5 pl-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-all text-xs"
             >
-              <div className="w-7 h-7 rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center font-serif">A</div>
+              <div className="w-7 h-7 rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center font-serif">
+                {user?.username ? user.username.charAt(0).toUpperCase() : 'A'}
+              </div>
               <div className="hidden md:block text-left">
-                <span className="font-bold text-slate-900 block leading-none">Admin Operations</span>
-                <span className="text-[10px] text-slate-500 uppercase">{currentRole}</span>
+                <span className="font-bold text-slate-900 block leading-none">
+                  {user?.username || 'Admin'}
+                </span>
+                <span className="text-[10px] text-slate-500 uppercase font-semibold">
+                  {currentRole === 'superadmin' ? 'Super Admin' : currentRole === 'manager' ? 'Store Manager' : currentRole}
+                </span>
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </button>
 
             {showProfileMenu && (
-              <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl border border-slate-200 shadow-2xl p-2 space-y-1 text-xs z-50">
-                <div className="p-2 border-b border-slate-100">
-                  <span className="font-bold text-slate-900 block">Admin Account</span>
-                  <span className="text-[10px] text-slate-400 uppercase">{currentRole}</span>
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-slate-200 shadow-2xl p-2 space-y-1 text-xs z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="p-2.5 border-b border-slate-100">
+                  <span className="font-bold text-slate-900 block text-sm">{user?.username || 'Admin User'}</span>
+                  <span className="text-[11px] font-medium text-blue-600 uppercase tracking-wide">
+                    {currentRole === 'superadmin' ? 'Super Admin (Full Access)' : currentRole === 'manager' ? 'Store Manager (Restricted)' : currentRole}
+                  </span>
                 </div>
-                <button className="w-full text-left p-2 rounded-xl flex items-center justify-between font-semibold bg-blue-50 text-blue-600">
-                  <span>{currentRole === 'superadmin' ? 'Super Admin' : 'Staff Member'}</span>
-                  <Check className="w-4 h-4 text-blue-600" />
+
+                {/* Change Credentials */}
+                <button
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    setShowCredentialsModal(true);
+                  }}
+                  className="w-full text-left p-2 rounded-xl flex items-center gap-2.5 font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  <KeyRound className="w-4 h-4 text-amber-600" />
+                  <span>Change Username / Password</span>
                 </button>
+
+                {/* Manage Team (Superadmin only) */}
+                {currentRole === 'superadmin' && (
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      setShowManagersModal(true);
+                    }}
+                    className="w-full text-left p-2 rounded-xl flex items-center gap-2.5 font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    <UserCog className="w-4 h-4 text-blue-600" />
+                    <span>Manage Store Managers</span>
+                  </button>
+                )}
+
                 <div className="border-t border-slate-100 mt-1 pt-1">
                   <button
                     onClick={() => logout()}
-                    className="w-full text-left p-2 rounded-xl flex items-center gap-2 font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
+                    className="w-full text-left p-2 rounded-xl flex items-center gap-2.5 font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
                   >
                     <LogOut className="w-4 h-4" />
                     <span>Sign Out</span>
@@ -258,6 +366,7 @@ export const AdminDashboard: React.FC = () => {
         <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto overflow-x-hidden">
           {activeTab === 'dashboard' && <DashboardTab onNavigateTab={(t: any) => setActiveTab(t)} />}
           {activeTab === 'products' && <ProductsTab />}
+          {activeTab === 'categories' && <CategoriesTab />}
           {activeTab === 'orders' && <OrdersTab />}
           {activeTab === 'customers' && <CustomersTab />}
           {activeTab === 'reviews' && <ReviewsTab />}
@@ -268,6 +377,18 @@ export const AdminDashboard: React.FC = () => {
         </main>
 
       </div>
+
+      {/* Superadmin Managers Management Modal */}
+      <ManagersModal
+        isOpen={showManagersModal}
+        onClose={() => setShowManagersModal(false)}
+      />
+
+      {/* Admin / Manager Credentials Modal */}
+      <ChangeCredentialsModal
+        isOpen={showCredentialsModal}
+        onClose={() => setShowCredentialsModal(false)}
+      />
     </div>
   );
 };

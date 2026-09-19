@@ -13,7 +13,7 @@ const WishlistContext = createContext<WishlistContextType | undefined>(undefined
 export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [wishlistIds, setWishlistIds] = useState<string[]>(() => {
     const saved = localStorage.getItem('psh_wishlist');
-    return saved ? JSON.parse(saved) : ['prod-1', 'prod-5'];
+    return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {

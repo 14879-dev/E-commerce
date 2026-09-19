@@ -203,34 +203,32 @@ export const OrderTrackingPage: React.FC = () => {
                       </div>
                     </div>
                     <span className="font-serif font-bold text-slate-900 text-sm">
-                      ${(item.customizationDetails ? item.customizationDetails.customPrice : item.product.price) * item.quantity}
+                      ${item.product.price * item.quantity}
                     </span>
                   </div>
                 ))}
               </div>
 
               {/* Replacement Request Action */}
-              {!order.isCustomizedOrder && (
-                <div className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h4 className="font-serif font-semibold text-sm text-slate-900">Need a Size Exchange?</h4>
-                    <p className="text-xs text-slate-500">Standard items are eligible for replacement protection.</p>
-                  </div>
-
-                  {order.replacementRequested ? (
-                    <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold">
-                      Replacement Pending ({order.replacementStatus})
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => setShowReplacementModal(true)}
-                      className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-1.5"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" /> Request Replacement
-                    </button>
-                  )}
+              <div className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h4 className="font-serif font-semibold text-sm text-slate-900">Need a Size Exchange?</h4>
+                  <p className="text-xs text-slate-500">Items are eligible for size exchange and replacement protection.</p>
                 </div>
-              )}
+
+                {order.replacementRequested ? (
+                  <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold">
+                    Replacement Pending ({order.replacementStatus})
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => setShowReplacementModal(true)}
+                    className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-1.5"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Request Replacement
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Delivery Details — Privacy Masked */}

@@ -1,22 +1,38 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { ShoppingBag, Heart, Sparkles, Menu, X, Home, Grid, Sliders, Ruler, Package, Info, Tag } from 'lucide-react';
+import { ShoppingBag, Heart, Sparkles, Menu, X, Home, Grid, Ruler, Truck, Info, Tag, Mail } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
+import { useStoreSettings } from '../../context/StoreSettingsContext';
 import { apiService } from '../../services/api';
+import { normalizeAssetUrl } from '../../utils/assetUrl';
 import type { PromoCode } from '../../types/admin';
 
 export const Header: React.FC = () => {
   const { itemCount } = useCart();
   const { wishlistCount } = useWishlist();
+  const { settings } = useStoreSettings();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activePromos, setActivePromos] = useState<PromoCode[]>([]);
   const location = useLocation();
 
-  // Close mobile menu on route change & fetch promo codes
+  // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
+
+  // Lock body scroll when mobile menu drawer is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
 
   useEffect(() => {
     apiService.getPromoCodes().then(list => {
@@ -24,52 +40,131 @@ export const Header: React.FC = () => {
     });
   }, []);
 
+  const productsLabel = settings.hideCategories ? 'Products' : 'Catalog';
+
   const navLinks = [
     { to: '/', label: 'Home', icon: Home },
-    { to: '/products', label: 'Catalog', icon: Grid },
-    { to: '/customize/prod-1', label: '3D Customizer', icon: Sliders },
+    { to: '/products', label: productsLabel, icon: Grid },
     { to: '/size-finder', label: 'Size Finder', icon: Ruler },
     { to: '/outfit-match', label: 'AI Outfit', icon: Sparkles, badge: 'AI' },
-    { to: '/orders', label: 'Order Tracking', icon: Package },
     { to: '/about', label: 'Heritage', icon: Info },
+    { to: '/contact', label: 'Contact', icon: Mail },
+    { to: '/orders', label: 'Track Order', icon: Truck },
   ];
 
   return (
     <div className="sticky top-0 z-50">
-      {/* Main Navigation Bar — Light Blue Liquid Glass */}
-      <header className="backdrop-blur-xl bg-gradient-to-r from-sky-50/90 via-blue-50/85 to-sky-100/90 border-b border-sky-200/80 shadow-xs transition-all">
+      {/* Main Navigation Bar — Ultra-Refined Frosted Glass Header */}
+      <header className="glass-header transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
 
           {/* Brand Logo */}
-          <Link to="/" className="flex items-center gap-3 group shrink-0">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center shadow-md shadow-blue-500/20 border border-white/40 group-hover:scale-105 transition-all">
-              <span className="font-serif text-white font-bold text-xl">P</span>
-            </div>
-            <div>
-              <span className="font-serif text-xl sm:text-2xl font-bold tracking-wider text-slate-900 uppercase block">
-                Peshawari <span className="text-blue-600 text-xs tracking-widest font-sans font-bold uppercase">Store</span>
-              </span>
-            </div>
+          <Link to="/" className="flex items-center group shrink-0" aria-label="Home">
+            {settings.logoUrl ? (
+              <img
+                src={normalizeAssetUrl(settings.logoUrl)}
+                alt={settings.storeName || 'Store Logo'}
+                className="h-10 sm:h-12 w-auto max-w-[180px] sm:max-w-[220px] object-contain group-hover:scale-105 transition-all"
+              />
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center shadow-md shadow-blue-500/20 border border-white/40 group-hover:scale-105 transition-all">
+                  <span className="font-serif text-white font-bold text-xl">P</span>
+                </div>
+                <div>
+                  <span className="font-serif text-xl sm:text-2xl font-bold tracking-wider text-slate-900 uppercase block">
+                    Peshawari <span className="text-blue-600 text-xs tracking-widest font-sans font-bold uppercase">Store</span>
+                  </span>
+                </div>
+              </div>
+            )}
           </Link>
 
-          {/* Desktop Main Navigation */}
-          <nav className="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-semibold text-slate-700">
-            <NavLink to="/" className={({ isActive }) => isActive ? 'text-blue-600 font-bold border-b-2 border-blue-600 py-1' : 'hover:text-blue-600 transition-colors'}>Home</NavLink>
-            <NavLink to="/products" className={({ isActive }) => isActive ? 'text-blue-600 font-bold border-b-2 border-blue-600 py-1' : 'hover:text-blue-600 transition-colors'}>Catalog</NavLink>
-            <NavLink to="/customize/prod-1" className={({ isActive }) => isActive ? 'text-blue-600 font-bold border-b-2 border-blue-600 py-1' : 'hover:text-blue-600 transition-colors'}>3D Customizer</NavLink>
-            <NavLink to="/size-finder" className={({ isActive }) => isActive ? 'text-blue-600 font-bold border-b-2 border-blue-600 py-1' : 'hover:text-blue-600 transition-colors'}>Size Finder</NavLink>
-            <NavLink to="/outfit-match" className={({ isActive }) => isActive ? 'text-blue-600 font-bold border-b-2 border-blue-600 py-1 flex items-center gap-1' : 'hover:text-blue-600 transition-colors flex items-center gap-1'}>
-              <Sparkles className="w-4 h-4 text-blue-500" /> AI Outfit
-            </NavLink>
-            <NavLink to="/orders" className={({ isActive }) => isActive ? 'text-blue-600 font-bold border-b-2 border-blue-600 py-1' : 'hover:text-blue-600 transition-colors'}>Orders</NavLink>
-            <NavLink to="/about" className={({ isActive }) => isActive ? 'text-blue-600 font-bold border-b-2 border-blue-600 py-1' : 'hover:text-blue-600 transition-colors'}>Heritage</NavLink>
-          </nav>
+          {/* Desktop Main Navigation — Sculpted Frosted Glass Capsule (Clear Contrast from Outer Header) */}
+          <div className="relative hidden lg:flex items-center">
+            <nav className="glass-nav-capsule relative flex items-center gap-1 xl:gap-1.5 p-1.5">
+              <NavLink
+                to="/"
+                className={({ isActive }) =>
+                  `px-4 py-1.5 rounded-full text-xs xl:text-[13px] tracking-wide transition-all duration-200 ${
+                    isActive ? 'glass-pill-active' : 'glass-pill-idle'
+                  }`
+                }
+              >
+                Home
+              </NavLink>
+              <NavLink
+                to="/products"
+                className={({ isActive }) =>
+                  `px-4 py-1.5 rounded-full text-xs xl:text-[13px] tracking-wide transition-all duration-200 ${
+                    isActive ? 'glass-pill-active' : 'glass-pill-idle'
+                  }`
+                }
+              >
+                {productsLabel}
+              </NavLink>
+              <NavLink
+                to="/size-finder"
+                className={({ isActive }) =>
+                  `px-4 py-1.5 rounded-full text-xs xl:text-[13px] tracking-wide transition-all duration-200 ${
+                    isActive ? 'glass-pill-active' : 'glass-pill-idle'
+                  }`
+                }
+              >
+                Size Finder
+              </NavLink>
+              <NavLink
+                to="/outfit-match"
+                className={({ isActive }) =>
+                  `px-4 py-1.5 rounded-full text-xs xl:text-[13px] tracking-wide transition-all duration-200 flex items-center gap-1.5 ${
+                    isActive ? 'glass-pill-active' : 'glass-pill-idle'
+                  }`
+                }
+              >
+                <Sparkles className="w-3.5 h-3.5" /> AI Outfit
+              </NavLink>
+              <NavLink
+                to="/about"
+                className={({ isActive }) =>
+                  `px-4 py-1.5 rounded-full text-xs xl:text-[13px] tracking-wide transition-all duration-200 ${
+                    isActive ? 'glass-pill-active' : 'glass-pill-idle'
+                  }`
+                }
+              >
+                Heritage
+              </NavLink>
+              <NavLink
+                to="/contact"
+                className={({ isActive }) =>
+                  `px-4 py-1.5 rounded-full text-xs xl:text-[13px] tracking-wide transition-all duration-200 ${
+                    isActive ? 'glass-pill-active' : 'glass-pill-idle'
+                  }`
+                }
+              >
+                Contact
+              </NavLink>
+              <NavLink
+                to="/orders"
+                className={({ isActive }) =>
+                  `px-4 py-1.5 rounded-full text-xs xl:text-[13px] tracking-wide transition-all duration-200 flex items-center gap-1.5 ${
+                    isActive ? 'glass-pill-active' : 'glass-pill-idle'
+                  }`
+                }
+              >
+                <Truck className="w-3.5 h-3.5" /> Track Order
+              </NavLink>
+            </nav>
+          </div>
 
           {/* Action Controls & Mobile Toggle */}
-          <div className="flex items-center gap-2 sm:gap-4">
-            {/* These icons are hidden on mobile — they live inside the hamburger menu */}
-            <Link to="/wishlist" className="relative p-2.5 rounded-full bg-white/80 hover:bg-white border border-sky-200 transition-all text-slate-700 shadow-xs hidden lg:flex" title="Wishlist">
-              <Heart className="w-5 h-5 text-slate-700" />
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Wishlist Heart Icon (Always visible outside on both mobile & desktop) */}
+            <Link
+              to="/wishlist"
+              className="relative p-2 sm:p-2.5 rounded-full backdrop-blur-md bg-white/75 hover:bg-white border border-slate-200/90 transition-all text-slate-700 shadow-xs flex items-center justify-center hover:shadow-sm"
+              title="Wishlist"
+            >
+              <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700" />
               {wishlistCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
                   {wishlistCount}
@@ -77,71 +172,111 @@ export const Header: React.FC = () => {
               )}
             </Link>
 
-            <Link to="/bag" className="relative p-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-md shadow-blue-600/20 items-center gap-2 px-3.5 sm:px-4 hidden lg:flex">
-              <ShoppingBag className="w-5 h-5" />
+            {/* Shopping Bag Icon (Always visible outside on both mobile & desktop) */}
+            <Link
+              to="/bag"
+              className="relative p-2 sm:p-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-md shadow-blue-600/25 border border-white/20 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4"
+              title="Shopping Bag"
+            >
+              <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="text-xs font-bold hidden sm:inline">Bag</span>
               {itemCount > 0 && (
-                <span className="bg-white/25 text-white text-[11px] font-bold px-1.5 py-0.5 rounded-full">
+                <span className="bg-white/25 text-white text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full">
                   {itemCount}
                 </span>
               )}
             </Link>
 
-            {/* Mobile Hamburger Toggle Button */}
+            {/* Mobile Hamburger Toggle Button (3 lines) */}
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2.5 rounded-full bg-white/80 hover:bg-white border border-sky-200 transition-all text-slate-700"
-              aria-label="Toggle Navigation Menu"
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden p-2 sm:p-2.5 rounded-full backdrop-blur-md bg-white/75 hover:bg-white border border-slate-200/90 transition-all text-slate-700 shadow-xs flex items-center justify-center cursor-pointer hover:shadow-sm"
+              aria-label="Open Navigation Menu"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
+      </header>
 
-        {/* Mobile Slide-Down Overlay Menu */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden bg-sky-50/95 backdrop-blur-2xl border-b border-sky-200 shadow-xl px-4 pt-3 pb-6 space-y-2 animate-in slide-in-from-top duration-200">
-            <div className="grid grid-cols-2 gap-2 mb-4 pt-1">
-              <Link
-                to="/wishlist"
-                className="flex items-center justify-between p-3 rounded-xl bg-white border border-sky-200 font-medium text-xs text-slate-800 shadow-xs"
-              >
-                <div className="flex items-center gap-2">
-                  <Heart className="w-4 h-4 text-blue-600" />
-                  <span>Wishlist</span>
-                </div>
-                <span className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{wishlistCount}</span>
-              </Link>
+      {/* Mobile Right-Side Slide-Over Drawer Navigation (Mounted on document.body to prevent backdrop-filter clipping) */}
+      {typeof document !== 'undefined' && createPortal(
+        <div
+          className={`fixed inset-0 z-[99999] lg:hidden transition-all duration-300 ${
+            mobileMenuOpen ? 'opacity-100 pointer-events-auto visible' : 'opacity-0 pointer-events-none invisible'
+          }`}
+        >
+          {/* Smooth Backdrop Overlay */}
+          <div
+            className={`fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity duration-300 ease-out ${
+              mobileMenuOpen ? 'opacity-100' : 'opacity-0'
+            }`}
+            onClick={() => setMobileMenuOpen(false)}
+          />
 
-              <Link
-                to="/bag"
-                className="flex items-center justify-between p-3 rounded-xl bg-blue-600 text-white font-medium text-xs shadow-xs"
+          {/* Right-Side Drawer Panel */}
+          <div
+            className={`fixed top-0 right-0 bottom-0 w-[300px] max-w-[85vw] bg-white border-l border-sky-200 shadow-2xl flex flex-col z-10 transition-transform duration-300 ease-out transform ${
+              mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+            }`}
+          >
+            {/* Drawer Header with Close Button */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-sky-100 bg-gradient-to-r from-sky-50 to-white">
+              <div className="flex items-center gap-2.5">
+                {settings.logoUrl ? (
+                  <img
+                    src={normalizeAssetUrl(settings.logoUrl)}
+                    alt={settings.storeName || 'Store Logo'}
+                    className="h-8 w-auto max-w-[140px] object-contain"
+                  />
+                ) : (
+                  <>
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center shadow-md text-white font-serif font-bold text-sm">
+                      P
+                    </div>
+                    <div>
+                      <span className="font-serif font-bold text-slate-900 text-sm uppercase tracking-wider block">
+                        Navigation
+                      </span>
+                      <span className="text-[10px] text-blue-600 font-semibold tracking-widest uppercase">
+                        {settings.storeName || 'Peshawari Store'}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                aria-label="Close menu"
               >
-                <div className="flex items-center gap-2">
-                  <ShoppingBag className="w-4 h-4" />
-                  <span>Shopping Bag</span>
-                </div>
-                <span className="bg-white/25 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{itemCount}</span>
-              </Link>
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <div className="space-y-1 divide-y divide-sky-100">
+            {/* Navigation Links in Drawer (Home, Products, Size Finder, AI Outfit, Orders, Heritage) */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1.5">
               {navLinks.map((link) => {
                 const Icon = link.icon;
                 return (
                   <NavLink
                     key={link.to}
                     to={link.to}
+                    onClick={() => setMobileMenuOpen(false)}
                     className={({ isActive }) =>
-                      `flex items-center justify-between py-3 px-3 rounded-xl text-sm font-medium transition-all ${
+                      `flex items-center justify-between py-3 px-3.5 rounded-2xl text-sm font-semibold transition-all duration-200 ${
                         isActive
-                          ? 'bg-blue-600 text-white font-bold shadow-xs'
-                          : 'text-slate-700 hover:text-blue-600 hover:bg-white/60'
+                          ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 font-bold'
+                          : 'text-slate-700 hover:text-blue-600 hover:bg-sky-50'
                       }`
                     }
                   >
                     <div className="flex items-center gap-3">
-                      <Icon className="w-4 h-4" />
+                      <div className="p-1.5 rounded-lg bg-sky-100 text-blue-600">
+                        <Icon className="w-4 h-4" />
+                      </div>
                       <span>{link.label}</span>
                     </div>
                     {link.badge && (
@@ -153,9 +288,16 @@ export const Header: React.FC = () => {
                 );
               })}
             </div>
+
+            {/* Drawer Footer Info */}
+            <div className="p-4 border-t border-sky-100 bg-sky-50/60 text-xs text-slate-500 space-y-1">
+              <p className="font-semibold text-slate-700">Peshawari Handcrafted Store</p>
+              <p className="text-[11px] text-slate-400">Bazaar-e-Kissa Khwani, Peshawar</p>
+            </div>
           </div>
-        )}
-      </header>
+        </div>,
+        document.body
+      )}
 
       {/* Active Promo Codes Scrolling Ticker (Right to Left Marquee Below Navbar) */}
       {activePromos.length > 0 && (

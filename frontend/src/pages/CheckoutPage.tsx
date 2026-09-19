@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import confetti from 'canvas-confetti';
-import { ShieldCheck, Truck, CreditCard, Wallet, CheckCircle, Tag, Check, AlertCircle } from 'lucide-react';
+import { ShieldCheck, Truck, Wallet, CheckCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useStoreSettings } from '../context/StoreSettingsContext';
 import { apiService } from '../services/api';
@@ -98,7 +98,6 @@ export const CheckoutPage: React.FC = () => {
     : settings.expressShippingFee;
 
   const total = effectiveSubtotal + shippingFee;
-  const hasCustomizedItems = items.some(item => item.isCustomized);
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,7 +114,6 @@ export const CheckoutPage: React.FC = () => {
         shippingFee,
         discount: discountAmount,
         total,
-        isCustomizedOrder: hasCustomizedItems,
         promoCode: appliedPromo?.code
       } as any);
 

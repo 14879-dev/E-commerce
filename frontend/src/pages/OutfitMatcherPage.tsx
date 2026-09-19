@@ -273,7 +273,7 @@ export const OutfitMatcherPage: React.FC = () => {
                     <p className="text-xs text-slate-500 line-clamp-2">{product.subtitle}</p>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-sm text-blue-700">{formatPrice(product.price)}</span>
-                      {product.originalPrice && (
+                      {Boolean(product.originalPrice && product.originalPrice > product.price) && (
                         <span className="text-xs text-slate-400 line-through">{formatPrice(product.originalPrice)}</span>
                       )}
                       <span className="px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-[10px] font-bold text-blue-600">

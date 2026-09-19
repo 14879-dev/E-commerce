@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tag, Plus, Trash2, Power, TrendingUp, DollarSign, X } from 'lucide-react';
+import { Plus, Trash2, X } from 'lucide-react';
 import { apiService } from '../../services/api';
 import type { PromoCode } from '../../types/admin';
 
@@ -85,20 +85,28 @@ export const PromoCodesTab: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
           <span className="text-xs text-slate-500 uppercase font-semibold">Total Discount Distributed</span>
-          <div className="font-serif font-bold text-2xl text-slate-900">Rs. 16,660</div>
+          <div className="font-serif font-bold text-2xl text-slate-900">
+            Rs. {promos.reduce((acc, p) => acc + (p.totalDiscountGiven || 0), 0).toLocaleString()}
+          </div>
           <span className="text-[11px] text-blue-600 font-semibold">Across active campaigns</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
           <span className="text-xs text-slate-500 uppercase font-semibold">Net Promo Revenue</span>
-          <div className="font-serif font-bold text-2xl text-emerald-600">Rs. 140,260</div>
+          <div className="font-serif font-bold text-2xl text-emerald-600">
+            Rs. {promos.reduce((acc, p) => acc + (p.revenueGenerated || 0), 0).toLocaleString()}
+          </div>
           <span className="text-[11px] text-emerald-600 font-semibold">Attributed orders</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
           <span className="text-xs text-slate-500 uppercase font-semibold">Total Redemption Count</span>
-          <div className="font-serif font-bold text-2xl text-slate-900">560 Redemptions</div>
-          <span className="text-[11px] text-slate-500">Avg 1.2 redemptions per customer</span>
+          <div className="font-serif font-bold text-2xl text-slate-900">
+            {promos.reduce((acc, p) => acc + (p.timesUsed || 0), 0)} Redemptions
+          </div>
+          <span className="text-[11px] text-slate-500">
+            {promos.length > 0 ? `${(promos.reduce((acc, p) => acc + (p.timesUsed || 0), 0) / promos.length).toFixed(1)} avg per promo` : 'No redemptions yet'}
+          </span>
         </div>
       </div>
 

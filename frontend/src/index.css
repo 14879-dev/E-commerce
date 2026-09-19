@@ -58,6 +58,93 @@
     box-shadow: 0 12px 40px 0 rgba(15, 23, 42, 0.25);
   }
 
+  /* ==========================================================================
+     Ultra-Refined Glassmorphism Navigation System
+     ========================================================================== */
+
+  /* Main Navigation Outer Bar — Frosted Glass Pane */
+  .glass-header {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 
+      0 4px 30px 0 rgba(15, 23, 42, 0.04),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.95);
+  }
+
+  /* Inner Navigation Floating Capsule — Sculpted Frosted Glass Pill with Clear Difference from Outer Bar */
+  .glass-nav-capsule {
+    background: rgba(241, 245, 249, 0.72);
+    backdrop-filter: blur(20px) saturate(170%);
+    -webkit-backdrop-filter: blur(20px) saturate(170%);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    border-radius: 9999px;
+    box-shadow: 
+      0 8px 30px -4px rgba(15, 23, 42, 0.08),
+      0 2px 6px 0 rgba(15, 23, 42, 0.04),
+      inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95),
+      inset 0 -1.5px 2px 0 rgba(148, 163, 184, 0.22);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Subtle Crystal Top Edge Specular Glint */
+  .glass-nav-capsule::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 8%;
+    right: 8%;
+    height: 1px;
+    background: linear-gradient(
+      90deg, 
+      transparent 0%, 
+      rgba(255, 255, 255, 0.95) 30%, 
+      rgba(255, 255, 255, 1) 50%, 
+      rgba(255, 255, 255, 0.95) 70%, 
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* Glass Capsule Pill - Active */
+  .glass-pill-active {
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+    color: #ffffff !important;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 
+      0 4px 14px 0 rgba(37, 99, 235, 0.38),
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.5);
+    border-radius: 9999px;
+    position: relative;
+    z-index: 3;
+    transition: all 0.25s ease;
+  }
+
+  /* Glass Capsule Pill - Idle / Hover */
+  .glass-pill-idle {
+    color: #334155;
+    font-weight: 500;
+    border-radius: 9999px;
+    border: 1px solid transparent;
+    position: relative;
+    z-index: 3;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .glass-pill-idle:hover {
+    color: #1d4ed8;
+    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+    backdrop-filter: blur(8px);
+    transform: translateY(-0.5px);
+  }
+
   /* Primary Glass Blue Button */
   .btn-copper {
     @apply relative inline-flex items-center justify-center px-6 py-3 rounded-full font-medium text-white transition-all duration-300 overflow-hidden cursor-pointer active:scale-95;

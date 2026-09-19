@@ -1,0 +1,50 @@
+[
+  {
+    "id": "cat-1",
+    "name": "Kaptaan",
+    "slug": "kaptaan",
+    "description": "Iconic double-sole design with brass hardware and high durability tire soles.",
+    "image": "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&q=80&w=600",
+    "disabled": true
+  },
+  {
+    "id": "cat-2",
+    "name": "Zalmi",
+    "slug": "zalmi",
+    "description": "Contemporary sleek cut with hand-burnished edge detail and modern comfort.",
+    "image": "https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&q=80&w=600",
+    "disabled": true
+  },
+  {
+    "id": "cat-3",
+    "name": "Norzi",
+    "slug": "norzi",
+    "description": "Authentic vintage silhouette of Old Peshawar with traditional high-curve toe design.",
+    "image": "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&q=80&w=600",
+    "disabled": true
+  },
+  {
+    "id": "cat-4",
+    "name": "Quetta",
+    "slug": "quetta",
+    "description": "Distinctive wide-fitting bridge with double spine stitch for formal attire.",
+    "image": "https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&q=80&w=600",
+    "disabled": true
+  },
+  {
+    "id": "cat-5",
+    "name": "Royal",
+    "slug": "royal",
+    "description": "Limited edition heirloom collection with solid brass filigree and gold thread stitching.",
+    "image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=600",
+    "disabled": true
+  },
+  {
+    "id": "cat-1789680274079",
+    "name": "None",
+    "slug": "none",
+    "description": "",
+    "image": "",
+    "disabled": false
+  }
+]

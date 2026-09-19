@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Check, EyeOff, Trash2, MessageSquare, Filter } from 'lucide-react';
+import { Check, EyeOff, Trash2 } from 'lucide-react';
 import { apiService } from '../../services/api';
 import type { Review } from '../../types';
 
