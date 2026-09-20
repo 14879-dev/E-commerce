@@ -16,7 +16,7 @@ const LEATHER_COLORS: { id: LeatherColor; name: string; hex: string }[] = [
   { id: 'vintage-tan', name: 'Vintage Tan', hex: '#9A5E35' },
 ];
 
-const STANDARD_SIZES = [39, 40, 41, 42, 43, 44, 45, 46];
+const STANDARD_SIZES = [7, 8, 9, 10, 11, 12, 13];
 
 interface CustomColorItem {
   id: string;
@@ -94,7 +94,7 @@ export const ProductsTab: React.FC = () => {
     craftingTime: '12 Hours Master Artisan Handwork',
     stockCount: 1,
     featured: false,
-    availableSizes: [40, 41, 42, 43, 44],
+    availableSizes: [7, 8, 9, 10, 11, 12, 13],
     availableColors: ['saddle-tan', 'espresso'],
   });
 
@@ -258,7 +258,7 @@ export const ProductsTab: React.FC = () => {
       craftingTime: '12 Hours Master Artisan Handwork',
       stockCount: 1,
       featured: false,
-      availableSizes: [40, 41, 42, 43, 44],
+      availableSizes: [7, 8, 9, 10, 11, 12, 13],
       availableColors: ['saddle-tan', 'espresso'],
     });
     setGalleryImages([]);
@@ -286,7 +286,7 @@ export const ProductsTab: React.FC = () => {
       craftingTime: p.craftingTime || '12 Hours Master Artisan Handwork',
       stockCount: (p as any).stockCount ?? 50,
       featured: !!p.featured,
-      availableSizes: p.availableSizes ? [...p.availableSizes] : [40, 41, 42, 43, 44],
+      availableSizes: p.availableSizes && p.availableSizes.length > 0 ? [...p.availableSizes] : [7, 8, 9, 10, 11, 12, 13],
       availableColors: p.availableColors ? [...p.availableColors] : ['saddle-tan'],
     });
 
@@ -1084,11 +1084,16 @@ export const ProductsTab: React.FC = () => {
                 </div>
               </div>
 
-              {/* Sizes Selection */}
+              {/* Sizes Selection (7 to 13) */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Available EU Sizes
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Available Sizes (7 to 13) *
+                  </label>
+                  <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
+                    {formData.availableSizes.length} Selected
+                  </span>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {STANDARD_SIZES.map((size) => {
                     const isSelected = formData.availableSizes.includes(size);
@@ -1097,13 +1102,14 @@ export const ProductsTab: React.FC = () => {
                         type="button"
                         key={size}
                         onClick={() => toggleSize(size)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
                           isSelected
-                            ? 'bg-blue-600 text-white shadow-xs'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-500/20 ring-1 ring-blue-600'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                         }`}
                       >
-                        EU {size}
+                        Size {size}
+                        {isSelected && <span className="ml-1 text-blue-200">✓</span>}
                       </button>
                     );
                   })}

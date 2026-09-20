@@ -936,7 +936,7 @@ app.post('/api/products', authenticateAdmin, async (req: Request, res: Response)
       front: primaryFront,
       gallery: gallery.length > 0 ? gallery : (primaryFront ? [primaryFront] : []),
     },
-    availableSizes: body.availableSizes || [39, 40, 41, 42, 43, 44, 45],
+    availableSizes: body.availableSizes || [7, 8, 9, 10, 11, 12, 13],
     availableColors: body.availableColors || ['saddle-tan', 'espresso'],
     averageRating: 0,
     reviewCount: 0,

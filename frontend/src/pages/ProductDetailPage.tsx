@@ -31,7 +31,7 @@ export const ProductDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   // Selection States
-  const [selectedSize, setSelectedSize] = useState<number>(42);
+  const [selectedSize, setSelectedSize] = useState<number>(9);
   const [selectedColor, setSelectedColor] = useState<LeatherColor>('saddle-tan');
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
   const [addedNotice, setAddedNotice] = useState(false);
@@ -43,7 +43,7 @@ export const ProductDetailPage: React.FC = () => {
       if (data) {
         setProduct(data);
         apiService.recordProductVisit(data.id);
-        const defSize = (Array.isArray(data.availableSizes) && data.availableSizes[0]) || 42;
+        const defSize = (Array.isArray(data.availableSizes) && data.availableSizes[0]) || 9;
         const defColor = (Array.isArray(data.availableColors) && data.availableColors[0]) || 'saddle-tan';
         setSelectedSize(defSize);
         setSelectedColor(defColor);
@@ -254,16 +254,16 @@ export const ProductDetailPage: React.FC = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700">
-                Select EU Size:
+                Select Size:
               </span>
               <Link to="/size-finder" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
                 <Ruler className="w-3.5 h-3.5" /> AI Size Finder
               </Link>
             </div>
-            <div className="grid grid-cols-5 sm:grid-cols-6 gap-1.5 sm:gap-2">
+            <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5 sm:gap-2">
               {(Array.isArray(product.availableSizes) && product.availableSizes.length > 0
                 ? product.availableSizes
-                : [39, 40, 41, 42, 43, 44, 45]
+                : [7, 8, 9, 10, 11, 12, 13]
               ).map(size => (
                 <button
                   key={size}
@@ -275,7 +275,7 @@ export const ProductDetailPage: React.FC = () => {
                       : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  EU {size}
+                  Size {size}
                 </button>
               ))}
             </div>

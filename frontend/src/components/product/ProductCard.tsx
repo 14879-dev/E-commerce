@@ -17,11 +17,11 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const getDefaults = (): { size: number; color: LeatherColor } => {
     const sizes = Array.isArray(product.availableSizes) && product.availableSizes.length > 0
       ? product.availableSizes
-      : [39, 40, 41, 42, 43, 44, 45];
+      : [7, 8, 9, 10, 11, 12, 13];
     const colors = Array.isArray(product.availableColors) && product.availableColors.length > 0
       ? product.availableColors
       : ['saddle-tan'];
-    const size = sizes[Math.floor(sizes.length / 2)] || 41;
+    const size = sizes[Math.floor(sizes.length / 2)] || 9;
     const color = (colors[0] || 'saddle-tan') as LeatherColor;
     return { size, color };
   };

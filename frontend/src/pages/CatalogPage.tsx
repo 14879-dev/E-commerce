@@ -78,7 +78,7 @@ export const CatalogPage: React.FC = () => {
     return ['All', ...categories.map(c => c.name)];
   }, [categories]);
 
-  const sizes = [39, 40, 41, 42, 43, 44, 45];
+  const sizes = [7, 8, 9, 10, 11, 12, 13];
   const colors: { label: string; value: LeatherColor | 'All' }[] = [
     { label: 'All Colors', value: 'All' },
     { label: 'Saddle Tan', value: 'saddle-tan' },
@@ -253,7 +253,7 @@ export const CatalogPage: React.FC = () => {
                         : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
                     }`}
                   >
-                    EU {size}
+                    Size {size}
                   </button>
                 ))}
               </div>

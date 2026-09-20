@@ -162,7 +162,7 @@ export const apiService = {
       materials: productData.materials || 'Full grain leather',
       craftingTime: productData.craftingTime || '12 Hours',
       images: productData.images || { front: 'https://images.unsplash.com/photo-1549298916-b41d501d3772' },
-      availableSizes: productData.availableSizes || [39, 40, 41, 42, 43, 44, 45],
+      availableSizes: productData.availableSizes || [7, 8, 9, 10, 11, 12, 13],
       availableColors: productData.availableColors || ['saddle-tan', 'espresso'],
       averageRating: 5.0, reviewCount: 0,
     };

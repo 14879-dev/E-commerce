@@ -50,7 +50,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addToCart = (product: Product, size: number, color: LeatherColor) => {
     const safeColor = (color || 'saddle-tan').toString() as LeatherColor;
-    const safeSize = Number(size) || 41;
+    const safeSize = Number(size) || 9;
 
     setItems(prev => {
       const existingIdx = prev.findIndex(item => 
