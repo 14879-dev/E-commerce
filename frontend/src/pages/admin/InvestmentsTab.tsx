@@ -210,22 +210,21 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
     }
   };
 
-  // --- Financial Calculations ---
   // 1. Supplier Product Capital — FIXED once paid, NEVER reduced or increased by customer orders!
-  // Calculated as: product buy price from supplier (costPrice) × inventory (stockCount)
+  // Calculated dynamically as: product buy price from supplier (costPrice) × inventory (stockCount)
   // Can also be manually adjusted or topped up by the store owner anytime.
   const inventoryTotalOutlay = products.reduce(
-    (sum, p) => sum + (Number(p.costPrice) || 0) * (Number(p.stockCount) || 0),
+    (sum, p) => sum + (Number(p.costPrice) || 0) * (Number(p.stockCount) || 1),
     0
   );
   const totalPairsInStock = products.reduce(
-    (sum, p) => sum + (Number(p.stockCount) || 0),
+    (sum, p) => sum + (Number(p.stockCount) || 1),
     0
   );
 
-  const totalSupplierInvestment = (supplierBudget && supplierBudget > 1500)
-    ? supplierBudget
-    : (inventoryTotalOutlay > 0 ? inventoryTotalOutlay : (supplierBudget || 15000));
+  const totalSupplierInvestment = inventoryTotalOutlay > 0
+    ? inventoryTotalOutlay
+    : (supplierBudget || 0);
 
   const handleSyncInventory = async () => {
     setIsSavingBudget(true);
@@ -386,7 +385,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
     const productRows = products.map((p, idx) => {
       const cost = Number(p.costPrice) || 0;
       const price = Number(p.price) || 0;
-      const stock = Number(p.stockCount) || 0;
+      const stock = Number(p.stockCount) || 1;
       const totalOutlay = cost * stock;
       const margin = price - cost;
 
@@ -1201,7 +1200,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
           <div className="font-serif font-bold text-2xl text-emerald-800">Rs. {totalSupplierInvestment.toLocaleString()}</div>
           <div className="flex flex-col gap-1.5 text-[11px] text-slate-500 font-medium">
             <span className="text-emerald-800 font-semibold">
-              {totalPairsInStock > 0 ? `${totalPairsInStock} pairs in stock × supplier buy cost` : 'Fixed capital (once paid is paid)'}
+              {totalPairsInStock > 0 ? `${totalPairsInStock} pairs across ${products.length} catalog items` : 'Live catalog supplier capital'}
             </span>
             <span className="text-slate-400 text-[10px]">Fixed capital • Untouched by orders</span>
             <div className="flex items-center justify-between gap-2 pt-0.5">

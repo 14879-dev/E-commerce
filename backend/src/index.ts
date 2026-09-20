@@ -788,20 +788,18 @@ app.delete('/api/admin/investments/:id', authenticateAdmin, (req: Request, res: 
 // Allows manual addition, deduction, or direct set of procurement budget.
 app.get('/api/admin/supplier-budget', (_req: Request, res: Response) => {
   const inventoryTotal = inMemoryProducts.reduce(
-    (sum, p) => sum + (Number(p.costPrice) || 0) * (Number(p.stockCount) || 0),
+    (sum, p) => sum + (Number(p.costPrice) || 0) * (Number(p.stockCount) || 1),
     0
   );
   const totalPairs = inMemoryProducts.reduce(
-    (sum, p) => sum + (Number(p.stockCount) || 0),
+    (sum, p) => sum + (Number(p.stockCount) || 1),
     0
   );
 
-  let budget = typeof inMemorySettings.supplierProductBudget === 'number'
-    ? inMemorySettings.supplierProductBudget
-    : (inventoryTotal > 0 ? inventoryTotal : 15000);
-
-  // Auto-upgrade if it was previously set to single unit price (1500) rather than inventory total
-  if (budget === 1500 && inventoryTotal > 1500) {
+  let budget = inventoryTotal;
+  if (typeof inMemorySettings.supplierProductBudget === 'number' && inMemorySettings.supplierProductBudget > 0 && inMemorySettings.supplierProductBudget !== 1500 && inMemorySettings.supplierProductBudget !== 15000) {
+    budget = inMemorySettings.supplierProductBudget;
+  } else {
     budget = inventoryTotal;
     inMemorySettings.supplierProductBudget = budget;
     saveSettingsToDisk();
@@ -817,16 +815,16 @@ app.post('/api/admin/supplier-budget', authenticateAdmin, (req: Request, res: Re
   const { action, amount, note } = req.body;
   const numAmount = Math.max(0, Number(amount) || 0);
   const inventoryTotal = inMemoryProducts.reduce(
-    (sum, p) => sum + (Number(p.costPrice) || 0) * (Number(p.stockCount) || 0),
+    (sum, p) => sum + (Number(p.costPrice) || 0) * (Number(p.stockCount) || 1),
     0
   );
   const totalPairs = inMemoryProducts.reduce(
-    (sum, p) => sum + (Number(p.stockCount) || 0),
+    (sum, p) => sum + (Number(p.stockCount) || 1),
     0
   );
-  const currentBudget = typeof inMemorySettings.supplierProductBudget === 'number'
+  const currentBudget = (typeof inMemorySettings.supplierProductBudget === 'number' && inMemorySettings.supplierProductBudget > 0 && inMemorySettings.supplierProductBudget !== 1500 && inMemorySettings.supplierProductBudget !== 15000)
     ? inMemorySettings.supplierProductBudget
-    : (inventoryTotal > 0 ? inventoryTotal : 15000);
+    : inventoryTotal;
 
   let newBudget = currentBudget;
   if (action === 'add') {
@@ -960,6 +958,13 @@ app.post('/api/products', authenticateAdmin, async (req: Request, res: Response)
   } else {
     inMemoryProducts.unshift(newProduct);
     saveProductsToDisk();
+    // Keep supplier product budget aligned with live inventory
+    const newInventoryTotal = inMemoryProducts.reduce(
+      (sum, p) => sum + (Number(p.costPrice) || 0) * (Number(p.stockCount) || 1),
+      0
+    );
+    inMemorySettings.supplierProductBudget = newInventoryTotal;
+    saveSettingsToDisk();
     res.status(201).json(newProduct);
   }
 });
@@ -1017,6 +1022,13 @@ app.put('/api/products/:id', authenticateAdmin, async (req: Request, res: Respon
     if (idx === -1) { res.status(404).json({ error: 'Product not found' }); return; }
     inMemoryProducts[idx] = { ...inMemoryProducts[idx], ...updateData };
     saveProductsToDisk();
+    // Keep supplier product budget aligned with live inventory
+    const newInventoryTotal = inMemoryProducts.reduce(
+      (sum, p) => sum + (Number(p.costPrice) || 0) * (Number(p.stockCount) || 1),
+      0
+    );
+    inMemorySettings.supplierProductBudget = newInventoryTotal;
+    saveSettingsToDisk();
     res.json(inMemoryProducts[idx]);
   }
 });
@@ -1029,6 +1041,12 @@ app.delete('/api/products/:id', authenticateAdmin, async (req: Request, res: Res
     const idx = inMemoryProducts.findIndex(p => p.id === req.params.id || p.slug === req.params.id);
     if (idx !== -1) inMemoryProducts.splice(idx, 1);
     saveProductsToDisk();
+    const newInventoryTotal = inMemoryProducts.reduce(
+      (sum, p) => sum + (Number(p.costPrice) || 0) * (Number(p.stockCount) || 1),
+      0
+    );
+    inMemorySettings.supplierProductBudget = newInventoryTotal;
+    saveSettingsToDisk();
     res.json({ success: true });
   }
 });

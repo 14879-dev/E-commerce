@@ -22,7 +22,7 @@ const INITIAL_PROMOS: PromoCode[] = [];
 const INITIAL_NOTIFICATIONS: AdminNotification[] = [];
 
 // Automatic purge of obsolete cached demo data from previous sessions
-const DATA_CLEAN_VERSION = 'v8_sizes_strictly_7_13';
+const DATA_CLEAN_VERSION = 'v9_dynamic_supplier_investments';
 try {
   if (typeof localStorage !== 'undefined') {
     if (localStorage.getItem('psh_data_version') !== DATA_CLEAN_VERSION) {
@@ -1377,14 +1377,16 @@ export const apiService = {
         }
       }
     } catch {}
+    const prods = getStoredProducts();
+    const liveInv = prods.reduce((sum, p) => sum + (Number(p.costPrice) || 0) * (Number(p.stockCount) || 1), 0);
+    const livePairs = prods.reduce((sum, p) => sum + (Number(p.stockCount) || 1), 0);
     const local = localStorage.getItem('psh_supplier_budget');
-    const parsedLocal = local ? Number(local) : 15000;
-    // Upgrade if it was previous single 1500
-    const finalBudget = parsedLocal === 1500 ? 15000 : parsedLocal;
+    const parsedLocal = local ? Number(local) : liveInv;
+    const finalBudget = (parsedLocal === 1500 || parsedLocal === 15000) ? (liveInv > 0 ? liveInv : 70500) : parsedLocal;
     return {
       budget: finalBudget,
-      inventoryTotal: 15000,
-      totalPairs: 10,
+      inventoryTotal: liveInv > 0 ? liveInv : 70500,
+      totalPairs: livePairs > 0 ? livePairs : prods.length,
       logs: []
     };
   },
@@ -1412,17 +1414,20 @@ export const apiService = {
     } catch {}
 
     // Local fallback if offline
-    const current = Number(localStorage.getItem('psh_supplier_budget')) || 15000;
+    const prods = getStoredProducts();
+    const liveInv = prods.reduce((sum, p) => sum + (Number(p.costPrice) || 0) * (Number(p.stockCount) || 1), 0);
+    const livePairs = prods.reduce((sum, p) => sum + (Number(p.stockCount) || 1), 0);
+    const current = Number(localStorage.getItem('psh_supplier_budget')) || liveInv;
     let nextBudget = current;
     if (action === 'add') nextBudget = current + amount;
     else if (action === 'remove') nextBudget = Math.max(0, current - amount);
     else if (action === 'set') nextBudget = Math.max(0, amount);
-    else if (action === 'sync-inventory') nextBudget = 15000;
+    else if (action === 'sync-inventory') nextBudget = liveInv;
     localStorage.setItem('psh_supplier_budget', String(nextBudget));
     const fallbackData = {
       budget: nextBudget,
-      inventoryTotal: 15000,
-      totalPairs: 10,
+      inventoryTotal: liveInv,
+      totalPairs: livePairs,
       logs: [{
         id: `sbl-${Date.now()}`,
         type: action,

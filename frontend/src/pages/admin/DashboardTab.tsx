@@ -152,16 +152,16 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
   // 5. Total Investment Calculations:
   // a) Supplier Product Capital: FIXED capital paid to supplier (costPrice * inventory) — strictly untouched by customer orders!
   const inventoryTotalOutlay = products.reduce(
-    (sum, p) => sum + (Number(p.costPrice) || 0) * (Number(p.stockCount) || 0),
+    (sum, p) => sum + (Number(p.costPrice) || 0) * (Number(p.stockCount) || 1),
     0
   );
   const totalPairsInStock = products.reduce(
-    (sum, p) => sum + (Number(p.stockCount) || 0),
+    (sum, p) => sum + (Number(p.stockCount) || 1),
     0
   );
-  const totalSupplierInvestment = (supplierBudget && supplierBudget > 1500)
-    ? supplierBudget
-    : (inventoryTotalOutlay > 0 ? inventoryTotalOutlay : (supplierBudget || 15000));
+  const totalSupplierInvestment = inventoryTotalOutlay > 0
+    ? inventoryTotalOutlay
+    : (supplierBudget || 0);
 
   // b) Custom Operational Investments (Packaging, Monetization Ads, Logistics Supplies, Gear)
   const packagingInvestment = investments
