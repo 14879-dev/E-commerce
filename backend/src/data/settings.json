@@ -1,7 +1,7 @@
 {
   "storeName": "Peshawari Chappal Co.",
-  "logoUrl": "/uploads/asset_1789685216898.png",
-  "faviconUrl": "/uploads/asset_1789685812306.png",
+  "logoUrl": "/uploads/asset_1789748159642.png",
+  "faviconUrl": "/uploads/asset_1789748164855.png",
   "heroMediaUrl": "/uploads/hero.webp",
   "heroMediaType": "image",
   "socialLinks": {
@@ -67,5 +67,19 @@
       "widthNote": "Maximum comfort width"
     }
   ],
-  "hideCategories": true
+  "hideCategories": true,
+  "success": true,
+  "supplierProductBudget": 15000,
+  "supplierBudgetLogs": [
+    {
+      "id": "sbl-inventory-15000",
+      "type": "set",
+      "amount": 15000,
+      "previousBudget": 1500,
+      "newBudget": 15000,
+      "note": "Initial inventory stock procurement: 10 pairs × Rs. 1,500/pair from supplier",
+      "date": "2026-09-20",
+      "createdAt": "2026-09-19T19:55:00.000Z"
+    }
+  ]
 }

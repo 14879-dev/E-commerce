@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Search, RefreshCw, AlertCircle, Check, ShieldCheck } from 'lucide-react';
+import { useParams, useLocation, Link } from 'react-router-dom';
+import { Search, RefreshCw, AlertCircle, Check, ShieldCheck, CheckCircle2, ArrowRight, Home, PackageCheck, Sparkles } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { apiService } from '../services/api';
+import { useStoreSettings } from '../context/StoreSettingsContext';
 import type { Order } from '../types';
 import { SEOHelmet } from '../components/common/SEOHelmet';
 
@@ -25,8 +27,13 @@ const maskPhone = (phone: string): string => {
 
 export const OrderTrackingPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [searchId, setSearchId] = useState(id || '');
-  const [order, setOrder] = useState<Order | null>(null);
+  const location = useLocation();
+  const locationState = location.state as { justPlaced?: boolean; order?: Order; orderNumber?: string } | undefined;
+  const isJustPlaced = Boolean(locationState?.justPlaced || (id && location.search.includes('placed=true')));
+
+  const { formatPrice } = useStoreSettings();
+  const [searchId, setSearchId] = useState(id || locationState?.orderNumber || '');
+  const [order, setOrder] = useState<Order | null>(locationState?.order || null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,10 +43,21 @@ export const OrderTrackingPage: React.FC = () => {
   const [isSubmittingReplacement, setIsSubmittingReplacement] = useState(false);
 
   useEffect(() => {
+    if (isJustPlaced) {
+      try {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.5 }
+        });
+      } catch {}
+    }
+  }, [isJustPlaced]);
+
+  useEffect(() => {
     if (id) {
       loadOrder(id);
     }
-    // no auto-load of demo order
   }, [id]);
 
   const loadOrder = async (orderId: string) => {
@@ -87,9 +105,62 @@ export const OrderTrackingPage: React.FC = () => {
   return (
     <div className="space-y-8 max-w-4xl mx-auto py-2">
       <SEOHelmet
-        title="Live Order Tracking"
+        title={isJustPlaced ? "Thank You For Your Order - Tracking" : "Live Order Tracking"}
         description="Track the handcrafted progress, quality check, and shipping status of your Peshawari Chappal order."
       />
+
+      {/* Thank You & Order Confirmation Celebration Hero (Shown upon placing order) */}
+      {isJustPlaced && (
+        <div className="rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-blue-50 via-sky-50/60 to-white border-2 border-blue-200 shadow-xl shadow-blue-500/10 space-y-5 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-blue-100">
+            <div className="flex items-start sm:items-center gap-4">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 text-white flex items-center justify-center shadow-lg shadow-blue-600/30 shrink-0">
+                <CheckCircle2 className="w-8 h-8 sm:w-9 sm:h-9" />
+              </div>
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider mb-1 border border-blue-200">
+                  <Sparkles className="w-3 h-3 text-blue-600" /> Order Placed Successfully
+                </div>
+                <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900">
+                  Thank You For Your Order!
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
+                  We've received your handcrafted order and our master artisans have begun preparing your pair.
+                </p>
+              </div>
+            </div>
+
+            {(order?.orderNumber || id) && (
+              <div className="sm:text-right bg-white/90 backdrop-blur-xs px-4 py-3 rounded-2xl border border-blue-200/80 shadow-xs shrink-0">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Your Order ID</span>
+                <span className="font-mono text-lg sm:text-xl font-extrabold text-blue-600">#{order?.orderNumber || id}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-1">
+            <div className="flex items-center gap-2 text-xs text-slate-600">
+              <PackageCheck className="w-4 h-4 text-blue-600 shrink-0" />
+              <span>You can track your order live below in real-time.</span>
+            </div>
+
+            <div className="flex items-center gap-2.5 w-full sm:w-auto">
+              <Link
+                to="/products"
+                className="btn-copper text-xs sm:text-sm py-2.5 px-6 inline-flex items-center justify-center gap-2 flex-1 sm:flex-initial shadow-md"
+              >
+                Continue Shopping <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                to="/"
+                className="btn-glass text-xs sm:text-sm py-2.5 px-5 inline-flex items-center justify-center gap-1.5 flex-1 sm:flex-initial"
+              >
+                <Home className="w-4 h-4" /> Home
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Order Tracking Header - Open Layout with Divider Line */}
       <div className="border-b border-slate-200 pb-6 space-y-4">
@@ -97,9 +168,9 @@ export const OrderTrackingPage: React.FC = () => {
           <span className="text-[11px] font-bold uppercase tracking-widest text-blue-600 block mb-1">
             Artisan Status Tracker
           </span>
-          <h1 className="font-serif text-3xl sm:text-4xl font-bold text-slate-900">
+          <h2 className="font-serif text-3xl sm:text-4xl font-bold text-slate-900">
             Live Order Tracking
-          </h1>
+          </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Monitor your handcrafted pair step-by-step from leather cutting to doorstep delivery.
           </p>
@@ -125,7 +196,7 @@ export const OrderTrackingPage: React.FC = () => {
         {/* Privacy Notice */}
         <div className="flex items-center gap-2 text-xs text-slate-400">
           <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-          <span>Enter your exact order ID as shown in your confirmation email.</span>
+          <span>Enter your exact order ID as shown in your confirmation.</span>
         </div>
       </div>
 
@@ -203,7 +274,7 @@ export const OrderTrackingPage: React.FC = () => {
                       </div>
                     </div>
                     <span className="font-serif font-bold text-slate-900 text-sm">
-                      ${item.product.price * item.quantity}
+                      {formatPrice((item.product?.price || 0) * (item.quantity || 1))}
                     </span>
                   </div>
                 ))}
@@ -249,6 +320,27 @@ export const OrderTrackingPage: React.FC = () => {
                   Contact details are partially masked for your privacy and security.
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* Bottom Navigation & Support Action Bar */}
+          <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-slate-500 text-center sm:text-left">
+              Need assistance with your handcrafted pair? Reach out to our <Link to="/contact" className="text-blue-600 font-semibold underline hover:text-blue-700">Artisan Support Team</Link>.
+            </p>
+            <div className="flex items-center gap-2.5 w-full sm:w-auto">
+              <Link
+                to="/products"
+                className="btn-copper text-xs py-2.5 px-5 inline-flex items-center justify-center gap-1.5 flex-1 sm:flex-initial shadow-md"
+              >
+                Explore Products <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+              <Link
+                to="/"
+                className="btn-glass text-xs py-2.5 px-4 inline-flex items-center justify-center gap-1.5 flex-1 sm:flex-initial"
+              >
+                <Home className="w-3.5 h-3.5" /> Home
+              </Link>
             </div>
           </div>
 

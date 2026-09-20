@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Heart, ShoppingBag, Ruler, Star, CheckCircle } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Heart, ShoppingBag, Ruler, Star, CheckCircle, Zap } from 'lucide-react';
 import { ProductReviews } from '../components/product/ProductReviews';
 import { ProductCard } from '../components/product/ProductCard';
 import { SEOHelmet } from '../components/common/SEOHelmet';
@@ -21,6 +21,7 @@ const COLOR_HEX_MAP: Record<string, string> = {
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { formatPrice } = useStoreSettings();
@@ -42,8 +43,10 @@ export const ProductDetailPage: React.FC = () => {
       if (data) {
         setProduct(data);
         apiService.recordProductVisit(data.id);
-        setSelectedSize(data.availableSizes[0] || 42);
-        setSelectedColor(data.availableColors[0] || 'saddle-tan');
+        const defSize = (Array.isArray(data.availableSizes) && data.availableSizes[0]) || 42;
+        const defColor = (Array.isArray(data.availableColors) && data.availableColors[0]) || 'saddle-tan';
+        setSelectedSize(defSize);
+        setSelectedColor(defColor);
         // Reset active image on product switch
         setSelectedImageUrl(data.images?.front || '');
         // Fetch recommended products
@@ -118,7 +121,12 @@ export const ProductDetailPage: React.FC = () => {
   const handleAddToCart = () => {
     addToCart(product, selectedSize, selectedColor);
     setAddedNotice(true);
-    setTimeout(() => setAddedNotice(false), 3000);
+    setTimeout(() => setAddedNotice(false), 3500);
+  };
+
+  const handleDirectBuy = () => {
+    addToCart(product, selectedSize, selectedColor);
+    navigate('/checkout');
   };
 
   const activeImageUrl = selectedImageUrl || allImages[0] || product.images?.front || '';
@@ -253,7 +261,10 @@ export const ProductDetailPage: React.FC = () => {
               </Link>
             </div>
             <div className="grid grid-cols-5 sm:grid-cols-6 gap-1.5 sm:gap-2">
-              {product.availableSizes.map(size => (
+              {(Array.isArray(product.availableSizes) && product.availableSizes.length > 0
+                ? product.availableSizes
+                : [39, 40, 41, 42, 43, 44, 45]
+              ).map(size => (
                 <button
                   key={size}
                   type="button"
@@ -270,21 +281,38 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Add to Bag and Actions */}
+          {/* Action Buttons: Horizontal Add to Bag & Buy Now */}
           <div className="space-y-2.5 pt-1">
-            <div className="flex gap-2.5">
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Add to Shopping Bag Button */}
               <button
+                type="button"
                 onClick={handleAddToCart}
-                className="flex-1 py-3 sm:py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="flex-1 py-3 sm:py-3.5 px-3 sm:px-4 rounded-xl bg-slate-50 hover:bg-slate-100 border-2 border-slate-300 hover:border-slate-400 text-slate-800 font-bold text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                title="Add product to shopping bag"
               >
-                <ShoppingBag className="w-4 h-4" /> Add to Shopping Bag
+                <ShoppingBag className="w-4 h-4 text-slate-700" />
+                <span>Add to Bag</span>
               </button>
 
+              {/* Direct Buy Now Button */}
               <button
+                type="button"
+                onClick={handleDirectBuy}
+                className="flex-1 py-3 sm:py-3.5 px-3 sm:px-4 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                title="Buy now and proceed directly to checkout"
+              >
+                <Zap className="w-4 h-4 text-amber-300 fill-amber-300" />
+                <span>Buy Now</span>
+              </button>
+
+              {/* Wishlist Button */}
+              <button
+                type="button"
                 onClick={() => toggleWishlist(product)}
-                className={`p-3 sm:p-3.5 rounded-xl border transition-all cursor-pointer shrink-0 ${
+                className={`p-3 sm:p-3.5 rounded-xl border transition-all cursor-pointer shrink-0 active:scale-95 ${
                   isWishlisted
-                    ? 'border-red-300 bg-red-50 text-red-600'
+                    ? 'border-rose-300 bg-rose-50 text-rose-600 shadow-xs'
                     : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                 }`}
                 title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
@@ -294,9 +322,14 @@ export const ProductDetailPage: React.FC = () => {
             </div>
 
             {addedNotice && (
-              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
-                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Added to your bag! View cart or continue shopping.</span>
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between gap-2 animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Added to shopping bag! (EU {selectedSize} • {selectedColor.replace(/-/g, ' ')})</span>
+                </div>
+                <Link to="/bag" className="text-blue-700 hover:underline font-black text-xs">
+                  View Bag →
+                </Link>
               </div>
             )}
           </div>

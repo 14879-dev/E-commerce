@@ -58,6 +58,8 @@ const AppContent: React.FC = () => {
           <Route path="/products/:slug" element={<ProductDetailPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/bag" element={<ShoppingBagPage />} />
+          <Route path="/cart" element={<Navigate to="/bag" replace />} />
+          <Route path="/buy" element={<Navigate to="/checkout" replace />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/orders" element={<OrderTrackingPage />} />
           <Route path="/orders/:id" element={<OrderTrackingPage />} />

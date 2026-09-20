@@ -5,14 +5,14 @@ import { ShieldCheck, Truck, Wallet, CheckCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useStoreSettings } from '../context/StoreSettingsContext';
 import { apiService } from '../services/api';
-import type { ShippingAddress } from '../types';
+import type { ShippingAddress, CartItem } from '../types';
 import type { PromoCode } from '../types/admin';
 import { SEOHelmet } from '../components/common/SEOHelmet';
 
 export const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { items, subtotal, clearCart } = useCart();
+  const { items, clearCart } = useCart();
   const { formatPrice, settings } = useStoreSettings();
 
   const [address, setAddress] = useState<ShippingAddress>({
@@ -29,6 +29,23 @@ export const CheckoutPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'easypaisa' | 'jazzcash'>('cod');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Active items with instant localStorage fallback
+  const storedItems: CartItem[] = (() => {
+    try {
+      const saved = localStorage.getItem('psh_cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  })();
+  const activeItems: CartItem[] = items.length > 0 ? items : storedItems;
+
+  const currentSubtotal = activeItems.reduce((sum, item) => {
+    const price = Number(item.product?.price) || 0;
+    const qty = Number(item.quantity) || 1;
+    return sum + (price * qty);
+  }, 0);
+
   // Promo code state
   const initialPromoCode = (location.state as any)?.appliedPromoCode || '';
   const [promoCodeInput, setPromoCodeInput] = useState(initialPromoCode);
@@ -39,12 +56,12 @@ export const CheckoutPage: React.FC = () => {
     if (initialPromoCode) {
       apiService.getPromoCodes().then(promos => {
         const match = promos.find(p => p.code.toUpperCase() === initialPromoCode.toUpperCase() && p.active);
-        if (match && subtotal >= match.minOrderValue) {
+        if (match && currentSubtotal >= match.minOrderValue) {
           setAppliedPromo(match);
         }
       });
     }
-  }, [initialPromoCode, subtotal]);
+  }, [initialPromoCode, currentSubtotal]);
 
   const handleApplyPromo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +78,7 @@ export const CheckoutPage: React.FC = () => {
         return;
       }
 
-      if (subtotal < match.minOrderValue) {
+      if (currentSubtotal < match.minOrderValue) {
         setPromoError(`Minimum order of ${formatPrice(match.minOrderValue)} required for this code.`);
         setAppliedPromo(null);
         return;
@@ -78,20 +95,20 @@ export const CheckoutPage: React.FC = () => {
   let discountAmount = 0;
   if (appliedPromo) {
     if (appliedPromo.discountType === 'percentage') {
-      discountAmount = (subtotal * appliedPromo.value) / 100;
+      discountAmount = (currentSubtotal * appliedPromo.value) / 100;
     } else {
       discountAmount = appliedPromo.value;
     }
   }
 
-  const effectiveSubtotal = Math.max(0, subtotal - discountAmount);
+  const effectiveSubtotal = Math.max(0, currentSubtotal - discountAmount);
 
   // Free shipping policy rule matching Admin Settings
   const isFreeShipping = 
     settings.freeShippingMode === 'all' ||
     (settings.freeShippingMode === 'threshold' && effectiveSubtotal >= settings.freeShippingThreshold) ||
-    (settings.freeShippingMode === 'product-specific' && items.some(i => i.product.freeShipping)) ||
-    items.some(i => i.product.freeShipping);
+    (settings.freeShippingMode === 'product-specific' && activeItems.some(i => i.product.freeShipping)) ||
+    activeItems.some(i => i.product.freeShipping);
 
   const shippingFee = shippingMethod === 'standard'
     ? (isFreeShipping ? 0 : settings.standardShippingFee)
@@ -101,16 +118,16 @@ export const CheckoutPage: React.FC = () => {
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (items.length === 0) return;
+    if (activeItems.length === 0) return;
 
     setIsSubmitting(true);
     try {
       const order = await apiService.createOrder({
-        items,
+        items: activeItems,
         shippingAddress: address,
         shippingMethod,
         paymentMethod,
-        subtotal,
+        subtotal: currentSubtotal,
         shippingFee,
         discount: discountAmount,
         total,
@@ -124,22 +141,34 @@ export const CheckoutPage: React.FC = () => {
       });
 
       clearCart();
-      navigate(`/orders/${order.id}`);
+      const orderTargetId = order.orderNumber || order.id || (order as any)._id;
+      navigate(`/orders/${orderTargetId}`, {
+        state: {
+          justPlaced: true,
+          orderNumber: order.orderNumber,
+          order
+        }
+      });
     } catch (err) {
-      console.error(err);
+      console.error('Order submission error:', err);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (items.length === 0) {
+  if (activeItems.length === 0) {
     return (
       <div className="py-16 text-center space-y-4 max-w-lg mx-auto">
         <h2 className="font-serif font-bold text-2xl text-slate-900">No items to checkout</h2>
         <p className="text-slate-500 text-sm">Please add items to your shopping bag before proceeding to checkout.</p>
-        <button onClick={() => navigate('/products')} className="btn-copper text-xs py-2.5 px-6">
-          View Catalog
-        </button>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <button onClick={() => navigate('/products')} className="btn-copper text-xs py-2.5 px-6">
+            View Catalog
+          </button>
+          <button onClick={() => navigate('/')} className="btn-glass text-xs py-2.5 px-6">
+            Return to Home
+          </button>
+        </div>
       </div>
     );
   }
@@ -288,18 +317,25 @@ export const CheckoutPage: React.FC = () => {
           </h2>
 
           <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
-            {items.map(item => (
-              <div key={item.id} className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-3">
-                  <img src={item.product.images.front} alt={item.product.name} className="w-10 h-10 object-cover rounded-lg bg-white border" />
-                  <div>
-                    <h4 className="font-semibold text-slate-900 line-clamp-1">{item.product.name}</h4>
-                    <span className="text-slate-500">Qty: {item.quantity} • EU {item.size}</span>
+            {activeItems.map((item: CartItem) => {
+              if (!item || !item.product) return null;
+              const imgUrl = (item.product.images && (item.product.images.front || (Array.isArray(item.product.images.gallery) && item.product.images.gallery[0]))) || '';
+              const itemTotal = (Number(item.product.price) || 0) * (Number(item.quantity) || 1);
+              const colorDisplay = (item.selectedColor || 'saddle-tan').toString().replace(/-/g, ' ');
+
+              return (
+                <div key={item.id} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-3">
+                    <img src={imgUrl} alt={item.product.name} className="w-10 h-10 object-cover rounded-lg bg-white border" />
+                    <div>
+                      <h4 className="font-semibold text-slate-900 line-clamp-1">{item.product.name}</h4>
+                      <span className="text-slate-500">Qty: {item.quantity || 1} • EU {item.size} • <span className="capitalize">{colorDisplay}</span></span>
+                    </div>
                   </div>
+                  <span className="font-serif font-bold text-slate-900">{formatPrice(itemTotal)}</span>
                 </div>
-                <span className="font-serif font-bold text-slate-900">{formatPrice(item.product.price * item.quantity)}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Promo Code Entry in Checkout */}
@@ -337,7 +373,7 @@ export const CheckoutPage: React.FC = () => {
           <div className="space-y-3 text-sm text-slate-500 border-t border-slate-200 pt-4">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span className="font-semibold text-slate-900">{formatPrice(subtotal)}</span>
+              <span className="font-semibold text-slate-900">{formatPrice(currentSubtotal)}</span>
             </div>
 
             {appliedPromo && (

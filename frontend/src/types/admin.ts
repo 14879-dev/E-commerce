@@ -86,4 +86,30 @@ export interface StoreSettings {
   hideCategories?: boolean;
   heroMediaUrl?: string | null;
   heroMediaType?: 'image' | 'video' | null;
+  supplierProductBudget?: number;
+  supplierBudgetLogs?: SupplierBudgetLog[];
+}
+
+export interface SupplierBudgetLog {
+  id: string;
+  type: 'add' | 'remove' | 'set';
+  amount: number;
+  previousBudget: number;
+  newBudget: number;
+  note?: string;
+  date: string;
+  createdAt?: string;
+}
+
+export type InvestmentCategory = 'packaging' | 'monetization' | 'marketing' | 'logistics' | 'equipment' | 'other';
+
+export interface InvestmentItem {
+  id: string;
+  title: string;
+  category: InvestmentCategory;
+  amount: number;
+  date: string;
+  supplierOrVendor?: string;
+  notes?: string;
+  createdAt?: string;
 }

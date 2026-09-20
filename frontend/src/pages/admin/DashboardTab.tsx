@@ -1,37 +1,90 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, ShoppingBag, AlertTriangle, Sparkles, Clock, Coins, RefreshCw, Star, Box, Package } from 'lucide-react';
+import { DollarSign, ShoppingBag, AlertTriangle, Sparkles, Clock, Coins, RefreshCw, Star, Box, Package, TrendingUp, ArrowRight, Layers } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts';
 import { apiService } from '../../services/api';
 import type { Product, Order, Review } from '../../types';
+import type { InvestmentItem } from '../../types/admin';
 
 export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> = ({ onNavigateTab }) => {
   const [timeRange, setTimeRange] = useState<'day' | 'week' | 'month' | 'year'>('month');
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [reviews, setReviews] = useState<(Review & { productName?: string })[]>([]);
+  const [investments, setInvestments] = useState<InvestmentItem[]>([]);
+  const [supplierBudget, setSupplierBudget] = useState<number>(1500);
   const [loading, setLoading] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     loadData();
     const handleProductsChanged = () => loadData();
     const handleOrdersChanged = () => loadData();
+    const handleInvestmentsChanged = () => loadData();
+    const handleBudgetChanged = (e: any) => {
+      if (e.detail?.budget !== undefined) {
+        setSupplierBudget(e.detail.budget);
+      } else {
+        loadData();
+      }
+    };
+    // Silent auto-refresh from AdminDashboard's 9s polling broadcast
+    const handleAutoRefresh = () => silentRefresh();
     window.addEventListener('psh:products-changed', handleProductsChanged);
     window.addEventListener('psh:orders-changed', handleOrdersChanged);
+    window.addEventListener('psh:investments-changed', handleInvestmentsChanged);
+    window.addEventListener('psh:supplier-budget-changed', handleBudgetChanged);
+    window.addEventListener('psh:auto-refresh', handleAutoRefresh);
     return () => {
       window.removeEventListener('psh:products-changed', handleProductsChanged);
       window.removeEventListener('psh:orders-changed', handleOrdersChanged);
+      window.removeEventListener('psh:investments-changed', handleInvestmentsChanged);
+      window.removeEventListener('psh:supplier-budget-changed', handleBudgetChanged);
+      window.removeEventListener('psh:auto-refresh', handleAutoRefresh);
     };
   }, []);
 
   const loadData = async () => {
     setLoading(true);
-    const p = await apiService.getProducts();
-    const o = await apiService.getOrders();
-    const r = await apiService.getAllReviews();
+    const [p, o, r, inv, budgetData] = await Promise.all([
+      apiService.getProducts(true),
+      apiService.getOrders(),
+      apiService.getAllReviews(),
+      apiService.getInvestments(),
+      apiService.getSupplierBudget()
+    ]);
     setProducts(p);
     setOrders(o);
     setReviews(r);
+    setInvestments(inv);
+    if (typeof budgetData.budget === 'number') {
+      setSupplierBudget(budgetData.budget);
+    }
+    setLastRefresh(new Date());
     setLoading(false);
+  };
+
+  // Silent refresh — no loading spinner, just update data in-place
+  const silentRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+      const [p, o, r, inv, budgetData] = await Promise.all([
+        apiService.getProducts(true),
+        apiService.getOrders(),
+        apiService.getAllReviews(),
+        apiService.getInvestments(),
+        apiService.getSupplierBudget()
+      ]);
+      setProducts(p);
+      setOrders(o);
+      setReviews(r);
+      setInvestments(inv);
+      if (typeof budgetData.budget === 'number') {
+        setSupplierBudget(budgetData.budget);
+      }
+      setLastRefresh(new Date());
+    } catch {}
+    finally { setIsRefreshing(false); }
   };
 
   // Low stock products: stock <= 5
@@ -43,17 +96,84 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
   const pendingReviews = reviews.filter(r => r.status === 'approved' || r.status === 'pending');
 
   // Business Financial & Operational Calculations
-  const calculatedRevenue = orders
-    .filter(o => o.status !== 'Cancelled')
-    .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-  const totalRevenue = calculatedRevenue;
-
-  // Total investment across all chappal in inventory (costPrice * stockCount)
-  const totalInvestment = products.reduce((sum, p) => {
+  // 1. Supplier Buy Cost Map for each product
+  const productCostMap = new Map<string, number>();
+  products.forEach(p => {
     const cost = Number(p.costPrice) || 0;
-    const stock = typeof p.stockCount === 'number' ? p.stockCount : 0;
-    return sum + (cost * stock);
-  }, 0);
+    if (p.id) productCostMap.set(p.id, cost);
+    if (p.slug) productCostMap.set(p.slug, cost);
+    if (p.name) productCostMap.set(p.name.toLowerCase().trim(), cost);
+    if (p.articleTag) productCostMap.set(p.articleTag.toLowerCase().trim(), cost);
+  });
+
+  // 2. Total Pure Product Revenue (Gross sales strictly without COD / delivery / shipping fees)
+  const totalPureRevenue = orders
+    .filter(o => o.status !== 'Cancelled')
+    .reduce((sum, o) => {
+      if (Array.isArray(o.items) && o.items.length > 0) {
+        const itemsRevenue = o.items.reduce((iSum, it) => {
+          const price = Number(it.product?.price) || 0;
+          const qty = Number(it.quantity) || 1;
+          return iSum + (price * qty);
+        }, 0);
+        return sum + itemsRevenue;
+      }
+      const shippingFee = Number(o.shippingFee) || 0;
+      const orderTotal = Number(o.total) || 0;
+      return sum + Math.max(0, orderTotal - shippingFee);
+    }, 0);
+
+  // 3. Cost of Sold Items (Supplier buying cost for sold units)
+  const totalCostOfSoldItems = orders
+    .filter(o => o.status !== 'Cancelled')
+    .reduce((sum, o) => {
+      const orderCost = (o.items || []).reduce((itemSum, it) => {
+        const prodId = it.product?.id || (it as any).productId;
+        const prodSlug = it.product?.slug;
+        const prodName = it.product?.name ? it.product.name.toLowerCase().trim() : '';
+        const prodTag = (it.product as any)?.articleTag ? (it.product as any).articleTag.toLowerCase().trim() : '';
+        const unitCost = productCostMap.get(prodId)
+          ?? (prodSlug ? productCostMap.get(prodSlug) : undefined)
+          ?? (prodName ? productCostMap.get(prodName) : undefined)
+          ?? (prodTag ? productCostMap.get(prodTag) : undefined)
+          ?? Number(it.product?.costPrice)
+          ?? 0;
+        const qty = Number(it.quantity) || 1;
+        return itemSum + (unitCost * qty);
+      }, 0);
+      return sum + orderCost;
+    }, 0);
+
+  // 4. Exact Net Profit (Selling price − Supplier buying cost per item, strictly excluding COD delivery fees)
+  // E.g. Buy for 1500, Sell for 2100 => Net profit = 600
+  const totalProfit = totalPureRevenue - totalCostOfSoldItems;
+  const profitMargin = totalPureRevenue > 0 ? Math.round((totalProfit / totalPureRevenue) * 100) : 0;
+
+  // 5. Total Investment Calculations:
+  // a) Supplier Product Capital: FIXED capital paid to supplier (costPrice * inventory) — strictly untouched by customer orders!
+  const inventoryTotalOutlay = products.reduce(
+    (sum, p) => sum + (Number(p.costPrice) || 0) * (Number(p.stockCount) || 0),
+    0
+  );
+  const totalPairsInStock = products.reduce(
+    (sum, p) => sum + (Number(p.stockCount) || 0),
+    0
+  );
+  const totalSupplierInvestment = (supplierBudget && supplierBudget > 1500)
+    ? supplierBudget
+    : (inventoryTotalOutlay > 0 ? inventoryTotalOutlay : (supplierBudget || 15000));
+
+  // b) Custom Operational Investments (Packaging, Monetization Ads, Logistics Supplies, Gear)
+  const packagingInvestment = investments
+    .filter(i => i.category === 'packaging')
+    .reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+  const monetizationInvestment = investments
+    .filter(i => i.category === 'monetization')
+    .reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+  const totalOperationalInvestments = investments.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+
+  // c) Grand Combined Total Investment = Supplier Chappal Capital + Packaging & Monetization & Operational Investments
+  const grandTotalInvestment = totalSupplierInvestment + totalOperationalInvestments;
 
   const totalOrdersCount = orders.length;
   const pendingOrdersCount = orders.filter(
@@ -67,20 +187,22 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
   }, {});
 
   const orderStatusData = [
+    { name: 'Placed', value: statusMap['Placed'] || 0, color: '#2563eb' },
+    { name: 'Shipped', value: statusMap['Shipped'] || 0, color: '#d97706' },
     { name: 'Delivered', value: statusMap['Delivered'] || 0, color: '#16a34a' },
-    { name: 'Shipped', value: statusMap['Shipped'] || 0, color: '#2563eb' },
-    { name: 'Crafting', value: statusMap['Crafting'] || 0, color: '#d97706' },
-    { name: 'Placed', value: statusMap['Placed'] || 0, color: '#9333ea' },
     { name: 'Cancelled', value: statusMap['Cancelled'] || 0, color: '#dc2626' },
   ];
 
   const hasOrderStatusData = orders.length > 0;
 
-  // Monthly revenue trajectory
+  // Monthly revenue trajectory (pure product sales without shipping fees)
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
   const revenueChartData = monthNames.map(m => {
-    const monthOrders = orders.filter(o => o.date && o.date.includes(m));
-    const rev = monthOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const monthOrders = orders.filter(o => o.date && o.date.includes(m) && o.status !== 'Cancelled');
+    const rev = monthOrders.reduce((sum, o) => {
+      const shipping = Number(o.shippingFee) || 0;
+      return sum + Math.max(0, (Number(o.total) || 0) - shipping);
+    }, 0);
     return {
       label: m,
       revenue: rev,
@@ -98,8 +220,23 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
       {/* Top Controls Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
-          <h2 className="font-serif font-bold text-2xl text-slate-900">Performance Executive Overview</h2>
-          <p className="text-xs text-slate-500">Live operational metrics, inventory investment, revenue, and order pipeline.</p>
+          <h2 className="font-serif font-bold text-2xl text-slate-900 flex items-center gap-2.5">
+            Performance Executive Overview
+            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-widest transition-all duration-300 ${
+              isRefreshing
+                ? 'bg-emerald-100 text-emerald-700 border-emerald-400'
+                : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+            }`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Live
+            </span>
+          </h2>
+          <p className="text-xs text-slate-500">
+            Live operational metrics, net profit, supplier investment, and order pipeline.
+            {lastRefresh && (
+              <span className="ml-2 text-slate-400">Updated {lastRefresh.toLocaleTimeString()}</span>
+            )}
+          </p>
         </div>
 
         <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200">
@@ -118,65 +255,177 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Cards Grid - 5 Executive Financial & Operational Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         
-        {/* Card 1: Total Revenue */}
+        {/* Card 1: Pure Product Revenue */}
         <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Revenue</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Product Sales Revenue</span>
             <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-200">
               <DollarSign className="w-4 h-4" />
             </div>
           </div>
-          <div className="font-serif font-bold text-2xl text-slate-900">Rs. {totalRevenue.toLocaleString()}</div>
+          <div className="font-serif font-bold text-2xl text-slate-900">Rs. {totalPureRevenue.toLocaleString()}</div>
           <div className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
-            {orders.length > 0 ? 'Gross revenue from confirmed orders' : 'Awaiting first customer purchase'}
+            Excludes COD delivery charges
           </div>
         </div>
 
-        {/* Card 2: Total Investment in Chappal */}
-        <div className="bg-white rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-white to-emerald-50/20 p-5 shadow-sm space-y-2">
+        {/* Card 2: Net Profit */}
+        <div className="bg-white rounded-2xl border border-emerald-200 bg-gradient-to-br from-white to-emerald-50/40 p-5 shadow-sm space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Investment in Chappal</span>
-            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200">
+            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-800">Net Profit</span>
+            <div className="p-2 rounded-xl bg-emerald-100 text-emerald-700 border border-emerald-300">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="font-serif font-bold text-2xl text-emerald-700">Rs. {totalProfit.toLocaleString()}</div>
+          <div className="flex items-center gap-1 text-[11px] text-emerald-800 font-medium">
+            <span className="font-bold">{profitMargin}% margin</span> • Selling price − Supplier cost
+          </div>
+        </div>
+
+        {/* Card 3: Total Investment (Supplier Products + Packaging & Monetization Operations) */}
+        <div 
+          onClick={() => onNavigateTab && onNavigateTab('investments')}
+          className="bg-white rounded-2xl border border-amber-200/90 bg-gradient-to-br from-white to-amber-50/30 p-5 shadow-sm space-y-2 cursor-pointer hover:border-amber-400 hover:shadow-md transition-all group"
+          title="Click to manage Packaging, Monetization, and Supplier Procurement Budget"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+              Total Investment
+            </span>
+            <div className="p-2 rounded-xl bg-amber-100 text-amber-700 border border-amber-300 group-hover:scale-105 transition-transform">
               <Coins className="w-4 h-4" />
             </div>
           </div>
-          <div className="font-serif font-bold text-2xl text-emerald-700">Rs. {totalInvestment.toLocaleString()}</div>
-          <div className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
-            {products.length > 0 ? `Supplier purchase capital across ${products.length} product(s)` : 'No inventory capital committed yet'}
+          <div className="font-serif font-bold text-2xl text-slate-900">
+            Rs. {grandTotalInvestment.toLocaleString()}
+          </div>
+          <div className="flex flex-col gap-0.5 text-[11px] text-slate-600 font-medium">
+            <span className="truncate" title={`Rs. ${totalSupplierInvestment.toLocaleString()} fixed supplier procurement (${totalPairsInStock} pairs) + Rs. ${totalOperationalInvestments.toLocaleString()} packaging, monetization & ops`}>
+              Rs. {totalSupplierInvestment.toLocaleString()} supplier ({totalPairsInStock} pairs) + Rs. {totalOperationalInvestments.toLocaleString()} ops
+            </span>
+            {onNavigateTab && (
+              <span className="text-amber-700 font-semibold flex items-center gap-1 group-hover:underline text-[10px] pt-0.5">
+                Adjust Supplier & Packaging Funds <ArrowRight className="w-3 h-3" />
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Card 3: Total Orders */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-2">
+        {/* Card 4: Total Orders */}
+        <div 
+          onClick={() => onNavigateTab && onNavigateTab('orders')}
+          className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-2 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all group"
+          title="Click to view all customer orders"
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Orders</span>
-            <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-200">
+            <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 group-hover:scale-105 transition-transform">
               <ShoppingBag className="w-4 h-4" />
             </div>
           </div>
           <div className="font-serif font-bold text-2xl text-slate-900">{totalOrdersCount}</div>
-          <div className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
-            {totalOrdersCount > 0 ? 'Total orders received to date' : 'No orders recorded yet'}
+          <div className="flex flex-col gap-0.5 text-[11px] text-slate-500 font-medium">
+            <span>
+              {totalOrdersCount > 0 ? 'Total orders received to date' : 'No orders recorded yet'}
+            </span>
+            {onNavigateTab && (
+              <span className="text-blue-600 font-semibold flex items-center gap-1 group-hover:underline text-[10px] pt-0.5">
+                View All Orders <ArrowRight className="w-3 h-3" />
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Card 4: Pending Orders */}
-        <div className="bg-white rounded-2xl border border-amber-200/80 bg-gradient-to-br from-white to-amber-50/20 p-5 shadow-sm space-y-2">
+        {/* Card 5: Pending Orders (Orders in Queue) */}
+        <div 
+          onClick={() => onNavigateTab && onNavigateTab('orders')}
+          className="bg-white rounded-2xl border border-amber-200/80 bg-gradient-to-br from-white to-amber-50/20 p-5 shadow-sm space-y-2 cursor-pointer hover:border-amber-400 hover:shadow-md transition-all group"
+          title="Click to view active orders in queue"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Pending Orders</span>
-            <div className="p-2 rounded-xl bg-amber-50 text-amber-600 border border-amber-200">
+            <span className="text-xs font-semibold uppercase tracking-wider text-amber-900">Orders In Queue</span>
+            <div className="p-2 rounded-xl bg-amber-100 text-amber-700 border border-amber-300 group-hover:scale-105 transition-transform">
               <Clock className="w-4 h-4" />
             </div>
           </div>
           <div className="font-serif font-bold text-2xl text-amber-700">{pendingOrdersCount} In Queue</div>
-          <div className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
-            {pendingOrdersCount > 0 ? 'Awaiting crafting or courier dispatch' : 'All orders fulfilled / No pending tasks'}
+          <div className="flex flex-col gap-0.5 text-[11px] text-slate-500 font-medium">
+            <span>
+              {pendingOrdersCount > 0 ? 'Awaiting courier dispatch or delivery' : 'All orders fulfilled / No pending tasks'}
+            </span>
+            {onNavigateTab && (
+              <span className="text-amber-700 font-semibold flex items-center gap-1 group-hover:underline text-[10px] pt-0.5">
+                Manage Order Queue <ArrowRight className="w-3 h-3" />
+              </span>
+            )}
           </div>
         </div>
+      </div>
 
+      {/* Executive Capital Allocation & Investment Ledger Summary */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-200">
+              <Layers className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-serif font-bold text-base text-slate-900">Capital Allocation & Total Investment Breakdown</h3>
+              <p className="text-xs text-slate-500">Combined balance of supplier product procurement, luxury packaging, monetization ads, and operational funds.</p>
+            </div>
+          </div>
+          {onNavigateTab && (
+            <button
+              onClick={() => onNavigateTab('investments')}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shadow-xs transition-all self-start sm:self-auto"
+            >
+              <span>Manage Investments & Packaging</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Supplier Footwear */}
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">1. Supplier Footwear</div>
+            <div className="text-lg font-bold font-serif text-slate-900">Rs. {totalSupplierInvestment.toLocaleString()}</div>
+            <div className="text-[11px] text-slate-500">
+              {totalPairsInStock} pairs stock • Fixed capital (untouched by orders)
+            </div>
+          </div>
+
+          {/* Packaging & Unboxing */}
+          <div className="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200 space-y-1">
+            <div className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">2. Packaging & Unboxing</div>
+            <div className="text-lg font-bold font-serif text-amber-900">Rs. {packagingInvestment.toLocaleString()}</div>
+            <div className="text-[11px] text-amber-700">
+              Boxes, velvet pouches, embossed tags
+            </div>
+          </div>
+
+          {/* Monetization & Ads */}
+          <div className="p-3.5 rounded-xl bg-purple-50/60 border border-purple-200 space-y-1">
+            <div className="text-[11px] font-bold text-purple-800 uppercase tracking-wider">3. Monetization & Ads</div>
+            <div className="text-lg font-bold font-serif text-purple-900">Rs. {monetizationInvestment.toLocaleString()}</div>
+            <div className="text-[11px] text-purple-700">
+              Meta, TikTok, Influencer campaigns
+            </div>
+          </div>
+
+          {/* Grand Combined Capital */}
+          <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200 space-y-1">
+            <div className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">4. Total Capital In Play</div>
+            <div className="text-lg font-bold font-serif text-emerald-900">Rs. {grandTotalInvestment.toLocaleString()}</div>
+            <div className="text-[11px] text-emerald-700">
+              100% combined business investment
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Visual Analytics Charts Section */}
@@ -393,7 +642,12 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
       {/* Orders Summary Quick Table */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
         <div className="flex items-center justify-between">
-          <h3 className="font-serif font-bold text-lg text-slate-900">Recent Customer Orders</h3>
+          <h3 className="font-serif font-bold text-lg text-slate-900 flex items-center gap-2">
+            Recent Customer Orders
+            {isRefreshing && (
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
+            )}
+          </h3>
           {onNavigateTab && (
             <button onClick={() => onNavigateTab('orders')} className="btn-copper text-xs py-1.5 px-4">
               Manage All Orders
@@ -421,12 +675,22 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
                 </tr>
               ) : (
                 orders.slice(0, 5).map(order => (
-                  <tr key={order.id} className="hover:bg-slate-50/60">
+                  <tr
+                    key={order.id}
+                    onClick={() => onNavigateTab && onNavigateTab('orders')}
+                    className="hover:bg-slate-50/80 cursor-pointer transition-colors"
+                    title="Click to view order details"
+                  >
                     <td className="py-3 font-serif font-bold text-slate-900">{order.orderNumber}</td>
                     <td className="py-3 text-slate-800">{order.shippingAddress?.fullName || 'Customer'}</td>
                     <td className="py-3 text-slate-500">{order.date}</td>
                     <td className="py-3">
-                      <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-bold uppercase">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                        order.status === 'Delivered' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : order.status === 'Cancelled' ? 'bg-rose-50 text-rose-700 border-rose-200'
+                        : order.status === 'Shipped' ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-blue-50 text-blue-600 border-blue-200'
+                      }`}>
                         {order.status}
                       </span>
                     </td>

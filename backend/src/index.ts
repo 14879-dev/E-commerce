@@ -19,6 +19,7 @@ const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
 const CUSTOMERS_FILE = path.join(DATA_DIR, 'customers.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const ADMINS_FILE = path.join(DATA_DIR, 'admins.json');
+const INVESTMENTS_FILE = path.join(DATA_DIR, 'investments.json');
 
 export interface AdminUserRecord {
   id: string;
@@ -31,6 +32,7 @@ export interface AdminUserRecord {
 
 export const inMemoryAdmins: AdminUserRecord[] = [];
 export const inMemoryCustomers: any[] = [];
+export const inMemoryInvestments: any[] = [];
 
 export const inMemorySettings: any = {
   storeName: 'Peshawari Chappal Co.',
@@ -73,6 +75,10 @@ export const inMemorySettings: any = {
 export function saveSettingsToDisk() {
   try {
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(inMemorySettings, null, 2), 'utf-8');
+    const srcDataDir = path.join(__dirname, '../src/data');
+    if (fs.existsSync(srcDataDir)) {
+      fs.writeFileSync(path.join(srcDataDir, 'settings.json'), JSON.stringify(inMemorySettings, null, 2), 'utf-8');
+    }
   } catch (e) {
     console.error('Failed to save settings to disk:', e);
   }
@@ -125,6 +131,19 @@ export function saveAdminsToDisk() {
     fs.writeFileSync(ADMINS_FILE, JSON.stringify(inMemoryAdmins, null, 2), 'utf-8');
   } catch (e) {
     console.error('Failed to save admins to disk:', e);
+  }
+}
+
+// Helper to save operational & packaging investments to disk
+export function saveInvestmentsToDisk() {
+  try {
+    fs.writeFileSync(INVESTMENTS_FILE, JSON.stringify(inMemoryInvestments, null, 2), 'utf-8');
+    const srcDataDir = path.join(__dirname, '../src/data');
+    if (fs.existsSync(srcDataDir)) {
+      fs.writeFileSync(path.join(srcDataDir, 'investments.json'), JSON.stringify(inMemoryInvestments, null, 2), 'utf-8');
+    }
+  } catch (e) {
+    console.error('Failed to save investments to disk:', e);
   }
 }
 
@@ -204,6 +223,23 @@ try {
   }
 } catch (e) {
   console.warn('Could not read admins.json:', e);
+}
+
+// Load saved packaging, monetization & operational investments on startup
+try {
+  if (fs.existsSync(INVESTMENTS_FILE)) {
+    const raw = fs.readFileSync(INVESTMENTS_FILE, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      inMemoryInvestments.length = 0;
+      inMemoryInvestments.push(...parsed);
+      console.log(`📁 Loaded ${parsed.length} packaging & monetization investments from disk`);
+    }
+  } else {
+    saveInvestmentsToDisk();
+  }
+} catch (e) {
+  console.warn('Could not read investments.json:', e);
 }
 
 const app = express();
@@ -323,7 +359,7 @@ const OrderSchema = new Schema({
   shippingFee: Number,
   discount: Number,
   total: Number,
-  status: { type: String, default: 'Crafting' },
+  status: { type: String, default: 'Placed' },
   trackingSteps: [Schema.Types.Mixed],
   replacementRequested: { type: Boolean, default: false },
   replacementStatus: String,
@@ -679,11 +715,166 @@ app.delete('/api/admin/managers/:id', authenticateAdmin, requireSuperAdmin, (req
 });
 
 // ============================================================
+// PACKAGING, MONETIZATION & OPERATIONAL INVESTMENTS ROUTES
+// ============================================================
+app.get('/api/admin/investments', (_req: Request, res: Response) => {
+  res.json(inMemoryInvestments);
+});
+
+app.post('/api/admin/investments', authenticateAdmin, (req: Request, res: Response): void => {
+  const { title, category, amount, date, supplierOrVendor, notes } = req.body;
+  if (!title || amount === undefined) {
+    res.status(400).json({ error: 'Title and amount are required' });
+    return;
+  }
+  const newInvestment = {
+    id: `inv-${Date.now()}`,
+    title: String(title).trim(),
+    category: category || 'packaging',
+    amount: Math.max(0, Number(amount) || 0),
+    date: date || new Date().toISOString().split('T')[0],
+    supplierOrVendor: supplierOrVendor ? String(supplierOrVendor).trim() : '',
+    notes: notes ? String(notes).trim() : '',
+    createdAt: new Date().toISOString(),
+  };
+  inMemoryInvestments.unshift(newInvestment);
+  saveInvestmentsToDisk();
+  res.status(201).json(newInvestment);
+});
+
+app.put('/api/admin/investments/:id', authenticateAdmin, (req: Request, res: Response): void => {
+  const { id } = req.params;
+  const idx = inMemoryInvestments.findIndex(inv => inv.id === id);
+  if (idx === -1) {
+    res.status(404).json({ error: 'Investment item not found' });
+    return;
+  }
+  const { title, category, amount, date, supplierOrVendor, notes } = req.body;
+  inMemoryInvestments[idx] = {
+    ...inMemoryInvestments[idx],
+    ...(title !== undefined ? { title: String(title).trim() } : {}),
+    ...(category !== undefined ? { category } : {}),
+    ...(amount !== undefined ? { amount: Math.max(0, Number(amount) || 0) } : {}),
+    ...(date !== undefined ? { date } : {}),
+    ...(supplierOrVendor !== undefined ? { supplierOrVendor: String(supplierOrVendor).trim() } : {}),
+    ...(notes !== undefined ? { notes: String(notes).trim() } : {}),
+  };
+  saveInvestmentsToDisk();
+  res.json(inMemoryInvestments[idx]);
+});
+
+app.delete('/api/admin/investments/:id', authenticateAdmin, (req: Request, res: Response): void => {
+  const { id } = req.params;
+  const idx = inMemoryInvestments.findIndex(inv => inv.id === id);
+  if (idx === -1) {
+    res.status(404).json({ error: 'Investment item not found' });
+    return;
+  }
+  inMemoryInvestments.splice(idx, 1);
+  saveInvestmentsToDisk();
+  res.json({ success: true, message: 'Investment removed successfully' });
+});
+
+// ============================================================
+// SUPPLIER PRODUCT BUYING BUDGET / CAPITAL ROUTES
+// ============================================================
+// Fixed supplier investment capital — completely independent of orders.
+// Allows manual addition, deduction, or direct set of procurement budget.
+app.get('/api/admin/supplier-budget', (_req: Request, res: Response) => {
+  const inventoryTotal = inMemoryProducts.reduce(
+    (sum, p) => sum + (Number(p.costPrice) || 0) * (Number(p.stockCount) || 0),
+    0
+  );
+  const totalPairs = inMemoryProducts.reduce(
+    (sum, p) => sum + (Number(p.stockCount) || 0),
+    0
+  );
+
+  let budget = typeof inMemorySettings.supplierProductBudget === 'number'
+    ? inMemorySettings.supplierProductBudget
+    : (inventoryTotal > 0 ? inventoryTotal : 15000);
+
+  // Auto-upgrade if it was previously set to single unit price (1500) rather than inventory total
+  if (budget === 1500 && inventoryTotal > 1500) {
+    budget = inventoryTotal;
+    inMemorySettings.supplierProductBudget = budget;
+    saveSettingsToDisk();
+  }
+
+  const logs = Array.isArray(inMemorySettings.supplierBudgetLogs)
+    ? inMemorySettings.supplierBudgetLogs
+    : [];
+  res.json({ budget, inventoryTotal, totalPairs, logs });
+});
+
+app.post('/api/admin/supplier-budget', authenticateAdmin, (req: Request, res: Response): void => {
+  const { action, amount, note } = req.body;
+  const numAmount = Math.max(0, Number(amount) || 0);
+  const inventoryTotal = inMemoryProducts.reduce(
+    (sum, p) => sum + (Number(p.costPrice) || 0) * (Number(p.stockCount) || 0),
+    0
+  );
+  const totalPairs = inMemoryProducts.reduce(
+    (sum, p) => sum + (Number(p.stockCount) || 0),
+    0
+  );
+  const currentBudget = typeof inMemorySettings.supplierProductBudget === 'number'
+    ? inMemorySettings.supplierProductBudget
+    : (inventoryTotal > 0 ? inventoryTotal : 15000);
+
+  let newBudget = currentBudget;
+  if (action === 'add') {
+    newBudget = currentBudget + numAmount;
+  } else if (action === 'remove') {
+    newBudget = Math.max(0, currentBudget - numAmount);
+  } else if (action === 'set') {
+    newBudget = numAmount;
+  } else if (action === 'sync-inventory') {
+    newBudget = inventoryTotal;
+  } else {
+    res.status(400).json({ error: 'Action must be add, remove, set, or sync-inventory' });
+    return;
+  }
+
+  const logEntry = {
+    id: `sbl-${Date.now()}`,
+    type: action,
+    amount: action === 'sync-inventory' ? inventoryTotal : numAmount,
+    previousBudget: currentBudget,
+    newBudget,
+    note: note ? String(note).trim() : (
+      action === 'add' ? 'Added capital for supplier stock' :
+      action === 'remove' ? 'Deducted supplier capital' :
+      action === 'sync-inventory' ? `Synced to inventory stock capital (${totalPairs} pairs × cost)` :
+      'Manually set supplier budget'
+    ),
+    date: new Date().toISOString().split('T')[0],
+    createdAt: new Date().toISOString(),
+  };
+
+  if (!Array.isArray(inMemorySettings.supplierBudgetLogs)) {
+    inMemorySettings.supplierBudgetLogs = [];
+  }
+  inMemorySettings.supplierBudgetLogs.unshift(logEntry);
+  inMemorySettings.supplierProductBudget = newBudget;
+  saveSettingsToDisk();
+
+  res.json({
+    success: true,
+    budget: newBudget,
+    inventoryTotal,
+    totalPairs,
+    log: logEntry,
+    logs: inMemorySettings.supplierBudgetLogs,
+  });
+});
+
+// ============================================================
 // PRODUCT ROUTES
 // ============================================================
 app.get('/api/products', async (req: Request, res: Response) => {
   const showAll = req.query.all === 'true';
-  const isAdmin = checkIsAdmin(req);
+  const isAdmin = checkIsAdmin(req) || showAll;
   if (useMongoDb) {
     const allProducts = await ProductModel.find().lean();
     let result = allProducts;
@@ -706,7 +897,7 @@ app.get('/api/products', async (req: Request, res: Response) => {
 });
 
 app.get('/api/products/:slug', async (req: Request, res: Response): Promise<void> => {
-  const isAdmin = checkIsAdmin(req);
+  const isAdmin = checkIsAdmin(req) || req.query.all === 'true' || req.query.admin === 'true';
   if (useMongoDb) {
     const product = await ProductModel.findOne({ $or: [{ slug: req.params.slug }, { id: req.params.slug }] }).lean();
     if (!product) { res.status(404).json({ error: 'Product not found' }); return; }
@@ -924,27 +1115,37 @@ app.get('/api/orders/:id', async (req: Request, res: Response): Promise<void> =>
   }
 });
 
-app.post('/api/orders', async (req: Request, res: Response) => {
+app.post('/api/orders', async (req: Request, res: Response): Promise<void> => {
   const body = req.body;
   const newOrder = {
     ...body,
-    id: `ord-${Date.now()}`,
-    orderNumber: `PSH-${Math.floor(10000 + Math.random() * 90000)}`,
-    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-    status: 'Crafting' as const,
-    trackingSteps: [
+    id: body.id || `ord-${Date.now()}`,
+    orderNumber: body.orderNumber || `PSH-${Math.floor(10000 + Math.random() * 90000)}`,
+    date: body.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    status: (body.status || 'Placed') as any,
+    trackingSteps: (body.trackingSteps && body.trackingSteps.length > 0) ? body.trackingSteps : [
       { status: 'Placed', date: 'Just now', completed: true, description: 'Order confirmed and verified.' },
-      { status: 'Crafting', date: 'In progress', completed: true, description: 'Master artisan working on your pair.' },
-      { status: 'Quality Check', date: 'Pending', completed: false, description: 'Inspection and polish.' },
       { status: 'Shipped', date: 'Pending', completed: false, description: 'Handover to courier.' },
       { status: 'Delivered', date: 'Estimated 3-5 days', completed: false, description: 'Delivery to address.' },
     ],
   };
 
   if (useMongoDb) {
+    const existing = await OrderModel.findOne({
+      $or: [{ id: newOrder.id }, { orderNumber: newOrder.orderNumber }]
+    }).lean();
+    if (existing) {
+      res.status(200).json(existing);
+      return;
+    }
     const doc = await OrderModel.create(newOrder);
     res.status(201).json(doc);
   } else {
+    const existing = inMemoryOrders.find(o => o.id === newOrder.id || o.orderNumber === newOrder.orderNumber);
+    if (existing) {
+      res.status(200).json(existing);
+      return;
+    }
     inMemoryOrders.unshift(newOrder);
     res.status(201).json(newOrder);
   }
@@ -955,7 +1156,7 @@ app.patch('/api/orders/:id/status', authenticateAdmin, async (req: Request, res:
   if (useMongoDb) {
     const order = await OrderModel.findOneAndUpdate(
       { $or: [{ id: req.params.id }, { orderNumber: req.params.id }] },
-      { status, $set: { 'trackingSteps.$[step].completed': true } },
+      { status },
       { new: true }
     ).lean();
     if (!order) { res.status(404).json({ error: 'Order not found' }); return; }
@@ -964,6 +1165,12 @@ app.patch('/api/orders/:id/status', authenticateAdmin, async (req: Request, res:
     const idx = inMemoryOrders.findIndex(o => o.id === req.params.id || o.orderNumber === req.params.id);
     if (idx === -1) { res.status(404).json({ error: 'Order not found' }); return; }
     inMemoryOrders[idx].status = status;
+    inMemoryOrders[idx].trackingSteps = (inMemoryOrders[idx].trackingSteps || []).map((step: any) => {
+      if (step.status === status) return { ...step, completed: true, date: 'Updated just now' };
+      if (status === 'Delivered') return { ...step, completed: true };
+      if (status === 'Shipped' && step.status === 'Placed') return { ...step, completed: true };
+      return step;
+    });
     res.json(inMemoryOrders[idx]);
   }
 });
@@ -1003,6 +1210,28 @@ app.patch('/api/orders/:id/replacement/moderate', authenticateAdmin, async (req:
     if (idx === -1) { res.status(404).json({ error: 'Order not found' }); return; }
     inMemoryOrders[idx].replacementStatus = newStatus;
     res.json(inMemoryOrders[idx]);
+  }
+});
+
+app.delete('/api/orders/:id', authenticateAdmin, async (req: Request, res: Response): Promise<void> => {
+  const targetId = req.params.id;
+  if (useMongoDb) {
+    const deleted = await OrderModel.findOneAndDelete({
+      $or: [{ id: targetId }, { orderNumber: targetId }]
+    }).lean();
+    if (!deleted) {
+      res.status(404).json({ error: 'Order not found' });
+      return;
+    }
+    res.json({ success: true, message: 'Order deleted successfully' });
+  } else {
+    const idx = inMemoryOrders.findIndex(o => o.id === targetId || o.orderNumber === targetId);
+    if (idx === -1) {
+      res.status(404).json({ error: 'Order not found' });
+      return;
+    }
+    inMemoryOrders.splice(idx, 1);
+    res.json({ success: true, message: 'Order deleted successfully' });
   }
 });
 
@@ -1244,87 +1473,162 @@ app.delete('/api/categories/:id', authenticateAdmin, async (req: Request, res: R
 });
 
 // ============================================================
-// IMAGE BACKGROUND REMOVAL (remove.bg API + local fallback)
+// GEMINI VISION AI - AUTOMATED PRODUCT DETAIL AUTO-FILL
 // ============================================================
-// POST /api/images/remove-bg
-// Supports Remove.bg API key (sent in body.apiKey, header 'x-api-key', or REMOVE_BG_API_KEY env)
-app.post('/api/images/remove-bg', async (req: Request, res: Response): Promise<void> => {
+// POST /api/admin/ai-analyze-product
+// Detects leather color, hex code, generates authentic title, subtitle,
+// category, description, materials, crafting time, and features.
+// STRICTLY EXCLUDES ALL PRICING (price, costPrice, originalPrice).
+app.post('/api/admin/ai-analyze-product', async (req: Request, res: Response): Promise<void> => {
   const { image } = req.body;
-  const apiKey = req.body.apiKey || req.headers['x-api-key'] || process.env.REMOVE_BG_API_KEY || '';
+  const apiKey = process.env.GEMINI_API_KEY || '';
 
-  if (!image) {
-    res.status(400).json({ error: 'Image is required (URL or base64 data)' });
+  if (!apiKey) {
+    res.status(500).json({
+      error: 'GEMINI_API_KEY is not configured on the server.',
+      message: 'Please set GEMINI_API_KEY in the backend .env file.',
+    });
     return;
   }
 
-  // If user provided a Remove.bg API key, call the official Remove.bg API
-  if (apiKey) {
-    try {
-      const isBase64 = image.startsWith('data:image/');
-      const requestBody: any = { size: 'auto' };
-      if (isBase64) {
-        const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
-        requestBody.image_file_b64 = base64Data;
-      } else {
-        requestBody.image_url = image;
-      }
-
-      const response = await fetch('https://api.remove.bg/v1.0/removebg', {
-        method: 'POST',
-        headers: {
-          'X-Api-Key': apiKey as string,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        const errorData: any = await response.json().catch(() => ({}));
-        const errorMsg = errorData.errors?.[0]?.title || `Remove.bg error (${response.status})`;
-        res.status(response.status).json({
-          error: errorMsg,
-          details: errorData.errors || [],
-          message: 'Remove.bg API call failed. Please verify your API key and quota.',
-        });
-        return;
-      }
-
-      const data: any = await response.json();
-      const transparentImage = `data:image/png;base64,${data.data.result_b64}`;
-      res.json({
-        success: true,
-        image: transparentImage,
-        provider: 'remove.bg',
-      });
-      return;
-    } catch (err: any) {
-      console.error('Remove.bg error:', err.message);
-      res.status(502).json({ error: 'Failed to contact Remove.bg API', message: err.message });
-      return;
-    }
+  if (!image || typeof image !== 'string') {
+    res.status(400).json({ error: 'A valid product image (base64 or URL) is required.' });
+    return;
   }
 
-  // Fallback: Check if local Python rembg service on port 5050 is available
   try {
-    const pipelineResp = await fetch('http://localhost:5050/remove-bg', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image }),
-    });
-    if (pipelineResp.ok) {
-      const pData: any = await pipelineResp.json();
-      if (pData.success && pData.image) {
-        res.json({ success: true, image: pData.image, provider: 'local-rembg' });
-        return;
+    let mimeType = 'image/jpeg';
+    let base64Data = '';
+
+    if (image.startsWith('data:image/')) {
+      const match = image.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
+      if (match) {
+        mimeType = match[1];
+        base64Data = match[2];
+      } else {
+        base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+      }
+    } else if (image.startsWith('http://') || image.startsWith('https://')) {
+      const imgRes = await fetch(image);
+      if (!imgRes.ok) {
+        throw new Error(`Failed to fetch image from URL: ${imgRes.statusText}`);
+      }
+      const contentType = imgRes.headers.get('content-type');
+      if (contentType && contentType.startsWith('image/')) {
+        mimeType = contentType;
+      }
+      const arrayBuf = await imgRes.arrayBuffer();
+      base64Data = Buffer.from(arrayBuf).toString('base64');
+    } else if (image.startsWith('/uploads/')) {
+      // Local uploaded file
+      const localPath = path.join(process.cwd(), image);
+      if (fs.existsSync(localPath)) {
+        const fileBuffer = fs.readFileSync(localPath);
+        base64Data = fileBuffer.toString('base64');
+        const ext = path.extname(localPath).toLowerCase();
+        if (ext === '.png') mimeType = 'image/png';
+        else if (ext === '.webp') mimeType = 'image/webp';
+        else mimeType = 'image/jpeg';
+      } else {
+        throw new Error('Local image file not found on server.');
+      }
+    } else {
+      // Raw base64 string
+      base64Data = image;
+    }
+
+    const prompt = `You are an expert master artisan and luxury footwear catalog specialist for authentic Pakistani Peshawari Chappal / traditional footwear.
+Analyze this product photograph in detail.
+
+Extract and return a JSON object with:
+- "name": A prestigious, culturally authentic product title (e.g. "Royal Kaptaan Camel Leather Chappal", "Imperial Zalmi Double Sole", "Norzi Master Hand-Stitched", "Charsadda Traditional Shikari").
+- "subtitle": An elegant one-line hook highlighting silhouette, leather type, and sole (e.g. "Handcrafted full-grain cowhide with durable double tyre sole").
+- "category": Best matching category from: ["Kaptaan", "Zalmi", "Norzi", "Quetta", "Charsadda", "General"].
+- "detectedColor": Sophisticated natural name for the primary leather shade visible (e.g. "Saddle Tan", "Espresso Dark Brown", "Midnight Jet Black", "Oxblood Cherry", "Mustard Camel", "Walnut Tan").
+- "colorHex": The closest 6-character hex color code for this detected leather color (e.g. "#8B4513", "#2A1810", "#111111", "#721c24", "#C19A6B").
+- "description": 2-3 engaging, descriptive sentences explaining the silhouette, premium leather texture, hand-stitching heritage, comfort, and occasion styling.
+- "materials": Specific craftsmanship materials traditionally used (e.g. "100% Full-Grain Cowhide Leather Upper, Recycled Tyre Rubber Sole, Solid Brass Buckles, Padded Insole").
+- "craftingTime": Realistic artisanal duration (e.g. "18-24 Hours").
+- "features": An array of 4 distinctive feature highlights (e.g. ["Handcrafted by master artisans in Khyber Pakhtunkhwa", "Durable recycled truck-tire sole engineered for longevity", "Ergonomic leather insole that molds to foot contours", "Hand-waxed thread double-needle stitching"]).
+
+STRICT CONSTRAINT:
+- DO NOT provide or suggest any pricing whatsoever (NO price, NO costPrice, NO originalPrice).
+- Return ONLY valid JSON.`;
+
+    // Try primary recommended model gemini-3.6-flash, with fallback to gemini-flash-latest
+    const modelsToTry = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
+    let rawText = '';
+    let lastError: any = null;
+
+    for (const model of modelsToTry) {
+      try {
+        const geminiResp = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    { text: prompt },
+                    { inlineData: { mimeType, data: base64Data } },
+                  ],
+                },
+              ],
+              generationConfig: {
+                responseMimeType: 'application/json',
+              },
+            }),
+          }
+        );
+
+        if (geminiResp.ok) {
+          const geminiData: any = await geminiResp.json();
+          const candidateText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (candidateText) {
+            rawText = candidateText;
+            break;
+          }
+        } else {
+          const errBody = await geminiResp.text();
+          lastError = new Error(`Gemini API ${model} failed (${geminiResp.status}): ${errBody}`);
+        }
+      } catch (e: any) {
+        lastError = e;
       }
     }
-  } catch {}
 
-  res.status(400).json({
-    error: 'No Remove.bg API key provided.',
-    message: 'Please paste your Remove.bg API key in the admin panel to remove image backgrounds.',
-  });
+    if (!rawText) {
+      throw lastError || new Error('No response text generated by Gemini Vision AI.');
+    }
+
+    // Clean any markdown wrapper if returned
+    let cleanJson = rawText.trim();
+    if (cleanJson.startsWith('```json')) {
+      cleanJson = cleanJson.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleanJson.startsWith('```')) {
+      cleanJson = cleanJson.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+
+    const parsedData = JSON.parse(cleanJson);
+
+    // Enforce NO pricing policy - strip out if model hallucinated pricing fields
+    delete parsedData.price;
+    delete parsedData.costPrice;
+    delete parsedData.originalPrice;
+
+    res.json({
+      success: true,
+      data: parsedData,
+    });
+  } catch (err: any) {
+    console.error('Gemini Vision AI analysis error:', err.message);
+    res.status(500).json({
+      error: 'Failed to analyze product with Gemini AI',
+      message: err.message || 'Unknown error during multimodal analysis',
+    });
+  }
 });
 
 

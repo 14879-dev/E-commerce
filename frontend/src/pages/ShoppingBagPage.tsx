@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, Plus, Minus, Trash2, ArrowRight, ShieldCheck, Tag, Check, AlertCircle } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Trash2, ArrowRight, ShieldCheck, Tag, Check, AlertCircle, Home } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useStoreSettings } from '../context/StoreSettingsContext';
 import { apiService } from '../services/api';
@@ -109,9 +109,14 @@ export const ShoppingBagPage: React.FC = () => {
           <p className="text-sm text-slate-500 max-w-md mx-auto">
             Explore our collection of authentic handcrafted Peshawari Chappals to add your ideal size and style.
           </p>
-          <Link to="/products" className="btn-copper text-sm py-3 px-8 inline-flex items-center gap-2">
-            Shop Now <ArrowRight className="w-4 h-4" />
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <Link to="/products" className="btn-copper text-xs sm:text-sm py-3 px-7 inline-flex items-center justify-center gap-2 w-full sm:w-auto shadow-md">
+              Explore Products <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link to="/" className="btn-glass text-xs sm:text-sm py-3 px-7 inline-flex items-center justify-center gap-2 w-full sm:w-auto">
+              <Home className="w-4 h-4" /> Return to Home
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -119,13 +124,16 @@ export const ShoppingBagPage: React.FC = () => {
           {/* Cart Item List */}
           <div className="lg:col-span-8 space-y-4">
             {items.map(item => {
-              const itemPrice = item.product.price;
-              
+              if (!item || !item.product) return null;
+              const itemPrice = Number(item.product.price) || 0;
+              const imageUrl = (item.product.images && (item.product.images.front || (Array.isArray(item.product.images.gallery) && item.product.images.gallery[0]))) || '';
+              const colorDisplay = (item.selectedColor || 'saddle-tan').toString().replace(/-/g, ' ');
+
               return (
                 <div key={item.id} className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 border-b border-slate-100 last:border-0 bg-white rounded-2xl border border-slate-200/80">
                   <div className="flex items-center gap-4">
                     <img
-                      src={item.product.images.front}
+                      src={imageUrl}
                       alt={item.product.name}
                       className="w-20 h-20 object-cover rounded-xl bg-slate-50 border border-slate-200 shrink-0"
                     />
@@ -138,7 +146,7 @@ export const ShoppingBagPage: React.FC = () => {
                       </div>
 
                       <div className="text-xs text-slate-500 mt-1 space-y-0.5">
-                        <p>Size: <strong className="text-slate-900">EU {item.size}</strong> • Color: <strong className="text-slate-900 capitalize">{item.selectedColor.replace('-', ' ')}</strong></p>
+                        <p>Size: <strong className="text-slate-900">EU {item.size}</strong> • Color: <strong className="text-slate-900 capitalize">{colorDisplay}</strong></p>
                       </div>
 
                       <span className="font-serif font-bold text-base text-slate-900 block mt-1.5">

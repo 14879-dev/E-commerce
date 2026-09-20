@@ -172,16 +172,16 @@ export const Header: React.FC = () => {
               )}
             </Link>
 
-            {/* Shopping Bag Icon (Always visible outside on both mobile & desktop) */}
+            {/* Shopping Bag Icon with Floating Notification Badge */}
             <Link
               to="/bag"
-              className="relative p-2 sm:p-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-md shadow-blue-600/25 border border-white/20 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4"
+              className="relative p-2 sm:p-2.5 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white transition-all shadow-md shadow-blue-600/25 border border-white/20 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 cursor-pointer"
               title="Shopping Bag"
             >
               <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="text-xs font-bold hidden sm:inline">Bag</span>
               {itemCount > 0 && (
-                <span className="bg-white/25 text-white text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full">
+                <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] sm:text-[11px] font-black min-w-[18px] h-[18px] sm:min-w-[20px] sm:h-[20px] px-1 rounded-full flex items-center justify-center shadow-md ring-2 ring-white animate-in zoom-in">
                   {itemCount}
                 </span>
               )}
@@ -201,11 +201,9 @@ export const Header: React.FC = () => {
       </header>
 
       {/* Mobile Right-Side Slide-Over Drawer Navigation (Mounted on document.body to prevent backdrop-filter clipping) */}
-      {typeof document !== 'undefined' && createPortal(
+      {typeof document !== 'undefined' && mobileMenuOpen && createPortal(
         <div
-          className={`fixed inset-0 z-[99999] lg:hidden transition-all duration-300 ${
-            mobileMenuOpen ? 'opacity-100 pointer-events-auto visible' : 'opacity-0 pointer-events-none invisible'
-          }`}
+          className="fixed inset-0 z-[99999] lg:hidden transition-all duration-300 opacity-100 pointer-events-auto visible"
         >
           {/* Smooth Backdrop Overlay */}
           <div

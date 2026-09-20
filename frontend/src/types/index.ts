@@ -56,6 +56,18 @@ export interface Product {
   stockCount?: number;
 }
 
+export interface AiProductDetails {
+  name: string;
+  subtitle: string;
+  category: string;
+  detectedColor: string;
+  colorHex: string;
+  description: string;
+  materials: string;
+  craftingTime: string;
+  features: string[];
+}
+
 export interface CartItem {
   id: string; // unique item instance id
   product: Product;
@@ -75,7 +87,7 @@ export interface ShippingAddress {
 }
 
 export interface OrderTrackingStep {
-  status: 'Placed' | 'Crafting' | 'Quality Check' | 'Shipped' | 'Delivered';
+  status: 'Placed' | 'Shipped' | 'Delivered' | 'Cancelled';
   date: string;
   completed: boolean;
   description: string;
@@ -93,11 +105,12 @@ export interface Order {
   shippingFee: number;
   discount: number;
   total: number;
-  status: 'Pending' | 'Crafting' | 'Quality Check' | 'Shipped' | 'Delivered' | 'Cancelled';
+  status: 'Placed' | 'Shipped' | 'Delivered' | 'Cancelled';
   trackingSteps: OrderTrackingStep[];
   replacementRequested?: boolean;
   replacementStatus?: 'pending' | 'approved' | 'rejected';
   replacementReason?: string;
+  promoCode?: string;
 }
 
 export interface CustomerMessage {
@@ -109,3 +122,5 @@ export interface CustomerMessage {
   date: string;
   read: boolean;
 }
+
+export type { InvestmentItem, InvestmentCategory } from './admin';

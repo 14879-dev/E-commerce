@@ -1,5 +1,5 @@
 import type { Product, Order, Review, CustomerMessage, Category } from '../types';
-import type { PromoCode, AdminCustomer, AdminNotification, StoreSettings } from '../types/admin';
+import type { PromoCode, AdminCustomer, AdminNotification, StoreSettings, InvestmentItem, SupplierBudgetLog } from '../types/admin';
 
 const INITIAL_CATEGORIES: Category[] = [
   { id: 'cat-1', name: 'Kaptaan', slug: 'kaptaan', description: 'Iconic double-sole design with brass hardware and high durability tire soles.', image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&q=80&w=600', disabled: false },
@@ -22,7 +22,7 @@ const INITIAL_PROMOS: PromoCode[] = [];
 const INITIAL_NOTIFICATIONS: AdminNotification[] = [];
 
 // Automatic purge of obsolete cached demo data from previous sessions
-const DATA_CLEAN_VERSION = 'v5_clean_zero_start';
+const DATA_CLEAN_VERSION = 'v6_clean_investments_zero';
 try {
   if (typeof localStorage !== 'undefined') {
     if (localStorage.getItem('psh_data_version') !== DATA_CLEAN_VERSION) {
@@ -32,6 +32,7 @@ try {
       localStorage.removeItem('psh_promos');
       localStorage.removeItem('psh_notifications');
       localStorage.removeItem('psh_messages');
+      localStorage.removeItem('psh_investments');
       Object.keys(localStorage).forEach(k => {
         if (k.startsWith('psh_reviews_')) {
           localStorage.removeItem(k);
@@ -59,9 +60,40 @@ const API_BASE = getApiBase();
 
 export const apiService = {
   async getProducts(all: boolean = false): Promise<Product[]> {
+    const token = this.getAdminToken();
     try {
-      const res = await fetch(`${API_BASE}/api/products${all ? '?all=true' : ''}`);
-      if (res.ok) return await res.json();
+      const res = await fetch(`${API_BASE}/api/products${all ? '?all=true' : ''}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (res.ok) {
+        const fetched: Product[] = await res.json();
+        const existing = getStoredProducts();
+        const costMap = new Map<string, number>();
+        existing.forEach(p => {
+          if (p.costPrice !== undefined && Number(p.costPrice) > 0) {
+            costMap.set(p.id, Number(p.costPrice));
+            if (p.slug) costMap.set(p.slug, Number(p.costPrice));
+          }
+        });
+        const merged = fetched.map((p: Product) => {
+          const remoteCost = Number(p.costPrice);
+          const localCost = costMap.get(p.id) ?? (p.slug ? costMap.get(p.slug) : 0) ?? 0;
+          const finalCost = (!isNaN(remoteCost) && remoteCost > 0) ? remoteCost : localCost;
+          return {
+            ...p,
+            costPrice: finalCost,
+          };
+        });
+        saveStoredProducts(merged);
+        if (all) return merged;
+        const disabledNames = new Set(
+          getStoredCategories().filter(c => c.disabled).map(c => (c.name || '').toLowerCase())
+        );
+        return merged.filter(p => !disabledNames.has((p.category || '').toLowerCase()));
+      }
     } catch {}
     const stored = getStoredProducts();
     if (all) return stored;
@@ -71,7 +103,13 @@ export const apiService = {
     return stored.filter(p => !disabledNames.has((p.category || '').toLowerCase()));
   },
   async getProductBySlug(slug: string): Promise<Product | null> {
-    try { const res = await fetch(`${API_BASE}/api/products/${slug}`); if (res.ok) return await res.json(); } catch {}
+    const token = this.getAdminToken();
+    try {
+      const res = await fetch(`${API_BASE}/api/products/${slug}${token ? '?admin=true' : ''}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) return await res.json();
+    } catch {}
     const products = getStoredProducts();
     return products.find(p => p.slug === slug || p.id === slug) || null;
   },
@@ -88,6 +126,9 @@ export const apiService = {
       });
       if (res.ok) {
         const created = await res.json();
+        if (productData.costPrice !== undefined && Number(productData.costPrice) >= 0) {
+          created.costPrice = Number(productData.costPrice);
+        }
         const products = getStoredProducts();
         products.unshift(created);
         saveStoredProducts(products);
@@ -97,6 +138,9 @@ export const apiService = {
           description: `"${created.name}" was added to the catalog.`,
           link: '/admin/products',
         }).catch(() => {});
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('psh:products-changed'));
+        }
         return created;
       }
     } catch {}
@@ -110,7 +154,7 @@ export const apiService = {
       name: productData.name || rawTag || 'New Peshawari Chappal',
       subtitle: productData.subtitle || 'Handcrafted leather footwear',
       price: productData.price || 150,
-      costPrice: productData.costPrice || 0,
+      costPrice: (productData.costPrice !== undefined && Number(productData.costPrice) >= 0) ? Number(productData.costPrice) : 0,
       stockCount: productData.stockCount ?? 50,
       category: productData.category || 'None',
       description: productData.description || '',
@@ -130,6 +174,9 @@ export const apiService = {
       description: `"${newProduct.name}" was added to the catalog.`,
       link: '/admin/products',
     }).catch(() => {});
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('psh:products-changed'));
+    }
     return newProduct;
   },
   async updateProduct(id: string, updates: Partial<Product>): Promise<Product> {
@@ -145,9 +192,18 @@ export const apiService = {
       });
       if (res.ok) {
         const updated = await res.json();
+        if (updates.costPrice !== undefined && Number(updates.costPrice) >= 0) {
+          updated.costPrice = Number(updates.costPrice);
+        }
         const products = getStoredProducts();
         const idx = products.findIndex(p => p.id === id);
-        if (idx !== -1) { products[idx] = { ...products[idx], ...updated }; saveStoredProducts(products); }
+        if (idx !== -1) {
+          products[idx] = { ...products[idx], ...updated };
+          saveStoredProducts(products);
+        }
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('psh:products-changed'));
+        }
         return updated;
       }
     } catch {}
@@ -157,6 +213,9 @@ export const apiService = {
     if (idx !== -1) {
       products[idx] = { ...products[idx], ...updates };
       saveStoredProducts(products);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('psh:products-changed'));
+      }
       return products[idx];
     }
     throw new Error('Product not found');
@@ -178,6 +237,9 @@ export const apiService = {
           description: `Product "${target?.name || id}" was deleted from catalog.`,
           link: '/admin/products',
         }).catch(() => {});
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('psh:products-changed'));
+        }
         return true;
       }
     } catch {}
@@ -192,7 +254,30 @@ export const apiService = {
       description: `Product "${target?.name || id}" was deleted from catalog.`,
       link: '/admin/products',
     }).catch(() => {});
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('psh:products-changed'));
+    }
     return true;
+  },
+  async aiAnalyzeProduct(image: string): Promise<any> {
+    const token = this.getAdminToken();
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/ai-analyze-product`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ image }),
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+      const errData = await res.json().catch(() => ({}));
+      return { success: false, error: errData.error || 'Failed to analyze product image' };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Network error during AI analysis' };
+    }
   },
   async bulkUpdateProducts(ids: string[], action: 'delete' | 'deactivate' | 'activate' | 'change-category', payload?: any): Promise<boolean> {
     let products = getStoredProducts();
@@ -518,43 +603,122 @@ export const apiService = {
     return orders.find(o => o.id === id || o.orderNumber === id) || null;
   },
   async createOrder(orderData: Omit<Order, 'id' | 'orderNumber' | 'date' | 'status' | 'trackingSteps'>): Promise<Order> {
-    const orders = getStoredOrders();
-    const newOrder: Order = {
-      ...orderData, id: `ord-${Date.now()}`, orderNumber: `PSH-${Math.floor(10000 + Math.random() * 90000)}`,
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), status: 'Crafting',
-      trackingSteps: [
-        { status: 'Placed', date: 'Just now', completed: true, description: 'Order confirmed and verified.' },
-        { status: 'Crafting', date: 'In progress', completed: true, description: 'Master artisan working on your pair.' },
-        { status: 'Quality Check', date: 'Pending', completed: false, description: 'Inspection and polish.' },
-        { status: 'Shipped', date: 'Pending', completed: false, description: 'Handover to courier.' },
-        { status: 'Delivered', date: 'Estimated 3-5 days', completed: false, description: 'Delivery to address.' },
-      ],
+    const id = `ord-${Date.now()}`;
+    const orderNumber = `PSH-${Math.floor(10000 + Math.random() * 90000)}`;
+    const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const trackingSteps: Order['trackingSteps'] = [
+      { status: 'Placed', date: 'Just now', completed: true, description: 'Order confirmed and verified.' },
+      { status: 'Shipped', date: 'Pending', completed: false, description: 'Handover to courier.' },
+      { status: 'Delivered', date: 'Estimated 3-5 days', completed: false, description: 'Delivery to address.' },
+    ];
+
+    const payload: Order = {
+      ...orderData,
+      id,
+      orderNumber,
+      date,
+      status: 'Placed',
+      trackingSteps,
     };
-    orders.unshift(newOrder);
+
+    let createdOrder: Order = payload;
+    try {
+      const res = await fetch(`${API_BASE}/api/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        createdOrder = await res.json();
+      }
+    } catch (err) {
+      console.warn('POST /api/orders failed, saving locally:', err);
+    }
+
+    const orders = getStoredOrders();
+    orders.unshift(createdOrder);
     saveStoredOrders(orders);
+
     this.addNotification({
       type: 'order',
       title: 'New Order Received',
-      description: `Order #${newOrder.orderNumber} placed for Rs. ${newOrder.total.toLocaleString()} by ${newOrder.shippingAddress.fullName}.`,
+      description: `Order #${createdOrder.orderNumber} placed for Rs. ${Number(createdOrder.total || 0).toLocaleString()} by ${createdOrder.shippingAddress?.fullName || 'Customer'}.`,
       link: '/admin/orders',
     }).catch(() => {});
-    return newOrder;
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('psh:orders-changed'));
+    }
+
+    return createdOrder;
   },
   async updateOrderStatus(orderId: string, status: Order['status']): Promise<Order> {
+    const token = this.getAdminToken();
+    try {
+      const res = await fetch(`${API_BASE}/api/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        const orders = getStoredOrders();
+        const idx = orders.findIndex(o => o.id === orderId || o.orderNumber === orderId);
+        if (idx !== -1) {
+          orders[idx] = updated;
+          saveStoredOrders(orders);
+        }
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('psh:orders-changed'));
+        }
+        return updated;
+      }
+    } catch (err) {
+      console.warn('PATCH /api/orders/:id/status failed, applying locally:', err);
+    }
+
     const orders = getStoredOrders();
     const idx = orders.findIndex(o => o.id === orderId || o.orderNumber === orderId);
     if (idx !== -1) {
       orders[idx].status = status;
-      orders[idx].trackingSteps = orders[idx].trackingSteps.map(step => {
+      orders[idx].trackingSteps = (orders[idx].trackingSteps || []).map(step => {
         if (step.status === status) return { ...step, completed: true, date: 'Updated just now' };
+        if (status === 'Delivered') return { ...step, completed: true };
+        if (status === 'Shipped' && step.status === 'Placed') return { ...step, completed: true };
         return step;
       });
       saveStoredOrders(orders);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('psh:orders-changed'));
+      }
       return orders[idx];
     }
     throw new Error('Order not found');
   },
   async requestReplacement(orderId: string, reason: string): Promise<Order> {
+    try {
+      const res = await fetch(`${API_BASE}/api/orders/${orderId}/replacement`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        const orders = getStoredOrders();
+        const idx = orders.findIndex(o => o.id === orderId || o.orderNumber === orderId);
+        if (idx !== -1) {
+          orders[idx] = updated;
+          saveStoredOrders(orders);
+        }
+        return updated;
+      }
+    } catch (err) {
+      console.warn('PATCH /api/orders/:id/replacement failed, applying locally:', err);
+    }
+
     const orders = getStoredOrders();
     const idx = orders.findIndex(o => o.id === orderId || o.orderNumber === orderId);
     if (idx !== -1) {
@@ -573,14 +737,72 @@ export const apiService = {
     throw new Error('Order not found');
   },
   async moderateReplacement(orderId: string, approved: boolean): Promise<Order> {
+    const token = this.getAdminToken();
+    try {
+      const res = await fetch(`${API_BASE}/api/orders/${orderId}/replacement/moderate`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ approved }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        const orders = getStoredOrders();
+        const idx = orders.findIndex(o => o.id === orderId || o.orderNumber === orderId);
+        if (idx !== -1) {
+          orders[idx] = updated;
+          saveStoredOrders(orders);
+        }
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('psh:orders-changed'));
+        }
+        return updated;
+      }
+    } catch (err) {
+      console.warn('PATCH replacement moderation failed, applying locally:', err);
+    }
+
     const orders = getStoredOrders();
     const idx = orders.findIndex(o => o.id === orderId || o.orderNumber === orderId);
     if (idx !== -1) {
       orders[idx].replacementStatus = approved ? 'approved' : 'rejected';
       saveStoredOrders(orders);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('psh:orders-changed'));
+      }
       return orders[idx];
     }
     throw new Error('Order not found');
+  },
+  async deleteOrder(orderId: string): Promise<boolean> {
+    const token = this.getAdminToken();
+    try {
+      const res = await fetch(`${API_BASE}/api/orders/${orderId}`, {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        const orders = getStoredOrders();
+        const updated = orders.filter(o => o.id !== orderId && o.orderNumber !== orderId);
+        saveStoredOrders(updated);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('psh:orders-changed'));
+        }
+        return true;
+      }
+    } catch (err) {
+      console.warn('DELETE /api/orders/:id failed, removing locally:', err);
+    }
+
+    const orders = getStoredOrders();
+    const updated = orders.filter(o => o.id !== orderId && o.orderNumber !== orderId);
+    saveStoredOrders(updated);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('psh:orders-changed'));
+    }
+    return true;
   },
 
   // --- CUSTOMERS ---
@@ -993,5 +1215,208 @@ export const apiService = {
     } catch {
       return 0;
     }
+  },
+
+  // --- PACKAGING, MONETIZATION & OPERATIONAL INVESTMENTS ---
+  async getInvestments(): Promise<InvestmentItem[]> {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/investments`);
+      if (res.ok) {
+        const list = await res.json();
+        if (Array.isArray(list)) {
+          localStorage.setItem('psh_investments', JSON.stringify(list));
+          return list;
+        }
+      }
+    } catch {}
+    try {
+      const stored = localStorage.getItem('psh_investments');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return [];
+  },
+
+  async createInvestment(data: Partial<InvestmentItem>): Promise<InvestmentItem> {
+    const token = this.getAdminToken();
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/investments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        const current = await this.getInvestments();
+        const updated = [created, ...current.filter(i => i.id !== created.id)];
+        localStorage.setItem('psh_investments', JSON.stringify(updated));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('psh:investments-changed'));
+        }
+        return created;
+      }
+    } catch {}
+
+    const newItem: InvestmentItem = {
+      id: `inv-${Date.now()}`,
+      title: data.title || 'Packaging & Operations',
+      category: data.category || 'packaging',
+      amount: Math.max(0, Number(data.amount) || 0),
+      date: data.date || new Date().toISOString().split('T')[0],
+      supplierOrVendor: data.supplierOrVendor || '',
+      notes: data.notes || '',
+      createdAt: new Date().toISOString(),
+    };
+    const current = await this.getInvestments();
+    const updated = [newItem, ...current];
+    localStorage.setItem('psh_investments', JSON.stringify(updated));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('psh:investments-changed'));
+    }
+    return newItem;
+  },
+
+  async updateInvestment(id: string, updates: Partial<InvestmentItem>): Promise<InvestmentItem> {
+    const token = this.getAdminToken();
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/investments/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(updates),
+      });
+      if (res.ok) {
+        const updatedItem = await res.json();
+        const current = await this.getInvestments();
+        const updated = current.map(i => i.id === id ? { ...i, ...updatedItem } : i);
+        localStorage.setItem('psh_investments', JSON.stringify(updated));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('psh:investments-changed'));
+        }
+        return updatedItem;
+      }
+    } catch {}
+
+    const current = await this.getInvestments();
+    let updatedItem: InvestmentItem | null = null;
+    const updated = current.map(i => {
+      if (i.id === id) {
+        updatedItem = { ...i, ...updates };
+        return updatedItem;
+      }
+      return i;
+    });
+    localStorage.setItem('psh_investments', JSON.stringify(updated));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('psh:investments-changed'));
+    }
+    return updatedItem || (updates as InvestmentItem);
+  },
+
+  async deleteInvestment(id: string): Promise<boolean> {
+    const token = this.getAdminToken();
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/investments/${id}`, {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        const current = await this.getInvestments();
+        const updated = current.filter(i => i.id !== id);
+        localStorage.setItem('psh_investments', JSON.stringify(updated));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('psh:investments-changed'));
+        }
+        return true;
+      }
+    } catch {}
+
+    const current = await this.getInvestments();
+    const updated = current.filter(i => i.id !== id);
+    localStorage.setItem('psh_investments', JSON.stringify(updated));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('psh:investments-changed'));
+    }
+    return true;
+  },
+
+  // --- SUPPLIER PRODUCT PROCUREMENT BUDGET ---
+  // Fixed capital paid to supplier — strictly independent of customer order fluctuations.
+  async getSupplierBudget(): Promise<{ budget: number; inventoryTotal?: number; totalPairs?: number; logs: SupplierBudgetLog[] }> {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/supplier-budget`);
+      if (res.ok) {
+        const data = await res.json();
+        if (typeof data.budget === 'number') {
+          localStorage.setItem('psh_supplier_budget', String(data.budget));
+          return data;
+        }
+      }
+    } catch {}
+    const local = localStorage.getItem('psh_supplier_budget');
+    const parsedLocal = local ? Number(local) : 15000;
+    // Upgrade if it was previous single 1500
+    const finalBudget = parsedLocal === 1500 ? 15000 : parsedLocal;
+    return {
+      budget: finalBudget,
+      inventoryTotal: 15000,
+      totalPairs: 10,
+      logs: []
+    };
+  },
+
+  async updateSupplierBudget(action: 'add' | 'remove' | 'set' | 'sync-inventory', amount: number, note?: string): Promise<{ budget: number; inventoryTotal?: number; totalPairs?: number; logs: SupplierBudgetLog[] }> {
+    const token = this.getAdminToken();
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/supplier-budget`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ action, amount, note }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('psh_supplier_budget', String(data.budget));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('psh:supplier-budget-changed', { detail: data }));
+          window.dispatchEvent(new CustomEvent('psh:investments-changed'));
+        }
+        return data;
+      }
+    } catch {}
+
+    // Local fallback if offline
+    const current = Number(localStorage.getItem('psh_supplier_budget')) || 15000;
+    let nextBudget = current;
+    if (action === 'add') nextBudget = current + amount;
+    else if (action === 'remove') nextBudget = Math.max(0, current - amount);
+    else if (action === 'set') nextBudget = Math.max(0, amount);
+    else if (action === 'sync-inventory') nextBudget = 15000;
+    localStorage.setItem('psh_supplier_budget', String(nextBudget));
+    const fallbackData = {
+      budget: nextBudget,
+      inventoryTotal: 15000,
+      totalPairs: 10,
+      logs: [{
+        id: `sbl-${Date.now()}`,
+        type: action,
+        amount,
+        previousBudget: current,
+        newBudget: nextBudget,
+        note: note || (action === 'add' ? 'Added supplier capital' : action === 'remove' ? 'Deducted supplier capital' : action === 'sync-inventory' ? 'Synced to inventory stock capital' : 'Manually set supplier budget'),
+        date: new Date().toISOString().split('T')[0],
+      }]
+    };
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('psh:supplier-budget-changed', { detail: fallbackData }));
+      window.dispatchEvent(new CustomEvent('psh:investments-changed'));
+    }
+    return fallbackData;
   },
 };

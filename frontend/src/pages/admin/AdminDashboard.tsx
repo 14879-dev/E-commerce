@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, Box, ShoppingBag, Users, Star, Tag, BarChart3, 
-  MessageSquare, Settings, Bell, Search, ShieldCheck, ChevronDown, LogOut, Menu, X, Layers, KeyRound, UserCog
+  MessageSquare, Settings, Bell, Search, ShieldCheck, ChevronDown, LogOut, Menu, X, Layers, KeyRound, UserCog, Coins
 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { DashboardTab } from './DashboardTab';
@@ -14,17 +14,84 @@ import { PromoCodesTab } from './PromoCodesTab';
 import { AnalyticsTab } from './AnalyticsTab';
 import { MessagesTab } from './MessagesTab';
 import { SettingsTab } from './SettingsTab';
+import { InvestmentsTab } from './InvestmentsTab';
 import { ManagersModal } from './ManagersModal';
 import { ChangeCredentialsModal } from './ChangeCredentialsModal';
 import { apiService } from '../../services/api';
 import type { AdminNotification } from '../../types/admin';
 import { SEOHelmet } from '../../components/common/SEOHelmet';
 
+type AdminTab =
+  | 'dashboard'
+  | 'products'
+  | 'categories'
+  | 'investments'
+  | 'orders'
+  | 'customers'
+  | 'reviews'
+  | 'promo-codes'
+  | 'analytics'
+  | 'messages'
+  | 'settings';
+
+const VALID_TABS: AdminTab[] = [
+  'dashboard',
+  'products',
+  'categories',
+  'investments',
+  'orders',
+  'customers',
+  'reviews',
+  'promo-codes',
+  'analytics',
+  'messages',
+  'settings',
+];
+
+const getInitialTab = (): AdminTab => {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabFromUrl = urlParams.get('tab') as AdminTab;
+    if (tabFromUrl && VALID_TABS.includes(tabFromUrl)) return tabFromUrl;
+    const saved = localStorage.getItem('psh_admin_active_tab') as AdminTab;
+    if (saved && VALID_TABS.includes(saved)) return saved;
+  } catch {}
+  return 'dashboard';
+};
+
+const playNotificationChime = () => {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, now); // D5
+    osc.frequency.setValueAtTime(880, now + 0.1); // A5
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.4);
+  } catch {}
+};
+
 export const AdminDashboard: React.FC = () => {
   const { user, logout } = useAdminAuth();
-  const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'products' | 'categories' | 'orders' | 'customers' | 'reviews' | 'promo-codes' | 'analytics' | 'messages' | 'settings'
-  >('dashboard');
+  const [activeTab, setActiveTabState] = useState<AdminTab>(getInitialTab);
+
+  const setActiveTab = (tab: AdminTab) => {
+    setActiveTabState(tab);
+    try {
+      localStorage.setItem('psh_admin_active_tab', tab);
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tab);
+      window.history.replaceState(null, '', url.toString());
+    } catch {}
+  };
 
   const [currentRole, setCurrentRole] = useState<'superadmin' | 'manager' | 'staff'>(user?.role || 'staff');
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
@@ -34,6 +101,13 @@ export const AdminDashboard: React.FC = () => {
   const [showCredentialsModal, setShowCredentialsModal] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [liveToast, setLiveToast] = useState<AdminNotification | null>(null);
+  const [liveOrderCount, setLiveOrderCount] = useState<number | null>(null);
+  const [isLivePulse, setIsLivePulse] = useState(false);
+
+  const notifRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
+  const lastNotifIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (user?.role) {
@@ -43,29 +117,115 @@ export const AdminDashboard: React.FC = () => {
 
   const isManager = currentRole === 'manager';
 
-  // Manager is restricted to only: dashboard, products, orders, customers, reviews
+  // Manager is restricted to core operational tabs
   useEffect(() => {
-    if (isManager && !['dashboard', 'products', 'orders', 'customers', 'reviews'].includes(activeTab)) {
+    if (isManager && !['dashboard', 'products', 'categories', 'investments', 'orders', 'customers', 'reviews'].includes(activeTab)) {
       setActiveTab('dashboard');
     }
   }, [isManager, activeTab]);
 
+  const triggerLiveToast = (notif: AdminNotification) => {
+    if (!notif || notif.id === lastNotifIdRef.current) return;
+    lastNotifIdRef.current = notif.id;
+    setLiveToast(notif);
+    playNotificationChime();
+    setTimeout(() => {
+      setLiveToast(curr => (curr?.id === notif.id ? null : curr));
+    }, 7000);
+  };
+
+  const loadNotifications = async () => {
+    const list = await apiService.getNotifications();
+    setNotifications(list);
+  };
+
+  // Click outside to dismiss notification or profile dropdowns
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotificationsDropdown(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
+
+  // Real-time live notifications listening & polling
   useEffect(() => {
     loadNotifications();
-    const handleNotifsChanged = () => loadNotifications();
+
+    const handleNotifsChanged = (e: any) => {
+      loadNotifications();
+      if (e?.detail) {
+        triggerLiveToast(e.detail);
+      }
+    };
+
+    const handleOrdersChanged = () => {
+      loadNotifications();
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'psh_notifications' || e.key === 'psh_orders') {
+        loadNotifications();
+      }
+    };
+
     window.addEventListener('psh:notifications-changed', handleNotifsChanged);
-    return () => window.removeEventListener('psh:notifications-changed', handleNotifsChanged);
+    window.addEventListener('psh:orders-changed', handleOrdersChanged);
+    window.addEventListener('storage', handleStorage);
+
+    // Live background polling every 3 seconds to catch external orders/notifications in real-time
+    // Every 10 seconds also broadcast psh:auto-refresh so all tabs can reload their data
+    let refreshTick = 0;
+    const interval = setInterval(async () => {
+      try {
+        const list = await apiService.getNotifications();
+        setNotifications(prev => {
+          if (list.length > 0 && prev.length > 0) {
+            const newest = list[0];
+            const prevNewest = prev[0];
+            if (newest && newest.id !== prevNewest?.id && !newest.read) {
+              triggerLiveToast(newest);
+            }
+          }
+          return list;
+        });
+        // Every ~10 seconds (3 ticks × 3s = 9s) broadcast auto-refresh to all tabs
+        refreshTick++;
+        if (refreshTick % 3 === 0) {
+          window.dispatchEvent(new CustomEvent('psh:auto-refresh'));
+          setIsLivePulse(true);
+          setTimeout(() => setIsLivePulse(false), 800);
+        }
+        // Fetch live order queue count for sidebar badge
+        const orders = await apiService.getOrders();
+        const queueCount = orders.filter(
+          (o: any) => o.status !== 'Delivered' && o.status !== 'Cancelled'
+        ).length;
+        setLiveOrderCount(queueCount);
+      } catch {}
+    }, 3000);
+
+    return () => {
+      window.removeEventListener('psh:notifications-changed', handleNotifsChanged);
+      window.removeEventListener('psh:orders-changed', handleOrdersChanged);
+      window.removeEventListener('storage', handleStorage);
+      clearInterval(interval);
+    };
   }, []);
 
   // Auto-close mobile sidebar when tab changes
   useEffect(() => {
     setMobileSidebarOpen(false);
   }, [activeTab]);
-
-  const loadNotifications = async () => {
-    const list = await apiService.getNotifications();
-    setNotifications(list);
-  };
 
   const handleMarkNotifRead = async (id: string) => {
     await apiService.markNotificationRead(id);
@@ -83,6 +243,7 @@ export const AdminDashboard: React.FC = () => {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'products', label: 'Product Catalog', icon: Box },
     { id: 'categories', label: 'Categories Catalog', icon: Layers },
+    { id: 'investments', label: 'Packaging & Investments', icon: Coins },
     { id: 'orders', label: 'Orders & Fulfillment', icon: ShoppingBag },
     { id: 'customers', label: 'Buyer Directory', icon: Users },
     { id: 'reviews', label: 'Reviews & Ratings', icon: Star },
@@ -94,7 +255,7 @@ export const AdminDashboard: React.FC = () => {
 
   // Filter out restricted items if user is manager
   const sidebarNavItems = isManager
-    ? allSidebarNavItems.filter(item => ['dashboard', 'products', 'orders', 'customers', 'reviews'].includes(item.id))
+    ? allSidebarNavItems.filter(item => ['dashboard', 'products', 'categories', 'investments', 'orders', 'customers', 'reviews'].includes(item.id))
     : allSidebarNavItems;
 
   // Shared sidebar nav content rendered in both mobile overlay and desktop panel
@@ -113,6 +274,7 @@ export const AdminDashboard: React.FC = () => {
       {sidebarNavItems.map(item => {
         const Icon = item.icon;
         const isActive = activeTab === item.id;
+        const showQueueBadge = item.id === 'orders' && liveOrderCount !== null && liveOrderCount > 0;
         return (
           <button
             key={item.id}
@@ -124,7 +286,14 @@ export const AdminDashboard: React.FC = () => {
             }`}
           >
             <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-            <span>{item.label}</span>
+            <span className="flex-1">{item.label}</span>
+            {showQueueBadge && (
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center ${
+                isActive ? 'bg-white/25 text-white' : 'bg-amber-500 text-white'
+              }`}>
+                {liveOrderCount}
+              </span>
+            )}
           </button>
         );
       })}
@@ -132,11 +301,50 @@ export const AdminDashboard: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50/50 flex flex-col -mx-4 sm:-mx-6 lg:-mx-8 -my-6 sm:-my-8">
+    <div className="min-h-screen bg-slate-50/50 flex flex-col -mx-4 sm:-mx-6 lg:-mx-8 -my-6 sm:-my-8 relative">
       <SEOHelmet
         title="Admin Control Center"
         description="Protected administration portal for Peshawari Chappal products, categories catalog, order tracking, and reviews."
       />
+
+      {/* Floating Real-Time Live Notification Pop-Up Toast */}
+      {liveToast && (
+        <div className="fixed top-5 right-5 z-[99999] max-w-sm w-full bg-slate-900/95 text-white p-4 rounded-2xl shadow-2xl border border-blue-500/40 backdrop-blur-md flex items-start gap-3 animate-in slide-in-from-top-4 duration-300">
+          <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-lg mt-0.5">
+            <Bell className="w-4 h-4 animate-bounce" />
+          </div>
+          <div className="flex-1 min-w-0 pr-1">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-blue-400">Live Alert</span>
+              <span className="text-[10px] text-slate-400">{liveToast.timestamp || 'Just now'}</span>
+            </div>
+            <h5 className="font-bold text-xs text-white truncate mt-0.5">{liveToast.title}</h5>
+            <p className="text-[11px] text-slate-300 line-clamp-2 mt-0.5 leading-snug">{liveToast.description}</p>
+            {liveToast.link && (
+              <button
+                onClick={() => {
+                  if (liveToast.link?.includes('orders')) setActiveTab('orders');
+                  else if (liveToast.link?.includes('products')) setActiveTab('products');
+                  else if (liveToast.link?.includes('reviews')) setActiveTab('reviews');
+                  else if (liveToast.link?.includes('messages')) setActiveTab('messages');
+                  handleMarkNotifRead(liveToast.id);
+                  setLiveToast(null);
+                }}
+                className="mt-2 text-[11px] font-bold text-blue-400 hover:text-blue-300 underline underline-offset-2 flex items-center gap-1 cursor-pointer"
+              >
+                View in Portal →
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => setLiveToast(null)}
+            className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
+            aria-label="Dismiss notification"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Top Global Navigation Bar */}
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 sm:px-8 py-3 flex items-center justify-between gap-4 shadow-xs">
@@ -156,6 +364,17 @@ export const AdminDashboard: React.FC = () => {
             <span className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm">P</span>
             <span>Peshawari</span>
             <span className="text-xs font-sans text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 uppercase tracking-widest font-semibold hidden sm:inline">Admin Hub</span>
+            {/* LIVE indicator */}
+            <span className={`hidden lg:flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-widest transition-all duration-300 ${
+              isLivePulse
+                ? 'bg-emerald-100 text-emerald-700 border-emerald-400 scale-105'
+                : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full bg-emerald-500 ${
+                isLivePulse ? 'animate-ping' : 'animate-pulse'
+              }`} />
+              Live
+            </span>
           </div>
 
           <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700">
@@ -181,7 +400,7 @@ export const AdminDashboard: React.FC = () => {
         <div className="flex items-center gap-3">
 
           {/* Notification Bell */}
-          <div className="relative">
+          <div className="relative" ref={notifRef}>
             <button
               onClick={() => setShowNotificationsDropdown(!showNotificationsDropdown)}
               className="relative p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 transition-all"
@@ -258,7 +477,7 @@ export const AdminDashboard: React.FC = () => {
           )}
 
           {/* Profile Dropdown */}
-          <div className="relative">
+          <div className="relative" ref={profileRef}>
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center gap-2.5 p-1.5 pl-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-all text-xs"
@@ -367,6 +586,7 @@ export const AdminDashboard: React.FC = () => {
           {activeTab === 'dashboard' && <DashboardTab onNavigateTab={(t: any) => setActiveTab(t)} />}
           {activeTab === 'products' && <ProductsTab />}
           {activeTab === 'categories' && <CategoriesTab />}
+          {activeTab === 'investments' && <InvestmentsTab onNavigateTab={(t: any) => setActiveTab(t)} />}
           {activeTab === 'orders' && <OrdersTab />}
           {activeTab === 'customers' && <CustomersTab />}
           {activeTab === 'reviews' && <ReviewsTab />}
