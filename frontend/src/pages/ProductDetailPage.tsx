@@ -325,7 +325,7 @@ export const ProductDetailPage: React.FC = () => {
               <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between gap-2 animate-in fade-in">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Added to shopping bag! (EU {selectedSize} • {selectedColor.replace(/-/g, ' ')})</span>
+                  <span>Added to shopping bag! (Size {selectedSize} • {selectedColor.replace(/-/g, ' ')})</span>
                 </div>
                 <Link to="/bag" className="text-blue-700 hover:underline font-black text-xs">
                   View Bag →

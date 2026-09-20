@@ -47,7 +47,7 @@ export interface Product {
     gallery?: string[];
     [key: string]: any;
   };
-  availableSizes: number[]; // EU sizes: 39, 40, 41, 42, 43, 44, 45
+  availableSizes: number[]; // Standard sizes: 7, 8, 9, 10, 11, 12, 13
   availableColors: (LeatherColor | string)[];
   averageRating: number;
   reviewCount: number;

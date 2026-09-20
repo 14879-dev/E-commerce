@@ -171,8 +171,14 @@ try {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
       inMemoryProducts.length = 0;
-      inMemoryProducts.push(...parsed);
-      console.log(`📁 Loaded ${parsed.length} products from disk`);
+      const sanitized = parsed.map((p: any) => ({
+        ...p,
+        availableSizes: Array.isArray(p.availableSizes)
+          ? p.availableSizes.map(Number).filter((s: number) => s >= 7 && s <= 13)
+          : [7, 8, 9, 10, 11, 12, 13],
+      }));
+      inMemoryProducts.push(...sanitized);
+      console.log(`📁 Loaded ${sanitized.length} products from disk`);
     }
   } else {
     saveProductsToDisk();
@@ -936,7 +942,9 @@ app.post('/api/products', authenticateAdmin, async (req: Request, res: Response)
       front: primaryFront,
       gallery: gallery.length > 0 ? gallery : (primaryFront ? [primaryFront] : []),
     },
-    availableSizes: body.availableSizes || [7, 8, 9, 10, 11, 12, 13],
+    availableSizes: Array.isArray(body.availableSizes) && body.availableSizes.length > 0
+      ? body.availableSizes.map(Number).filter((s: number) => s >= 7 && s <= 13)
+      : [7, 8, 9, 10, 11, 12, 13],
     availableColors: body.availableColors || ['saddle-tan', 'espresso'],
     averageRating: 0,
     reviewCount: 0,
@@ -958,6 +966,12 @@ app.post('/api/products', authenticateAdmin, async (req: Request, res: Response)
 
 app.put('/api/products/:id', authenticateAdmin, async (req: Request, res: Response): Promise<void> => {
   const updateData = { ...req.body };
+  if ('availableSizes' in updateData && Array.isArray(updateData.availableSizes)) {
+    updateData.availableSizes = updateData.availableSizes.map(Number).filter((s: number) => s >= 7 && s <= 13);
+    if (updateData.availableSizes.length === 0) {
+      updateData.availableSizes = [7, 8, 9, 10, 11, 12, 13];
+    }
+  }
   if ('articleTag' in updateData || 'tag' in updateData) {
     updateData.articleTag = (updateData.articleTag || updateData.tag || '').trim();
   }

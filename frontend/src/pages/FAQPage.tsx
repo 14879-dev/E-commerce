@@ -32,7 +32,7 @@ export const CHAPPAL_FAQS: FAQCategoryItem[] = [
     category: 'sizing',
     categoryLabel: 'Sizing & Fit',
     question: 'How do I choose the correct size for my Peshawari Chappal?',
-    answer: 'Peshawari chappals use standard EU and UK shoe sizing. Because genuine leather gently softens and forms to your feet after 2–3 wears, we recommend choosing your exact true-to-size EU shoe size, or use our built-in AI Camera Size Finder to measure your foot dimensions in millimeters with zero guesswork.'
+    answer: 'Peshawari chappals use standard Pakistani and UK shoe sizing (Sizes 7 to 13). Because genuine leather gently softens and forms to your feet after 2–3 wears, we recommend choosing your exact true-to-size shoe size, or use our built-in AI Camera Size Finder to measure your foot dimensions in millimeters with zero guesswork.'
   },
   {
     id: 'faq-4',

@@ -329,7 +329,7 @@ export const CheckoutPage: React.FC = () => {
                     <img src={imgUrl} alt={item.product.name} className="w-10 h-10 object-cover rounded-lg bg-white border" />
                     <div>
                       <h4 className="font-semibold text-slate-900 line-clamp-1">{item.product.name}</h4>
-                      <span className="text-slate-500">Qty: {item.quantity || 1} • EU {item.size} • <span className="capitalize">{colorDisplay}</span></span>
+                      <span className="text-slate-500">Qty: {item.quantity || 1} • Size {item.size} • <span className="capitalize">{colorDisplay}</span></span>
                     </div>
                   </div>
                   <span className="font-serif font-bold text-slate-900">{formatPrice(itemTotal)}</span>

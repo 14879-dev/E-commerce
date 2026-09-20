@@ -25,45 +25,52 @@
   "lowStockThreshold": 5,
   "sizeChartMap": [
     {
-      "eu": 39,
-      "uk": 5,
-      "mm": 245,
-      "widthNote": "Narrow bridge fit"
-    },
-    {
-      "eu": 40,
-      "uk": 6,
-      "mm": 252,
-      "widthNote": "Regular slim fit"
-    },
-    {
-      "eu": 41,
+      "size": 7,
       "uk": 7,
-      "mm": 260,
-      "widthNote": "Standard fit"
+      "eu": 41,
+      "mm": 250,
+      "widthNote": "Narrow / slim bridge fit"
     },
     {
-      "eu": 42,
+      "size": 8,
       "uk": 8,
-      "mm": 268,
-      "widthNote": "Standard regular bridge"
+      "eu": 42,
+      "mm": 260,
+      "widthNote": "Standard regular fit"
     },
     {
-      "eu": 43,
+      "size": 9,
       "uk": 9,
-      "mm": 275,
+      "eu": 43,
+      "mm": 270,
+      "widthNote": "Standard fit (Most Popular)"
+    },
+    {
+      "size": 10,
+      "uk": 10,
+      "eu": 44,
+      "mm": 280,
+      "widthNote": "Comfort regular bridge"
+    },
+    {
+      "size": 11,
+      "uk": 11,
+      "eu": 45,
+      "mm": 290,
       "widthNote": "Wide bridge"
     },
     {
-      "eu": 44,
-      "uk": 10,
-      "mm": 283,
-      "widthNote": "Extra wide fit"
+      "size": 12,
+      "uk": 12,
+      "eu": 46,
+      "mm": 300,
+      "widthNote": "Extra wide comfort fit"
     },
     {
-      "eu": 45,
-      "uk": 11,
-      "mm": 290,
+      "size": 13,
+      "uk": 13,
+      "eu": 47,
+      "mm": 310,
       "widthNote": "Maximum comfort width"
     }
   ],

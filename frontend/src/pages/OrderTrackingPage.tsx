@@ -270,7 +270,7 @@ export const OrderTrackingPage: React.FC = () => {
                       <img src={item.product.images.front} alt={item.product.name} className="w-12 h-12 object-cover rounded-lg" />
                       <div>
                         <h4 className="font-semibold text-sm text-slate-900">{item.product.name}</h4>
-                        <p className="text-xs text-slate-500">EU {item.size} • Color: {item.selectedColor}</p>
+                        <p className="text-xs text-slate-500">Size {item.size} • Color: {item.selectedColor}</p>
                       </div>
                     </div>
                     <span className="font-serif font-bold text-slate-900 text-sm">
@@ -358,7 +358,7 @@ export const OrderTrackingPage: React.FC = () => {
                   required
                   value={replacementReason}
                   onChange={e => setReplacementReason(e.target.value)}
-                  placeholder="e.g. EU 42 is too tight around instep, need replacement with EU 43..."
+                  placeholder="e.g. Size 9 is too tight around instep, need replacement with Size 10..."
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:border-blue-600 focus:outline-none"
                 />
 

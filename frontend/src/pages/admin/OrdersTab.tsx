@@ -394,7 +394,7 @@ export const OrdersTab: React.FC = () => {
                           )}
                           <div>
                             <h5 className="font-semibold text-sm text-slate-900">{item.product.name}</h5>
-                            <span className="text-xs text-slate-500">EU {item.size} • Color: {item.selectedColor} • Qty: {item.quantity}</span>
+                            <span className="text-xs text-slate-500">Size {item.size} • Color: {item.selectedColor} • Qty: {item.quantity}</span>
                           </div>
                         </div>
                         <span className="font-serif font-bold text-slate-900 text-sm">
@@ -632,7 +632,7 @@ export const OrdersTab: React.FC = () => {
                       <th className="py-2.5 px-3 text-center w-10 whitespace-nowrap">#</th>
                       <th className="py-2.5 px-3">Article Description</th>
                       <th className="py-2.5 px-3 whitespace-nowrap">Leather Tone</th>
-                      <th className="py-2.5 px-3 text-center whitespace-nowrap">Size (EU)</th>
+                      <th className="py-2.5 px-3 text-center whitespace-nowrap">Size</th>
                       <th className="py-2.5 px-3 text-center whitespace-nowrap">Qty</th>
                       <th className="py-2.5 px-3 text-right whitespace-nowrap">Unit Price</th>
                       <th className="py-2.5 px-3 text-right whitespace-nowrap">Amount</th>
@@ -664,7 +664,7 @@ export const OrdersTab: React.FC = () => {
                             </div>
                           </td>
                           <td className="py-3 px-3 capitalize text-slate-800 whitespace-nowrap">{colorDisplay}</td>
-                          <td className="py-3 px-3 text-center font-bold text-slate-950 whitespace-nowrap">EU {item.size}</td>
+                          <td className="py-3 px-3 text-center font-bold text-slate-950 whitespace-nowrap">Size {item.size}</td>
                           <td className="py-3 px-3 text-center font-mono font-bold text-slate-950 whitespace-nowrap">{item.quantity}</td>
                           <td className="py-3 px-3 text-right font-mono text-slate-800 whitespace-nowrap">{formatPrice(unitPrice)}</td>
                           <td className="py-3 px-3 text-right font-mono font-bold text-slate-950 whitespace-nowrap">{formatPrice(lineTotal)}</td>

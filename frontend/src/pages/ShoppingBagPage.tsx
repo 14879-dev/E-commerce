@@ -146,7 +146,7 @@ export const ShoppingBagPage: React.FC = () => {
                       </div>
 
                       <div className="text-xs text-slate-500 mt-1 space-y-0.5">
-                        <p>Size: <strong className="text-slate-900">EU {item.size}</strong> • Color: <strong className="text-slate-900 capitalize">{colorDisplay}</strong></p>
+                        <p>Size: <strong className="text-slate-900">Size {item.size}</strong> • Color: <strong className="text-slate-900 capitalize">{colorDisplay}</strong></p>
                       </div>
 
                       <span className="font-serif font-bold text-base text-slate-900 block mt-1.5">

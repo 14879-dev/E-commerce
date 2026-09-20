@@ -154,8 +154,8 @@ export const CatalogPage: React.FC = () => {
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl">
             {settings.hideCategories
-              ? 'Browse all authentic handcrafted models, filter by EU foot size, leather shade, or price range.'
-              : 'Filter by iconic silhouette, EU foot size, organic leather shade, or price range.'}
+              ? 'Browse all authentic handcrafted models, filter by foot size (7–13), leather shade, or price range.'
+              : 'Filter by iconic silhouette, foot size (7–13), organic leather shade, or price range.'}
           </p>
         </div>
 
@@ -240,7 +240,7 @@ export const CatalogPage: React.FC = () => {
             {/* Size Filter */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
-                EU Foot Size
+                Foot Size (7 to 13)
               </label>
               <div className="grid grid-cols-4 gap-2">
                 {sizes.map(size => (
@@ -349,7 +349,7 @@ export const CatalogPage: React.FC = () => {
               {/* Size Filter on Mobile */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                  EU Foot Size
+                  Foot Size (7 to 13)
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {sizes.map(size => (
@@ -362,7 +362,7 @@ export const CatalogPage: React.FC = () => {
                           : 'bg-white border-slate-200 text-slate-700'
                       }`}
                     >
-                      EU {size}
+                      Size {size}
                     </button>
                   ))}
                 </div>

@@ -82,7 +82,7 @@ const CALIBRATION_LABELS: Record<CalibrationObject, string> = {
 // ─── Component ────────────────────────────────────────────────────────────────
 export const FootSizeFinderPage: React.FC = () => {
   const [pageMode, setPageMode] = useState<'scan' | 'manual'>('scan');
-  const [manualLengthMm, setManualLengthMm] = useState<number>(255); // Default EU 41
+  const [manualLengthMm, setManualLengthMm] = useState<number>(270); // Default Size 9
   const [fineTuneMm, setFineTuneMm] = useState<number | null>(null);
   const [step, setStep] = useState<Step>('intro');
   const [calibration, setCalibration] = useState<CalibrationObject>('a4_paper');
@@ -298,16 +298,16 @@ export const FootSizeFinderPage: React.FC = () => {
           }`}
         >
           <Ruler className="w-4 h-4 text-amber-600" />
-          Direct Foot Sizer (EU 38–46)
+          Direct Foot Sizer (Sizes 7–13)
         </button>
       </div>
 
       {/* ── DIRECT MANUAL SIZER TAB ── */}
       {pageMode === 'manual' && (() => {
-        const manualEu = Math.max(35, Math.min(48, Math.round((3.0 * ((manualLengthMm / 10.0) + 1.5)) / 2.0)));
-        const manualUk = Number((manualEu - 33.0).toFixed(1));
-        const manualUs = Number((manualEu - 31.5).toFixed(1));
-        const modelRec = manualEu <= 41 ? "Kaptaan Signature" : manualEu <= 43 ? "Zalmi Royal" : "Quetta Sovereign";
+        const manualSize = Math.max(7, Math.min(13, Math.round(7 + (manualLengthMm - 250) / 10)));
+        const manualUk = manualSize;
+        const manualUs = Number((manualSize + 0.5).toFixed(1));
+        const modelRec = manualSize <= 8 ? "Kaptaan Signature" : manualSize <= 10 ? "Zalmi Royal" : "Quetta Sovereign";
 
         return (
           <div className="space-y-8 py-4">
@@ -317,19 +317,19 @@ export const FootSizeFinderPage: React.FC = () => {
               </div>
               <h2 className="font-serif font-bold text-2xl text-slate-900">Direct Foot Sizer & Guide</h2>
               <p className="text-xs text-slate-500">
-                Select your measured heel-to-toe length or tap your EU shoe size for instant Peshawari Chappal fit recommendations.
+                Select your measured heel-to-toe length or tap your shoe size (7 to 13) for instant Peshawari Chappal fit recommendations.
               </p>
             </div>
 
             {/* Quick Size Pills */}
             <div className="space-y-2 max-w-lg mx-auto">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block text-center">
-                Quick Select EU Size
+                Quick Select Size (7 to 13)
               </label>
-              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-                {[39, 40, 41, 42, 43, 44, 45, 46].map((s) => {
-                  const mm = Math.round(((s * 2.0 / 3.0) - 1.5) * 10.0);
-                  const isSelected = manualEu === s;
+              <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                {[7, 8, 9, 10, 11, 12, 13].map((s) => {
+                  const mm = 250 + (s - 7) * 10;
+                  const isSelected = manualSize === s;
                   return (
                     <button
                       key={s}
@@ -340,7 +340,7 @@ export const FootSizeFinderPage: React.FC = () => {
                           : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
                       }`}
                     >
-                      EU {s}
+                      Size {s}
                     </button>
                   );
                 })}
@@ -359,17 +359,17 @@ export const FootSizeFinderPage: React.FC = () => {
               </div>
               <input
                 type="range"
-                min="230"
-                max="305"
+                min="245"
+                max="315"
                 step="1"
                 value={manualLengthMm}
                 onChange={(e) => setManualLengthMm(Number(e.target.value))}
                 className="w-full accent-blue-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
               />
               <div className="flex justify-between text-[11px] text-slate-400 font-mono">
-                <span>23.0 cm (EU 38)</span>
-                <span className="text-blue-600 font-bold">25.5 cm (EU 41)</span>
-                <span>30.5 cm (EU 46)</span>
+                <span>24.5 cm (Size 7)</span>
+                <span className="text-blue-600 font-bold">27.0 cm (Size 9)</span>
+                <span>31.5 cm (Size 13)</span>
               </div>
             </div>
 
@@ -377,11 +377,11 @@ export const FootSizeFinderPage: React.FC = () => {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-lg mx-auto">
               <div className="p-4 rounded-2xl bg-blue-600 text-white text-center shadow-md col-span-2 sm:col-span-1">
                 <span className="text-[11px] text-blue-200 uppercase font-bold block">Recommended Size</span>
-                <span className="font-serif font-bold text-4xl">EU {manualEu}</span>
+                <span className="font-serif font-bold text-4xl">Size {manualSize}</span>
               </div>
               <div className="p-4 rounded-xl bg-white border border-slate-200 text-center">
-                <span className="text-[11px] text-slate-500 uppercase font-semibold block">UK Size</span>
-                <span className="font-serif font-bold text-2xl text-slate-800">UK {manualUk}</span>
+                <span className="text-[11px] text-slate-500 uppercase font-semibold block">UK / PK Size</span>
+                <span className="font-serif font-bold text-2xl text-slate-800">Size {manualUk}</span>
               </div>
               <div className="p-4 rounded-xl bg-white border border-slate-200 text-center">
                 <span className="text-[11px] text-slate-500 uppercase font-semibold block">US Men's</span>
@@ -395,17 +395,17 @@ export const FootSizeFinderPage: React.FC = () => {
                 <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> Perfect Match Recommendation:
               </span>
               <p>
-                For a <strong>{manualLengthMm} mm</strong> foot (EU {manualEu}), we recommend the handcrafted <strong>{modelRec}</strong> cut from supple full-grain leather.
+                For a <strong>{manualLengthMm} mm</strong> foot (Size {manualSize}), we recommend the handcrafted <strong>{modelRec}</strong> cut from supple full-grain leather.
               </p>
             </div>
 
             {/* Action Buttons */}
             <div className="flex flex-wrap justify-center gap-4 max-w-lg mx-auto">
               <Link
-                to={`/products?size=${manualEu}`}
+                to={`/products?size=${manualSize}`}
                 className="btn-copper text-xs py-3 px-8 inline-flex items-center gap-2 shadow-sm flex-1 justify-center"
               >
-                Browse EU {manualEu} Chappals <ArrowRight className="w-4 h-4" />
+                Browse Size {manualSize} Chappals <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>
@@ -634,11 +634,9 @@ export const FootSizeFinderPage: React.FC = () => {
             const activeLengthMm = fineTuneMm ?? rawLength;
             const activeWidthMm = rawWidth;
 
-            const activeEuSize = fineTuneMm !== null
-              ? Math.max(35, Math.min(48, Math.round((3.0 * ((activeLengthMm / 10.0) + 1.5)) / 2.0)))
-              : (result.final_kdm_result?.recommended_eu_size ?? result.recommended_eu_size);
-            const activeUkSize = Number((activeEuSize - 33.0).toFixed(1));
-            const activeUsSize = Number((activeEuSize - 31.5).toFixed(1));
+            const activeSize = Math.max(7, Math.min(13, Math.round(7 + (activeLengthMm - 250) / 10)));
+            const activeUkSize = activeSize;
+            const activeUsSize = Number((activeSize + 0.5).toFixed(1));
 
             const isRetake = Boolean(
               result.final_kdm_result?.retake_recommended ||
@@ -656,7 +654,7 @@ export const FootSizeFinderPage: React.FC = () => {
             const confidencePct = result.final_kdm_result?.confidence_pct ?? result.confidence_pct;
             const confidenceLevel = result.final_kdm_result?.confidence_level ?? (confidencePct >= 90 ? 'High' : confidencePct >= 75 ? 'Medium' : 'Uncertain');
             const fitProfile = result.final_kdm_result?.fit_profile ?? (rawWidth > 104 ? 'Wide Comfort Fit' : rawWidth < 94 ? 'Slim / Narrow Fit' : 'Standard Regular KDM Fit');
-            const chappalModel = result.final_kdm_result?.recommended_chappal_model ?? (activeEuSize >= 42 ? 'KDM Kaptaan Royal Double-Sole' : 'KDM Zalmi Signature Special');
+            const chappalModel = result.final_kdm_result?.recommended_chappal_model ?? (activeSize >= 9 ? 'KDM Kaptaan Royal Double-Sole' : 'KDM Zalmi Signature Special');
 
             return (
               <div className="space-y-8 py-4">
@@ -848,7 +846,7 @@ export const FootSizeFinderPage: React.FC = () => {
                       <div className="text-center py-2">
                         <span className="text-[11px] uppercase tracking-wider text-slate-400 block font-medium">Recommended Size</span>
                         <div className="font-serif font-bold text-5xl text-white my-1">
-                          EU {activeEuSize}
+                          Size {activeSize}
                         </div>
                         <span className="text-xs text-amber-300 font-medium">
                           UK {activeUkSize} · US {activeUsSize}
@@ -903,20 +901,20 @@ export const FootSizeFinderPage: React.FC = () => {
                       <Sliders className="w-3.5 h-3.5 text-blue-600" /> Fine-Tune Foot Length (mm):
                     </span>
                     <span className="font-mono font-bold text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-md">
-                      {Math.round(activeLengthMm)} mm (EU {activeEuSize})
+                      {Math.round(activeLengthMm)} mm (Size {activeSize})
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => setFineTuneMm(Math.max(215, Math.round(activeLengthMm) - 2))}
+                      onClick={() => setFineTuneMm(Math.max(245, Math.round(activeLengthMm) - 2))}
                       className="w-8 h-8 rounded-lg bg-white border border-slate-300 font-bold text-slate-700 hover:bg-slate-100 shrink-0"
                     >
                       -
                     </button>
                     <input
                       type="range"
-                      min="215"
+                      min="245"
                       max="315"
                       step="1"
                       value={Math.round(activeLengthMm)}
@@ -932,9 +930,9 @@ export const FootSizeFinderPage: React.FC = () => {
                     </button>
                   </div>
                   <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                    <span>220mm (EU 35)</span>
-                    <span className="text-blue-600 font-semibold">255mm (EU 41)</span>
-                    <span>300mm (EU 47)</span>
+                    <span>245mm (Size 7)</span>
+                    <span className="text-blue-600 font-semibold">270mm (Size 9)</span>
+                    <span>315mm (Size 13)</span>
                   </div>
                 </div>
 
@@ -942,7 +940,7 @@ export const FootSizeFinderPage: React.FC = () => {
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-1 max-w-lg mx-auto">
                   <span className="font-bold text-slate-800 block">📏 Authentic Peshawari Chappal Fit Note:</span>
                   <p>
-                    KDM Peshawari Chappals run true to standard EU sizing. Our master craftsmen cut each pair with authentic tyre-rubber or double leather soles and genuine top-grain cowhide that breaks in comfortably within your first few wears.
+                    KDM Peshawari Chappals run true to standard Pakistani & UK shoe sizing (Sizes 7 to 13). Our master craftsmen cut each pair with authentic tyre-rubber or double leather soles and genuine top-grain cowhide that breaks in comfortably within your first few wears.
                   </p>
                 </div>
 
@@ -952,10 +950,10 @@ export const FootSizeFinderPage: React.FC = () => {
                     <RotateCcw className="w-4 h-4" /> 📸 Retake / Scan Again
                   </button>
                   <Link
-                    to={`/products?size=${activeEuSize}`}
+                    to={`/products?size=${activeSize}`}
                     className="btn-copper text-xs py-3 px-8 inline-flex items-center gap-2 shadow-sm"
                   >
-                    Browse EU {activeEuSize} Chappals <ArrowRight className="w-4 h-4" />
+                    Browse Size {activeSize} Chappals <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
               </div>
@@ -1069,7 +1067,7 @@ export const FootSizeFinderPage: React.FC = () => {
                   }}
                   className="btn-glass text-xs py-3 px-6 flex items-center justify-center gap-2 text-blue-700 border-blue-200 bg-blue-50/50 hover:bg-blue-50"
                 >
-                  <Ruler className="w-4 h-4 text-blue-600" /> Open Direct Size Selector (EU 41 Pre-Selected)
+                  <Ruler className="w-4 h-4 text-blue-600" /> Open Direct Size Selector (Size 9 Pre-Selected)
                 </button>
               </div>
             </div>

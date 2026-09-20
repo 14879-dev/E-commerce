@@ -656,18 +656,18 @@ export const SettingsTab: React.FC<{
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-semibold">
-                  <th className="py-2.5 px-4">EU Size</th>
-                  <th className="py-2.5 px-4">UK Equivalent</th>
+                  <th className="py-2.5 px-4">Standard Size</th>
                   <th className="py-2.5 px-4">Foot Length (mm)</th>
+                  <th className="py-2.5 px-4">EU Equivalent</th>
                   <th className="py-2.5 px-4">Bridge Width Recommendation Note</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {settings.sizeChartMap.map((row, idx) => (
-                  <tr key={row.eu}>
-                    <td className="py-2 px-4 font-bold text-slate-900">EU {row.eu}</td>
-                    <td className="py-2 px-4 text-slate-700">UK {row.uk}</td>
+                  <tr key={row.size || row.uk || row.eu}>
+                    <td className="py-2 px-4 font-bold text-slate-900">Size {row.size || row.uk}</td>
                     <td className="py-2 px-4 font-mono font-bold text-blue-600">{row.mm} mm</td>
+                    <td className="py-2 px-4 text-slate-700">EU {row.eu}</td>
                     <td className="py-2 px-4">
                       <input
                         type="text"

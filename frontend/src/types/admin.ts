@@ -50,6 +50,7 @@ export interface AdminNotification {
 }
 
 export interface SizeMapping {
+  size?: number;
   eu: number;
   uk: number;
   mm: number;

@@ -272,6 +272,10 @@ export const ProductsTab: React.FC = () => {
   const handleOpenEditModal = (p: Product) => {
     setEditingProduct(p);
     const existingTag = p.articleTag || (p.name && /^KDM-\d+/i.test(p.name) ? p.name : '');
+    const rawSizes = Array.isArray(p.availableSizes)
+      ? p.availableSizes.map(Number).filter(s => s >= 7 && s <= 13)
+      : [];
+
     setFormData({
       articleTag: existingTag,
       name: p.name || existingTag || '',
@@ -286,7 +290,7 @@ export const ProductsTab: React.FC = () => {
       craftingTime: p.craftingTime || '12 Hours Master Artisan Handwork',
       stockCount: (p as any).stockCount ?? 50,
       featured: !!p.featured,
-      availableSizes: p.availableSizes && p.availableSizes.length > 0 ? [...p.availableSizes] : [7, 8, 9, 10, 11, 12, 13],
+      availableSizes: rawSizes.length > 0 ? rawSizes : [7, 8, 9, 10, 11, 12, 13],
       availableColors: p.availableColors ? [...p.availableColors] : ['saddle-tan'],
     });
 
@@ -326,12 +330,14 @@ export const ProductsTab: React.FC = () => {
       sole: galleryImages[5] || '',
     };
 
+    const cleanSizes = (formData.availableSizes || []).map(Number).filter(s => s >= 7 && s <= 13);
     const sanitizedPayload = {
       ...formData,
       articleTag: (formData.articleTag || '').trim(),
       costPrice: Number(formData.costPrice) || 0,
       category: formData.category?.trim() || 'None',
       originalPrice: (formData.originalPrice && Number(formData.originalPrice) > 0) ? Number(formData.originalPrice) : undefined,
+      availableSizes: cleanSizes.length > 0 ? cleanSizes : [7, 8, 9, 10, 11, 12, 13],
       images: imagesPayload,
     };
 

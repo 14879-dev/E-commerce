@@ -217,7 +217,7 @@ export const HomePage: React.FC = () => {
                   AI Foot Size Finder
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Place your foot on a standard sheet of A4 paper. Our camera measurement algorithm calculates your exact foot length in millimeters and recommends your perfect true-to-size EU & UK fit with zero guesswork.
+                  Place your foot on a standard sheet of A4 paper. Our camera measurement algorithm calculates your exact foot length in millimeters and recommends your perfect true-to-size Peshawari Chappal fit (Sizes 7–13) with zero guesswork.
                 </p>
                 <div className="pt-2">
                   <Link

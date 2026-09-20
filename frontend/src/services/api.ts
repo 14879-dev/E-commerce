@@ -22,7 +22,7 @@ const INITIAL_PROMOS: PromoCode[] = [];
 const INITIAL_NOTIFICATIONS: AdminNotification[] = [];
 
 // Automatic purge of obsolete cached demo data from previous sessions
-const DATA_CLEAN_VERSION = 'v6_clean_investments_zero';
+const DATA_CLEAN_VERSION = 'v8_sizes_strictly_7_13';
 try {
   if (typeof localStorage !== 'undefined') {
     if (localStorage.getItem('psh_data_version') !== DATA_CLEAN_VERSION) {
@@ -82,8 +82,10 @@ export const apiService = {
           const remoteCost = Number(p.costPrice);
           const localCost = costMap.get(p.id) ?? (p.slug ? costMap.get(p.slug) : 0) ?? 0;
           const finalCost = (!isNaN(remoteCost) && remoteCost > 0) ? remoteCost : localCost;
+          const rawSizes = Array.isArray(p.availableSizes) ? p.availableSizes.map(Number).filter(s => s >= 7 && s <= 13) : [];
           return {
             ...p,
+            availableSizes: rawSizes.length > 0 ? rawSizes : [7, 8, 9, 10, 11, 12, 13],
             costPrice: finalCost,
           };
         });
@@ -95,7 +97,13 @@ export const apiService = {
         return merged.filter(p => !disabledNames.has((p.category || '').toLowerCase()));
       }
     } catch {}
-    const stored = getStoredProducts();
+    const stored = getStoredProducts().map(p => {
+      const rawSizes = Array.isArray(p.availableSizes) ? p.availableSizes.map(Number).filter(s => s >= 7 && s <= 13) : [];
+      return {
+        ...p,
+        availableSizes: rawSizes.length > 0 ? rawSizes : [7, 8, 9, 10, 11, 12, 13],
+      };
+    });
     if (all) return stored;
     const disabledNames = new Set(
       getStoredCategories().filter(c => c.disabled).map(c => (c.name || '').toLowerCase())
@@ -108,10 +116,22 @@ export const apiService = {
       const res = await fetch(`${API_BASE}/api/products/${slug}${token ? '?admin=true' : ''}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      if (res.ok) return await res.json();
+      if (res.ok) {
+        const prod = await res.json();
+        if (prod) {
+          const rawSizes = Array.isArray(prod.availableSizes) ? prod.availableSizes.map(Number).filter((s: number) => s >= 7 && s <= 13) : [];
+          prod.availableSizes = rawSizes.length > 0 ? rawSizes : [7, 8, 9, 10, 11, 12, 13];
+        }
+        return prod;
+      }
     } catch {}
     const products = getStoredProducts();
-    return products.find(p => p.slug === slug || p.id === slug) || null;
+    const found = products.find(p => p.slug === slug || p.id === slug) || null;
+    if (found) {
+      const rawSizes = Array.isArray(found.availableSizes) ? found.availableSizes.map(Number).filter((s: number) => s >= 7 && s <= 13) : [];
+      found.availableSizes = rawSizes.length > 0 ? rawSizes : [7, 8, 9, 10, 11, 12, 13];
+    }
+    return found;
   },
   async createProduct(productData: Partial<Product>): Promise<Product> {
     const token = this.getAdminToken();
@@ -1043,13 +1063,13 @@ export const apiService = {
       walletEnabled: true,
       lowStockThreshold: 5,
       sizeChartMap: [
-        { eu: 39, uk: 5, mm: 245, widthNote: 'Narrow bridge fit' },
-        { eu: 40, uk: 6, mm: 252, widthNote: 'Regular slim fit' },
-        { eu: 41, uk: 7, mm: 260, widthNote: 'Standard fit' },
-        { eu: 42, uk: 8, mm: 268, widthNote: 'Standard regular bridge' },
-        { eu: 43, uk: 9, mm: 275, widthNote: 'Wide bridge' },
-        { eu: 44, uk: 10, mm: 283, widthNote: 'Extra wide fit' },
-        { eu: 45, uk: 11, mm: 290, widthNote: 'Maximum comfort width' }
+        { size: 7, uk: 7, eu: 41, mm: 250, widthNote: 'Narrow / slim bridge fit' },
+        { size: 8, uk: 8, eu: 42, mm: 260, widthNote: 'Standard regular fit' },
+        { size: 9, uk: 9, eu: 43, mm: 270, widthNote: 'Standard fit (Most Popular)' },
+        { size: 10, uk: 10, eu: 44, mm: 280, widthNote: 'Comfort regular bridge' },
+        { size: 11, uk: 11, eu: 45, mm: 290, widthNote: 'Wide bridge' },
+        { size: 12, uk: 12, eu: 46, mm: 300, widthNote: 'Extra wide comfort fit' },
+        { size: 13, uk: 13, eu: 47, mm: 310, widthNote: 'Maximum comfort width' }
       ]
     };
   },

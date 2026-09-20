@@ -96,7 +96,7 @@ export const WishlistPage: React.FC = () => {
                 <div className="pt-2 border-t border-slate-100 flex gap-2">
                   <button
                     onClick={() => {
-                      const defSize = (Array.isArray(product.availableSizes) && product.availableSizes[0]) || 42;
+                      const defSize = (Array.isArray(product.availableSizes) && product.availableSizes[0]) || 9;
                       const defColor = (Array.isArray(product.availableColors) && product.availableColors[0]) || 'saddle-tan';
                       addToCart(product, defSize, defColor as any);
                     }}
