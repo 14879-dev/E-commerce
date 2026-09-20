@@ -21,7 +21,6 @@ import {
   MinusCircle,
   History,
   Check,
-  Download,
   FileText
 } from 'lucide-react';
 import { apiService } from '../../services/api';
@@ -348,15 +347,20 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
     const timeStr = today.toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const statementNo = `EST-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    const budgetHistoryRows = budgetLogs.map((log, idx) => `
+    const budgetHistoryRows = budgetLogs.map((log, idx) => {
+      const act = log.type || log.action || 'set';
+      const balance = log.newBudget ?? log.budgetAfter ?? 0;
+      const badgeClass = act === 'add' ? 'green' : act === 'remove' ? 'red' : 'blue';
+      return `
       <tr>
         <td class="text-center font-mono text-muted">${idx + 1}</td>
         <td class="font-mono">${log.date || '-'}</td>
-        <td><span class="badge badge-${log.action === 'add' ? 'green' : log.action === 'remove' ? 'red' : 'blue'}">${log.action?.toUpperCase()}</span></td>
+        <td><span class="badge badge-${badgeClass}">${act.toUpperCase()}</span></td>
         <td class="amount text-right">Rs. ${Number(log.amount || 0).toLocaleString()}</td>
-        <td class="amount text-right font-bold text-navy">Rs. ${Number(log.budgetAfter || 0).toLocaleString()}</td>
+        <td class="amount text-right font-bold text-navy">Rs. ${Number(balance).toLocaleString()}</td>
         <td class="text-muted text-sm">${log.note || '-'}</td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
 
     const investmentRows = investments.map((inv, idx) => {
       const catLabel = CATEGORY_CONFIG[inv.category as keyof typeof CATEGORY_CONFIG]?.label || inv.category;
@@ -1752,7 +1756,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
                       <div key={log.id} className="p-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
                         <div>
                           <span className="font-bold text-slate-800">
-                            {log.type === 'add' ? `+Rs. ${log.amount.toLocaleString()}` : log.type === 'remove' ? `-Rs. ${log.amount.toLocaleString()}` : `Set to Rs. ${log.newBudget.toLocaleString()}`}
+                            {log.type === 'add' ? `+Rs. ${log.amount.toLocaleString()}` : log.type === 'remove' ? `-Rs. ${log.amount.toLocaleString()}` : `Set to Rs. ${(log.newBudget ?? log.budgetAfter ?? 0).toLocaleString()}`}
                           </span>
                           {log.note && <span className="text-slate-400 ml-1.5 italic">"{log.note}"</span>}
                         </div>

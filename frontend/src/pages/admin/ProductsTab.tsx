@@ -176,16 +176,6 @@ export const ProductsTab: React.FC = () => {
       'Article Tag', 'Product Name', 'Category', 'Price (Rs.)',
       'Cost Price (Rs.)', 'Stock Count', 'Available Sizes', 'Featured'
     ];
-    const rows = products.map(p => [
-      `"${p.articleTag || ''}",`,
-      `"${p.name || ''}",`,
-      `"${p.category || 'None'}",`,
-      p.price,
-      (p as any).costPrice ?? 0,
-      (p as any).stockCount ?? 0,
-      `"${((p as any).availableSizes || []).join(', ')}",`,
-      p.featured ? 'Yes' : 'No',
-    ]);
 
     const safeRows = products.map(p => [
       p.articleTag || '',

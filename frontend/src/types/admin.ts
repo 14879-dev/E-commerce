@@ -92,10 +92,12 @@ export interface StoreSettings {
 
 export interface SupplierBudgetLog {
   id: string;
-  type: 'add' | 'remove' | 'set';
+  type: 'add' | 'remove' | 'set' | 'sync-inventory';
+  action?: 'add' | 'remove' | 'set' | 'sync-inventory';
   amount: number;
-  previousBudget: number;
-  newBudget: number;
+  previousBudget?: number;
+  newBudget?: number;
+  budgetAfter?: number;
   note?: string;
   date: string;
   createdAt?: string;
