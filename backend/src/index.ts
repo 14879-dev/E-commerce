@@ -324,16 +324,16 @@ app.use('/api/orders', createRateLimiter(40, 60000));
 // ============================================================
 
 // Product Schema
-const ProductSchema = new Schema({
-  id: String,
+export const ProductSchema = new Schema({
+  id: { type: String, unique: true },
   articleTag: { type: String, default: '' },
+  name: { type: String, required: true },
   slug: { type: String, unique: true },
-  name: String,
   subtitle: String,
-  price: Number,
-  costPrice: { type: Number, default: 0 },
-  originalPrice: Number,
   category: { type: String, default: 'General' },
+  price: { type: Number, required: true },
+  originalPrice: Number,
+  costPrice: { type: Number, default: 0 },
   description: String,
   features: [String],
   materials: String,
@@ -350,7 +350,7 @@ const ProductSchema = new Schema({
 }, { timestamps: true });
 
 // Order Schema
-const OrderSchema = new Schema({
+export const OrderSchema = new Schema({
   id: String,
   orderNumber: String,
   date: String,
@@ -374,7 +374,7 @@ const OrderSchema = new Schema({
 }, { timestamps: true });
 
 // Review Schema
-const ReviewSchema = new Schema({
+export const ReviewSchema = new Schema({
   id: String,
   productId: { type: String, index: true },
   userName: String,
@@ -387,7 +387,7 @@ const ReviewSchema = new Schema({
 }, { timestamps: true });
 
 // Message Schema
-const MessageSchema = new Schema({
+export const MessageSchema = new Schema({
   id: String,
   name: String,
   email: String,
@@ -400,7 +400,7 @@ const MessageSchema = new Schema({
 }, { timestamps: true });
 
 // Category Schema
-const CategorySchema = new Schema({
+export const CategorySchema = new Schema({
   id: { type: String, unique: true },
   name: { type: String, required: true },
   slug: { type: String, unique: true },
@@ -409,46 +409,74 @@ const CategorySchema = new Schema({
   disabled: { type: Boolean, default: false },
 }, { timestamps: true });
 
-const ProductModel = model('Product', ProductSchema);
-const OrderModel = model('Order', OrderSchema);
-const ReviewModel = model('Review', ReviewSchema);
-const MessageModel = model('Message', MessageSchema);
-const CategoryModel = model('Category', CategorySchema);
+export const ProductModel = model('Product', ProductSchema);
+export const OrderModel = model('Order', OrderSchema);
+export const ReviewModel = model('Review', ReviewSchema);
+export const MessageModel = model('Message', MessageSchema);
+export const CategoryModel = model('Category', CategorySchema);
 
 let useMongoDb = false;
 
-// MongoDB connection + auto-seed
+// Synchronize all products and categories from local disk into MongoDB Atlas
+export async function syncMongoWithDisk() {
+  try {
+    const diskProducts = inMemoryProducts;
+    console.log(`📦 Synchronizing ${diskProducts.length} products into MongoDB Atlas...`);
+    for (const p of diskProducts) {
+      const sanitized = {
+        ...p,
+        availableSizes: Array.isArray(p.availableSizes)
+          ? p.availableSizes.map(Number).filter((s: number) => s >= 7 && s <= 13)
+          : [7, 8, 9, 10, 11, 12, 13],
+      };
+      await ProductModel.findOneAndUpdate(
+        { $or: [{ id: p.id }, { slug: p.slug }] },
+        { $set: sanitized },
+        { upsert: true, new: true }
+      );
+    }
+
+    for (const cat of inMemoryCategories) {
+      await CategoryModel.findOneAndUpdate(
+        { $or: [{ id: cat.id }, { slug: cat.slug }] },
+        { $set: cat },
+        { upsert: true, new: true }
+      );
+    }
+
+    const orderCount = await OrderModel.countDocuments();
+    if (orderCount === 0 && inMemoryOrders.length > 0) {
+      await OrderModel.insertMany(inMemoryOrders);
+    }
+
+    const allReviews = Object.values(inMemoryReviews).flat();
+    const reviewCount = await ReviewModel.countDocuments();
+    if (reviewCount === 0 && allReviews.length > 0) {
+      await ReviewModel.insertMany(allReviews);
+    }
+
+    const messageCount = await MessageModel.countDocuments();
+    if (messageCount === 0 && inMemoryMessages.length > 0) {
+      await MessageModel.insertMany(inMemoryMessages);
+    }
+
+    console.log(`✅ All ${diskProducts.length} products & catalog records successfully uploaded and synced to MongoDB Atlas!`);
+  } catch (syncErr: any) {
+    console.warn('⚠️ MongoDB synchronization warning:', syncErr.message);
+  }
+}
+
+// MongoDB connection + auto-sync
 async function connectMongo() {
   if (!MONGO_URI) return;
   try {
     await mongoose.connect(MONGO_URI);
     console.log('✅ Connected to MongoDB');
     useMongoDb = true;
-    await seedIfEmpty();
+    await syncMongoWithDisk();
   } catch (err: any) {
     console.warn('⚠️  MongoDB not available, using in-memory store:', err.message);
     useMongoDb = false;
-  }
-}
-
-async function seedIfEmpty() {
-  const count = await ProductModel.countDocuments();
-  if (count === 0) {
-    console.log('📦 Seeding MongoDB with initial data...');
-    await ProductModel.insertMany(inMemoryProducts);
-    await OrderModel.insertMany(inMemoryOrders);
-    // Flatten reviews
-    const allReviews = Object.values(inMemoryReviews).flat();
-    if (allReviews.length > 0) await ReviewModel.insertMany(allReviews);
-    await MessageModel.insertMany(inMemoryMessages);
-    await CategoryModel.insertMany(inMemoryCategories);
-    console.log('✅ MongoDB seeded successfully');
-  } else {
-    const catCount = await CategoryModel.countDocuments();
-    if (catCount === 0) {
-      await CategoryModel.insertMany(inMemoryCategories);
-      console.log('✅ Categories seeded in MongoDB');
-    }
   }
 }
 
@@ -871,6 +899,45 @@ app.post('/api/admin/supplier-budget', authenticateAdmin, (req: Request, res: Re
     log: logEntry,
     logs: inMemorySettings.supplierBudgetLogs,
   });
+});
+
+// ============================================================
+// MANUAL / ON-DEMAND DATABASE SYNC
+// ============================================================
+app.post('/api/admin/sync-database', authenticateAdmin, async (_req: Request, res: Response): Promise<void> => {
+  if (!useMongoDb) {
+    // Try connecting if MongoDB wasn't connected earlier
+    if (MONGO_URI) {
+      try {
+        if (mongoose.connection.readyState !== 1) {
+          await mongoose.connect(MONGO_URI);
+        }
+        useMongoDb = true;
+      } catch (err: any) {
+        res.status(500).json({
+          success: false,
+          error: `Could not connect to MongoDB Atlas: ${err.message}`,
+          tip: 'Check your MongoDB Atlas IP Whitelist (add 0.0.0.0/0).',
+        });
+        return;
+      }
+    } else {
+      res.status(400).json({ success: false, error: 'MONGO_URI is not configured in .env' });
+      return;
+    }
+  }
+
+  try {
+    await syncMongoWithDisk();
+    res.json({
+      success: true,
+      message: `Successfully synced ${inMemoryProducts.length} products, categories, orders, and settings to MongoDB Atlas!`,
+      productsCount: inMemoryProducts.length,
+      categoriesCount: inMemoryCategories.length,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // ============================================================
