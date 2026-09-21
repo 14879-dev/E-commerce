@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, Star, ShoppingBag, Zap, Check } from 'lucide-react';
+import { Heart, Star, ShoppingBag, Check } from 'lucide-react';
 import type { Product, LeatherColor } from '../../types';
 import { useWishlist } from '../../context/WishlistContext';
 import { useCart } from '../../context/CartContext';
@@ -55,11 +55,10 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
             e.stopPropagation();
             toggleWishlist(product);
           }}
-          className={`absolute top-2 right-2 z-20 p-2 sm:p-2.5 rounded-full backdrop-blur-md transition-all duration-200 cursor-pointer ${
-            isWishlisted
+          className={`absolute top-2 right-2 z-20 p-2 sm:p-2.5 rounded-full backdrop-blur-md transition-all duration-200 cursor-pointer ${isWishlisted
               ? 'bg-blue-600 text-white shadow-md'
               : 'bg-white/80 hover:bg-white text-slate-700 border border-slate-200 shadow-xs'
-          }`}
+            }`}
           title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
         >
           <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isWishlisted ? 'fill-current' : ''}`} />
@@ -133,11 +132,10 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
             <button
               type="button"
               onClick={handleAddToCart}
-              className={`py-1.5 px-2 rounded-lg text-[10px] sm:text-xs font-bold transition-all text-center cursor-pointer flex items-center justify-center gap-1 border active:scale-95 ${
-                justAdded
+              className={`py-1.5 px-2 rounded-lg text-[10px] sm:text-xs font-bold transition-all text-center cursor-pointer flex items-center justify-center gap-1 border active:scale-95 ${justAdded
                   ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
                   : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
-              }`}
+                }`}
               title="Add to shopping bag"
             >
               {justAdded ? (
@@ -158,7 +156,6 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
               className="py-1.5 px-2 rounded-lg text-[10px] sm:text-xs font-bold bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white transition-all text-center cursor-pointer shadow-xs flex items-center justify-center gap-1 active:scale-95"
               title="Buy now with instant checkout"
             >
-              <Zap className="w-3 h-3 text-amber-300 fill-amber-300" />
               <span>Buy Now</span>
             </button>
           </div>

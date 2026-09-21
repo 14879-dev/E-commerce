@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Heart, ShoppingBag, Ruler, Star, CheckCircle, Zap } from 'lucide-react';
+import { Heart, ShoppingBag, Ruler, Star, CheckCircle } from 'lucide-react';
 import { ProductReviews } from '../components/product/ProductReviews';
 import { ProductCard } from '../components/product/ProductCard';
 import { SEOHelmet } from '../components/common/SEOHelmet';
@@ -302,7 +302,6 @@ export const ProductDetailPage: React.FC = () => {
                 className="flex-1 py-3 sm:py-3.5 px-3 sm:px-4 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                 title="Buy now and proceed directly to checkout"
               >
-                <Zap className="w-4 h-4 text-amber-300 fill-amber-300" />
                 <span>Buy Now</span>
               </button>
 
