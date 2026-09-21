@@ -13,7 +13,14 @@ dotenv.config();
 // --- In-Memory Data Store (fallback when no MongoDB) ---
 import { inMemoryProducts, inMemoryOrders, inMemoryReviews, inMemoryMessages, inMemoryCategories } from './data/seed';
 
-const DATA_DIR = path.join(__dirname, 'data');
+// Determine canonical data directory (supports both ts-node in dev and dist in production)
+const SRC_DATA_DIR = path.join(process.cwd(), 'src', 'data');
+const DIST_DATA_DIR = path.join(process.cwd(), 'dist', 'data');
+const DATA_DIR = fs.existsSync(SRC_DATA_DIR) ? SRC_DATA_DIR : path.join(__dirname, 'data');
+
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+if (!fs.existsSync(DIST_DATA_DIR)) fs.mkdirSync(DIST_DATA_DIR, { recursive: true });
+
 const CATEGORIES_FILE = path.join(DATA_DIR, 'categories.json');
 const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
 const CUSTOMERS_FILE = path.join(DATA_DIR, 'customers.json');
@@ -71,23 +78,27 @@ export const inMemorySettings: any = {
   hideCategories: true,
 };
 
+function writeBothDirs(filename: string, content: string) {
+  const p1 = path.join(DATA_DIR, filename);
+  const p2 = path.join(DIST_DATA_DIR, filename);
+  const p3 = path.join(SRC_DATA_DIR, filename);
+  try { fs.writeFileSync(p1, content, 'utf-8'); } catch (_) {}
+  try { if (p2 !== p1) fs.writeFileSync(p2, content, 'utf-8'); } catch (_) {}
+  try { if (p3 !== p1 && fs.existsSync(SRC_DATA_DIR)) fs.writeFileSync(p3, content, 'utf-8'); } catch (_) {}
+}
+
 // Helper to save store settings to disk
 export function saveSettingsToDisk() {
-  try {
-    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(inMemorySettings, null, 2), 'utf-8');
-    const srcDataDir = path.join(__dirname, '../src/data');
-    if (fs.existsSync(srcDataDir)) {
-      fs.writeFileSync(path.join(srcDataDir, 'settings.json'), JSON.stringify(inMemorySettings, null, 2), 'utf-8');
-    }
-  } catch (e) {
-    console.error('Failed to save settings to disk:', e);
-  }
+  writeBothDirs('settings.json', JSON.stringify(inMemorySettings, null, 2));
 }
 
 // Load store settings on startup
 try {
-  if (fs.existsSync(SETTINGS_FILE)) {
-    const raw = fs.readFileSync(SETTINGS_FILE, 'utf-8');
+  const loadPath = fs.existsSync(path.join(SRC_DATA_DIR, 'settings.json'))
+    ? path.join(SRC_DATA_DIR, 'settings.json')
+    : SETTINGS_FILE;
+  if (fs.existsSync(loadPath)) {
+    const raw = fs.readFileSync(loadPath, 'utf-8');
     const parsed = JSON.parse(raw);
     Object.assign(inMemorySettings, parsed);
     console.log('📁 Loaded store settings from disk');
@@ -100,57 +111,36 @@ try {
 
 // Helper to save categories to disk
 export function saveCategoriesToDisk() {
-  try {
-    fs.writeFileSync(CATEGORIES_FILE, JSON.stringify(inMemoryCategories, null, 2), 'utf-8');
-  } catch (e) {
-    console.error('Failed to save categories to disk:', e);
-  }
+  writeBothDirs('categories.json', JSON.stringify(inMemoryCategories, null, 2));
 }
 
 // Helper to save products to disk
 export function saveProductsToDisk() {
-  try {
-    fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(inMemoryProducts, null, 2), 'utf-8');
-  } catch (e) {
-    console.error('Failed to save products to disk:', e);
-  }
+  writeBothDirs('products.json', JSON.stringify(inMemoryProducts, null, 2));
 }
 
 // Helper to save customers to disk
 export function saveCustomersToDisk() {
-  try {
-    fs.writeFileSync(CUSTOMERS_FILE, JSON.stringify(inMemoryCustomers, null, 2), 'utf-8');
-  } catch (e) {
-    console.error('Failed to save customers to disk:', e);
-  }
+  writeBothDirs('customers.json', JSON.stringify(inMemoryCustomers, null, 2));
 }
 
 // Helper to save admin accounts to disk
 export function saveAdminsToDisk() {
-  try {
-    fs.writeFileSync(ADMINS_FILE, JSON.stringify(inMemoryAdmins, null, 2), 'utf-8');
-  } catch (e) {
-    console.error('Failed to save admins to disk:', e);
-  }
+  writeBothDirs('admins.json', JSON.stringify(inMemoryAdmins, null, 2));
 }
 
 // Helper to save operational & packaging investments to disk
 export function saveInvestmentsToDisk() {
-  try {
-    fs.writeFileSync(INVESTMENTS_FILE, JSON.stringify(inMemoryInvestments, null, 2), 'utf-8');
-    const srcDataDir = path.join(__dirname, '../src/data');
-    if (fs.existsSync(srcDataDir)) {
-      fs.writeFileSync(path.join(srcDataDir, 'investments.json'), JSON.stringify(inMemoryInvestments, null, 2), 'utf-8');
-    }
-  } catch (e) {
-    console.error('Failed to save investments to disk:', e);
-  }
+  writeBothDirs('investments.json', JSON.stringify(inMemoryInvestments, null, 2));
 }
 
 // Load saved categories from disk on startup if available
 try {
-  if (fs.existsSync(CATEGORIES_FILE)) {
-    const raw = fs.readFileSync(CATEGORIES_FILE, 'utf-8');
+  const loadPath = fs.existsSync(path.join(SRC_DATA_DIR, 'categories.json'))
+    ? path.join(SRC_DATA_DIR, 'categories.json')
+    : CATEGORIES_FILE;
+  if (fs.existsSync(loadPath)) {
+    const raw = fs.readFileSync(loadPath, 'utf-8');
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
       inMemoryCategories.length = 0;
@@ -164,10 +154,21 @@ try {
   console.warn('Could not read categories.json:', e);
 }
 
-// Load saved products from disk on startup if available
+// Load saved products from disk on startup if available (check src/data first)
 try {
-  if (fs.existsSync(PRODUCTS_FILE)) {
-    const raw = fs.readFileSync(PRODUCTS_FILE, 'utf-8');
+  let raw = '';
+  const srcProductsPath = path.join(SRC_DATA_DIR, 'products.json');
+  const distProductsPath = path.join(DIST_DATA_DIR, 'products.json');
+
+  if (fs.existsSync(srcProductsPath)) {
+    raw = fs.readFileSync(srcProductsPath, 'utf-8');
+  } else if (fs.existsSync(distProductsPath)) {
+    raw = fs.readFileSync(distProductsPath, 'utf-8');
+  } else if (fs.existsSync(PRODUCTS_FILE)) {
+    raw = fs.readFileSync(PRODUCTS_FILE, 'utf-8');
+  }
+
+  if (raw) {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
       inMemoryProducts.length = 0;
@@ -179,6 +180,7 @@ try {
       }));
       inMemoryProducts.push(...sanitized);
       console.log(`📁 Loaded ${sanitized.length} products from disk`);
+      saveProductsToDisk(); // Ensure mirrored to both dist & src
     }
   } else {
     saveProductsToDisk();
@@ -947,12 +949,17 @@ app.get('/api/products', async (req: Request, res: Response) => {
   const showAll = req.query.all === 'true';
   const isAdmin = checkIsAdmin(req) || showAll;
   if (useMongoDb) {
-    const allProducts = await ProductModel.find().lean();
-    let result = allProducts;
+    let allProducts = await ProductModel.find().lean();
+    if (allProducts.length < inMemoryProducts.length) {
+      console.log(`[Products] MongoDB Atlas has ${allProducts.length} items while local catalog has ${inMemoryProducts.length}. Auto-syncing...`);
+      await syncMongoWithDisk();
+      allProducts = await ProductModel.find().lean();
+    }
+    let result = allProducts.length > 0 ? allProducts : inMemoryProducts;
     if (!showAll) {
       const disabledCats = await CategoryModel.find({ disabled: true }).lean();
       const disabledNames = new Set(disabledCats.map(c => (c.name || '').toLowerCase()));
-      result = allProducts.filter(p => !disabledNames.has((p.category || '').toLowerCase()));
+      result = result.filter(p => !disabledNames.has((p.category || '').toLowerCase()));
     }
     res.json(result.map(p => sanitizeProduct(p, isAdmin)));
   } else {
@@ -970,7 +977,17 @@ app.get('/api/products', async (req: Request, res: Response) => {
 app.get('/api/products/:slug', async (req: Request, res: Response): Promise<void> => {
   const isAdmin = checkIsAdmin(req) || req.query.all === 'true' || req.query.admin === 'true';
   if (useMongoDb) {
-    const product = await ProductModel.findOne({ $or: [{ slug: req.params.slug }, { id: req.params.slug }] }).lean();
+    let product = await ProductModel.findOne({ $or: [{ slug: req.params.slug }, { id: req.params.slug }] }).lean();
+    if (!product) {
+      product = inMemoryProducts.find(p => p.slug === req.params.slug || p.id === req.params.slug);
+      if (product) {
+        ProductModel.findOneAndUpdate(
+          { $or: [{ id: product.id }, { slug: product.slug }] },
+          { $set: product },
+          { upsert: true }
+        ).catch(() => {});
+      }
+    }
     if (!product) { res.status(404).json({ error: 'Product not found' }); return; }
     res.json(sanitizeProduct(product, isAdmin));
   } else {

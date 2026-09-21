@@ -1,18 +1,48 @@
-import mongoose, { model } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
-import { ProductSchema, CategorySchema, OrderSchema, ReviewSchema, MessageSchema } from '../index';
 
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const MONGO_URI = process.env.MONGO_URI || '';
 
-const ProductModel = model('Product', ProductSchema);
-const CategoryModel = model('Category', CategorySchema);
-const OrderModel = model('Order', OrderSchema);
-const ReviewModel = model('Review', ReviewSchema);
-const MessageModel = model('Message', MessageSchema);
+const ProductSchema = new Schema({
+  id: { type: String, unique: true },
+  articleTag: { type: String, default: '' },
+  name: { type: String, required: true },
+  slug: { type: String, unique: true },
+  subtitle: String,
+  category: { type: String, default: 'General' },
+  price: { type: Number, required: true },
+  originalPrice: Number,
+  costPrice: { type: Number, default: 0 },
+  description: String,
+  features: [String],
+  materials: String,
+  craftingTime: String,
+  images: Schema.Types.Mixed,
+  availableSizes: [Number],
+  availableColors: [String],
+  averageRating: { type: Number, default: 0 },
+  reviewCount: { type: Number, default: 0 },
+  featured: { type: Boolean, default: false },
+  freeShipping: { type: Boolean, default: false },
+  inStock: { type: Boolean, default: true },
+  stockCount: { type: Number, default: 100 },
+}, { timestamps: true });
+
+const CategorySchema = new Schema({
+  id: { type: String, unique: true },
+  name: { type: String, required: true },
+  slug: { type: String, unique: true },
+  description: { type: String, default: '' },
+  image: { type: String, default: '' },
+  disabled: { type: Boolean, default: false },
+}, { timestamps: true });
+
+const ProductModel = mongoose.models.Product || model('Product', ProductSchema);
+const CategoryModel = mongoose.models.Category || model('Category', CategorySchema);
 
 async function runSync() {
   if (!MONGO_URI) {
@@ -26,11 +56,14 @@ async function runSync() {
     console.log('✅ Connected to MongoDB Atlas successfully');
 
     // 1. Sync Products
-    const productsPath = path.join(__dirname, '../data/products.json');
+    const productsPath = fs.existsSync(path.join(__dirname, '../data/products.json'))
+      ? path.join(__dirname, '../data/products.json')
+      : path.join(process.cwd(), 'src/data/products.json');
+
     if (fs.existsSync(productsPath)) {
       const raw = fs.readFileSync(productsPath, 'utf-8');
       const products: any[] = JSON.parse(raw);
-      console.log(`📦 Found ${products.length} products on disk. Uploading/Upserting to MongoDB...`);
+      console.log(`📦 Found ${products.length} products on disk. Uploading/Upserting to MongoDB Atlas...`);
 
       let upsertedCount = 0;
       for (const p of products) {
@@ -51,7 +84,10 @@ async function runSync() {
     }
 
     // 2. Sync Categories
-    const categoriesPath = path.join(__dirname, '../data/categories.json');
+    const categoriesPath = fs.existsSync(path.join(__dirname, '../data/categories.json'))
+      ? path.join(__dirname, '../data/categories.json')
+      : path.join(process.cwd(), 'src/data/categories.json');
+
     if (fs.existsSync(categoriesPath)) {
       const raw = fs.readFileSync(categoriesPath, 'utf-8');
       const categories: any[] = JSON.parse(raw);

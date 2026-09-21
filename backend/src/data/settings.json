@@ -1,7 +1,7 @@
 {
   "storeName": "Peshawari Chappal Co.",
-  "logoUrl": "/uploads/asset_1789923386314.png",
-  "faviconUrl": "/uploads/asset_1789923390141.png",
+  "logoUrl": "/uploads/asset_1789748159642.png",
+  "faviconUrl": "/uploads/asset_1789748164855.png",
   "heroMediaUrl": "/uploads/hero.webp",
   "heroMediaType": "image",
   "socialLinks": {
@@ -25,58 +25,51 @@
   "lowStockThreshold": 5,
   "sizeChartMap": [
     {
-      "size": 7,
-      "uk": 7,
+      "eu": 39,
+      "uk": 5,
+      "mm": 245,
+      "widthNote": "Narrow bridge fit"
+    },
+    {
+      "eu": 40,
+      "uk": 6,
+      "mm": 252,
+      "widthNote": "Regular slim fit"
+    },
+    {
       "eu": 41,
-      "mm": 250,
-      "widthNote": "Narrow / slim bridge fit"
-    },
-    {
-      "size": 8,
-      "uk": 8,
-      "eu": 42,
+      "uk": 7,
       "mm": 260,
-      "widthNote": "Standard regular fit"
+      "widthNote": "Standard fit"
     },
     {
-      "size": 9,
-      "uk": 9,
+      "eu": 42,
+      "uk": 8,
+      "mm": 268,
+      "widthNote": "Standard regular bridge"
+    },
+    {
       "eu": 43,
-      "mm": 270,
-      "widthNote": "Standard fit (Most Popular)"
-    },
-    {
-      "size": 10,
-      "uk": 10,
-      "eu": 44,
-      "mm": 280,
-      "widthNote": "Comfort regular bridge"
-    },
-    {
-      "size": 11,
-      "uk": 11,
-      "eu": 45,
-      "mm": 290,
+      "uk": 9,
+      "mm": 275,
       "widthNote": "Wide bridge"
     },
     {
-      "size": 12,
-      "uk": 12,
-      "eu": 46,
-      "mm": 300,
-      "widthNote": "Extra wide comfort fit"
+      "eu": 44,
+      "uk": 10,
+      "mm": 283,
+      "widthNote": "Extra wide fit"
     },
     {
-      "size": 13,
-      "uk": 13,
-      "eu": 47,
-      "mm": 310,
+      "eu": 45,
+      "uk": 11,
+      "mm": 290,
       "widthNote": "Maximum comfort width"
     }
   ],
   "hideCategories": true,
   "success": true,
-  "supplierProductBudget": 167500,
+  "supplierProductBudget": 15000,
   "supplierBudgetLogs": [
     {
       "id": "sbl-inventory-15000",
