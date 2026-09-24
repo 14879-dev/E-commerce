@@ -7,7 +7,7 @@ OUTPUT_DIR = os.path.join(os.getcwd(), 'docs_assets')
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # -------------------------------------------------------------
-# 1. System Architecture Diagram
+# 1. System Architecture Diagram (NO 3D, NO GEMINI)
 # -------------------------------------------------------------
 def generate_architecture_diagram():
     fig, ax = plt.subplots(figsize=(12, 7.5), dpi=300)
@@ -16,7 +16,7 @@ def generate_architecture_diagram():
     ax.axis('off')
     fig.patch.set_facecolor('#FFFFFF')
 
-    ax.text(50, 96, "Figure 1: High-Level Multi-Tier System Architecture", 
+    ax.text(50, 96, "Figure B-1: High-Level Multi-Tier System Architecture", 
             fontsize=13, fontweight='bold', fontfamily='Times New Roman', ha='center', color='#1A202C')
 
     # Tier 1: Client Tier
@@ -26,11 +26,10 @@ def generate_architecture_diagram():
             fontsize=10, fontweight='bold', fontfamily='Times New Roman', color='#2B6CB0')
 
     c1 = [
-        ("Customer Storefront\n(Hero, Catalog, Search)", (6, 70), 16),
-        ("3D Real-Time Customizer\n(Three.js + Mesh Extrusion)", (24, 70), 18),
-        ("AI Foot Size Finder\n(A4 Reference Camera/Upload)", (44, 70), 18),
-        ("AI Outfit Matcher\n(Color Contrast Engine)", (64, 70), 15),
-        ("Executive Admin Portal\n(KPIs, Logistics, Capital)", (81, 70), 14),
+        ("Customer Storefront\n(Hero, Catalog, Search)", (6, 70), 20),
+        ("AI Foot Size Finder\n(A4 Reference Camera/Upload)", (29, 70), 22),
+        ("AI Outfit Matcher\n(Color Contrast Engine)", (54, 70), 20),
+        ("Executive Admin Portal\n(KPIs, Logistics, Capital)", (77, 70), 18),
     ]
     for name, (x, y), w in c1:
         box = FancyBboxPatch((x, y), w, 15, boxstyle="round,pad=0.5", ec="#3182CE", fc="#FFFFFF", lw=1)
@@ -59,13 +58,13 @@ def generate_architecture_diagram():
     # Tier 3: AI Multimodal Tier
     t3 = FancyBboxPatch((62, 37), 34, 25, boxstyle="round,pad=1", ec="#805AD5", fc="#FAF5FF", lw=1.5)
     ax.add_patch(t3)
-    ax.text(64, 59, "AI MULTIMODAL TIER", 
+    ax.text(64, 59, "AI MULTIMODAL INFERENCE TIER", 
             fontsize=10, fontweight='bold', fontfamily='Times New Roman', color='#805AD5')
 
     c3 = [
-        ("Tier 1: Gemini 3.6 Flash Vision", (64, 50), 30),
-        ("Tier 2: Experiential Labs AI Gateway", (64, 44), 30),
-        ("Tier 3: Heuristic Catalog Engine", (64, 38), 30),
+        ("Primary Multimodal Vision AI", (64, 50), 30),
+        ("Secondary AI Gateway Service", (64, 44), 30),
+        ("Catalog Heuristic Intelligence", (64, 38), 30),
     ]
     for name, (x, y), w in c3:
         box = FancyBboxPatch((x, y), w, 4.8, boxstyle="round,pad=0.3", ec="#9F7AEA", fc="#FFFFFF", lw=1)
@@ -77,13 +76,13 @@ def generate_architecture_diagram():
     # Tier 4: Data Storage Tier
     t4 = FancyBboxPatch((4, 6), 92, 24, boxstyle="round,pad=1", ec="#C05621", fc="#FFFAF0", lw=1.5)
     ax.add_patch(t4)
-    ax.text(6, 26.5, "DATA PERSISTENCE & CLUSTER TIER (Dual-Tier Storage Architecture)", 
+    ax.text(6, 26.5, "DATA PERSISTENCE TIER (Dual-Tier Storage Architecture)", 
             fontsize=10, fontweight='bold', fontfamily='Times New Roman', color='#C05621')
 
     c4 = [
         ("MongoDB Atlas Cloud Cluster\n(Mongoose ODM Schemas)", (6, 9), 26),
         ("Local Master JSON Storage\n(products.json, settings.json)", (35, 9), 28),
-        ("File & Media Storage\n(Multer /uploads/ Hero & Brand)", (66, 9), 28),
+        ("Static Media Storage\n(Local /uploads/ Directory)", (66, 9), 28),
     ]
     for name, (x, y), w in c4:
         box = FancyBboxPatch((x, y), w, 15, boxstyle="round,pad=0.5", ec="#DD6B20", fc="#FFFFFF", lw=1)
@@ -91,7 +90,7 @@ def generate_architecture_diagram():
         ax.text(x + w/2, y + 7.5, name, fontsize=8, fontfamily='Times New Roman', ha='center', va='center', color='#2D3748')
 
     ax.annotate('', xy=(31, 31), xytext=(31, 37), arrowprops=dict(arrowstyle="<->", color="#DD6B20", lw=1.5))
-    ax.text(33, 34, "Mongoose ODM / Atomic File Sync", fontsize=7.5, fontfamily='Times New Roman', color="#DD6B20")
+    ax.text(33, 34, "Mongoose ODM / Atomic Disk Sync", fontsize=7.5, fontfamily='Times New Roman', color="#DD6B20")
 
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_DIR, 'arch_diagram.png'), dpi=300)
@@ -106,7 +105,7 @@ def generate_dfd_level0():
     ax.set_ylim(0, 100)
     ax.axis('off')
 
-    ax.text(50, 96, "Figure 2: Data Flow Diagram (DFD) Level 0 — Context Diagram", 
+    ax.text(50, 96, "Figure B-2: Data Flow Diagram (DFD) Level 0 — Context Diagram", 
             fontsize=13, fontweight='bold', fontfamily='Times New Roman', ha='center', color='#1A202C')
 
     cp = Circle((50, 50), 16, ec="#1A365D", fc="#EDF2F7", lw=2)
@@ -117,9 +116,9 @@ def generate_dfd_level0():
     entities = [
         ("CUSTOMER", (6, 55), 18, 14),
         ("SUPER ADMIN /\nMANAGER", (6, 20), 18, 14),
-        ("MULTIMODAL AI\nGATEWAY (Gemini)", (76, 68), 18, 14),
-        ("COURIER LOGISTICS\nSERVICE (TCS/Leopards)", (76, 38), 18, 14),
-        ("PAYMENT GATEWAY\n(JazzCash/EasyPaisa)", (76, 8), 18, 14),
+        ("MULTIMODAL AI\nVISION SERVICE", (76, 68), 18, 14),
+        ("COURIER LOGISTICS\nSERVICE", (76, 38), 18, 14),
+        ("PAYMENT GATEWAY", (76, 8), 18, 14),
     ]
 
     for label, (x, y), w, h in entities:
@@ -129,7 +128,7 @@ def generate_dfd_level0():
 
     # Data Flows
     ax.annotate('', xy=(34, 56), xytext=(24, 62), arrowprops=dict(arrowstyle="->", color="#2B6CB0", lw=1.2))
-    ax.text(26, 64, "Foot Image, Custom 3D Specs, Order", fontsize=7.5, fontfamily='Times New Roman', color='#2B6CB0')
+    ax.text(26, 64, "Foot Image, Size Selection (7-13), Order", fontsize=7.5, fontfamily='Times New Roman', color='#2B6CB0')
 
     ax.annotate('', xy=(24, 57), xytext=(34, 51), arrowprops=dict(arrowstyle="->", color="#2B6CB0", lw=1.2))
     ax.text(26, 47, "Calculated Size, Invoice, Order Tracking", fontsize=7.5, fontfamily='Times New Roman', color='#2B6CB0')
@@ -156,7 +155,7 @@ def generate_dfd_level0():
     ax.text(68, 25, "Transaction Token", fontsize=7.5, fontfamily='Times New Roman', color='#319795')
 
     ax.annotate('', xy=(59, 36), xytext=(76, 14), arrowprops=dict(arrowstyle="->", color="#319795", lw=1.2))
-    ax.text(69, 13, "Payment Settlement Verification", fontsize=7.5, fontfamily='Times New Roman', color='#319795')
+    ax.text(69, 13, "Payment Verification", fontsize=7.5, fontfamily='Times New Roman', color='#319795')
 
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_DIR, 'dfd_level0.png'), dpi=300)
@@ -171,12 +170,12 @@ def generate_dfd_level1():
     ax.set_ylim(0, 100)
     ax.axis('off')
 
-    ax.text(50, 96, "Figure 3: Data Flow Diagram (DFD) Level 1 — Core Process Decomposition", 
+    ax.text(50, 96, "Figure B-3: Data Flow Diagram (DFD) Level 1 — Core Process Decomposition", 
             fontsize=13, fontweight='bold', fontfamily='Times New Roman', ha='center', color='#1A202C')
 
     processes = [
         ("1.0", "Identity & Role-Based\nAccess Control", (8, 68), 22, 14),
-        ("2.0", "Catalog & 3D Interactive\nCustomization", (38, 68), 24, 14),
+        ("2.0", "Catalog & Sizing\nManagement (7-13)", (38, 68), 24, 14),
         ("3.0", "AI Multimodal Sizing\n& Outfit Analysis", (70, 68), 24, 14),
         ("4.0", "Cart, Checkout &\nOrder Fulfillment", (20, 36), 26, 14),
         ("5.0", "Procurement Capital &\nFinancial Ledger", (60, 36), 26, 14),
@@ -212,7 +211,7 @@ def generate_dfd_level1():
 
     e3 = Rectangle((76, 88), 18, 6, ec="#2D3748", fc="#F7FAFC", lw=1.2)
     ax.add_patch(e3)
-    ax.text(85, 91, "Gemini Vision AI", fontsize=8, fontweight='bold', fontfamily='Times New Roman', ha='center', va='center')
+    ax.text(85, 91, "Cloud AI Service", fontsize=8, fontweight='bold', fontfamily='Times New Roman', ha='center', va='center')
 
     ax.annotate('', xy=(12, 82), xytext=(12, 88), arrowprops=dict(arrowstyle="->", color="#2B6CB0", lw=1))
     ax.annotate('', xy=(46, 82), xytext=(46, 88), arrowprops=dict(arrowstyle="->", color="#2B6CB0", lw=1))
@@ -242,7 +241,7 @@ def generate_dfd_level2_ai():
     ax.set_ylim(0, 100)
     ax.axis('off')
 
-    ax.text(50, 96, "Figure 4: Data Flow Diagram (DFD) Level 2 — AI Foot Sizing Subsystem", 
+    ax.text(50, 96, "Figure B-4: Data Flow Diagram (DFD) Level 2 — AI Foot Sizing Subsystem", 
             fontsize=13, fontweight='bold', fontfamily='Times New Roman', ha='center', color='#1A202C')
 
     subprocesses = [
@@ -259,19 +258,16 @@ def generate_dfd_level2_ai():
         ax.text(x + 3, y + h - 2.5, num, fontsize=8, fontweight='bold', fontfamily='Times New Roman', color='#805AD5')
         ax.text(x + w/2, y + (h-4)/2, name, fontsize=8, fontweight='bold', fontfamily='Times New Roman', ha='center', va='center', color='#1A202C')
 
-    # Data Store: D4 Size Map
     ax.plot([70, 70, 94], [32, 22, 22], color="#4A5568", lw=1.5)
     ax.plot([70, 94], [32, 32], color="#4A5568", lw=1.5)
     ax.plot([76, 76], [22, 32], color="#4A5568", lw=1)
     ax.text(73, 27, "D4", fontsize=8, fontweight='bold', fontfamily='Times New Roman', ha='center', va='center', color='#4A5568')
     ax.text(85, 27, "Size Chart Rules\n(245mm - 305mm)", fontsize=7.5, fontfamily='Times New Roman', ha='center', va='center', color='#1A202C')
 
-    # External Entity: Customer Camera / Upload
     e = Rectangle((8, 24), 22, 12, ec="#2D3748", fc="#F7FAFC", lw=1.2)
     ax.add_patch(e)
     ax.text(19, 30, "Customer Camera /\nImage Upload", fontsize=8, fontweight='bold', fontfamily='Times New Roman', ha='center', va='center')
 
-    # Connectors
     ax.annotate('', xy=(19, 60), xytext=(19, 36), arrowprops=dict(arrowstyle="->", color="#805AD5", lw=1.2))
     ax.text(20, 48, "Raw Foot RGB Image", fontsize=7.5, fontfamily='Times New Roman')
 
@@ -291,7 +287,7 @@ def generate_dfd_level2_ai():
     plt.close()
 
 # -------------------------------------------------------------
-# 5. Use Case Diagram
+# 5. Use Case Diagram (NO 3D)
 # -------------------------------------------------------------
 def generate_usecase_diagram():
     fig, ax = plt.subplots(figsize=(12, 8.5), dpi=300)
@@ -299,7 +295,7 @@ def generate_usecase_diagram():
     ax.set_ylim(0, 100)
     ax.axis('off')
 
-    ax.text(50, 96, "Figure 5: Complete UML Use Case Diagram", 
+    ax.text(50, 96, "Figure B-5: Complete UML Use Case Diagram", 
             fontsize=13, fontweight='bold', fontfamily='Times New Roman', ha='center', color='#1A202C')
 
     # System Boundary Box
@@ -315,7 +311,7 @@ def generate_usecase_diagram():
     # Use Cases (Ovals)
     usecases = [
         ("UC-01: Browse Catalog & Filter Sizes (7-13)", (51, 82), 38, 6),
-        ("UC-02: 3D Real-Time Mesh Customization", (51, 74), 38, 6),
+        ("UC-02: Search & Filter by Artisan Category", (51, 74), 38, 6),
         ("UC-03: AI Multimodal Foot Sizing (A4 Calibration)", (51, 66), 42, 6),
         ("UC-04: Virtual Outfit Color Matcher", (51, 58), 38, 6),
         ("UC-05: Place Order via COD / Online Wallet", (51, 50), 38, 6),
@@ -355,7 +351,7 @@ def generate_erd_diagram():
     ax.set_ylim(0, 100)
     ax.axis('off')
 
-    ax.text(50, 96, "Figure 6: Entity-Relationship Diagram (ERD) with Field Constraints", 
+    ax.text(50, 96, "Figure B-6: Entity-Relationship Diagram (ERD) with Field Constraints", 
             fontsize=13, fontweight='bold', fontfamily='Times New Roman', ha='center', color='#1A202C')
 
     def draw_entity(name, fields, x, y, w, h):
@@ -446,7 +442,7 @@ def generate_erd_diagram():
     plt.close()
 
 # -------------------------------------------------------------
-# 7. Sequence Diagram: AI Product Auto-Fill
+# 7. Sequence Diagram: AI Product Auto-Fill (NO GEMINI)
 # -------------------------------------------------------------
 def generate_seq_diagram_ai():
     fig, ax = plt.subplots(figsize=(12, 7.5), dpi=300)
@@ -454,15 +450,15 @@ def generate_seq_diagram_ai():
     ax.set_ylim(0, 100)
     ax.axis('off')
 
-    ax.text(50, 96, "Figure 7: UML Sequence Diagram — Multimodal AI Product Auto-Fill Cascade", 
+    ax.text(50, 96, "Figure B-7: UML Sequence Diagram — Multimodal AI Product Auto-Fill Cascade", 
             fontsize=13, fontweight='bold', fontfamily='Times New Roman', ha='center', color='#1A202C')
 
     lifelines = [
         ("Super Admin", 10),
         ("React Admin Tab", 30),
         ("Express Gateway", 50),
-        ("Gemini 3.6 API", 70),
-        ("Experiential Labs", 88),
+        ("Primary AI Model", 70),
+        ("Secondary AI Gateway", 88),
     ]
 
     for name, x in lifelines:
@@ -474,9 +470,9 @@ def generate_seq_diagram_ai():
     steps = [
         ("1. Upload Product Image & Click 'Auto-Fill'", 10, 30, 80, "->"),
         ("2. POST /api/admin/ai-analyze-product (image base64)", 30, 50, 74, "->"),
-        ("3. Call gemini-3.6-flash:generateContent", 50, 70, 68, "->"),
+        ("3. Call Primary Multimodal Vision Model", 50, 70, 68, "->"),
         ("4. [If Rate Limit 429] Failover Notice", 70, 50, 60, "-->"),
-        ("5. Forward to Backup Gateway (xpl_ key)", 50, 88, 52, "->"),
+        ("5. Forward to Secondary AI Gateway", 50, 88, 52, "->"),
         ("6. Return Structured JSON (Title, Leather Tone, Specs)", 88, 50, 44, "-->"),
         ("7. Strip Price Fields (Enforce Zero Pricing Leak)", 50, 50, 36, "self"),
         ("8. Return JSON Response to Client", 50, 30, 28, "-->"),
@@ -507,7 +503,7 @@ def generate_seq_diagram_order():
     ax.set_ylim(0, 100)
     ax.axis('off')
 
-    ax.text(50, 96, "Figure 8: UML Sequence Diagram — Customer Order Checkout & Real-Time Fulfillment Flow", 
+    ax.text(50, 96, "Figure B-8: UML Sequence Diagram — Customer Order Checkout & Real-Time Fulfillment Flow", 
             fontsize=13, fontweight='bold', fontfamily='Times New Roman', ha='center', color='#1A202C')
 
     lifelines = [
@@ -559,4 +555,4 @@ if __name__ == '__main__':
     generate_erd_diagram()
     generate_seq_diagram_ai()
     generate_seq_diagram_order()
-    print("All 8 academic diagrams generated successfully in docs_assets/")
+    print("All diagrams generated successfully with no 3D and no Gemini branding!")
