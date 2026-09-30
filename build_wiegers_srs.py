@@ -113,7 +113,7 @@ def add_figure(doc, img_filename, caption_text, width_inches=6.2):
         run_cap.font.size = Pt(10.5)
         run_cap.font.bold = True
         run_cap.font.italic = True
-        run_cap.font.color.rgb = RGBColor(60, 60, 60)
+        run_cap.font.color.rgb = RGBColor(0, 0, 0)
 
 def format_table_cells(table, col_widths, headers, rows_data):
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -175,7 +175,7 @@ def generate_wiegers_srs():
         p_hdr.runs[0].font.name = 'Times New Roman'
         p_hdr.runs[0].font.size = Pt(9)
         p_hdr.runs[0].font.italic = True
-        p_hdr.runs[0].font.color.rgb = RGBColor(120, 120, 120)
+        p_hdr.runs[0].font.color.rgb = RGBColor(0, 0, 0)
 
     # -------------------------------------------------------------
     # COVER PAGE (Karl E. Wiegers Standard Template Format)
@@ -631,8 +631,14 @@ def generate_wiegers_srs():
     ]
     format_table_cells(tbd_table, [1.0, 1.4, 2.8, 1.2], t_headers, t_rows)
 
-    doc.save(DOCX_OUT)
-    print("SUCCESS: Wiegers SRS Document successfully generated at:", DOCX_OUT)
+    try:
+        doc.save(DOCX_OUT)
+        print("[OK] Wiegers SRS Document successfully updated at:", DOCX_OUT)
+    except PermissionError:
+        backup_out = os.path.join(os.getcwd(), 'Peshawari_Chappal_FYP_SRS_Final.docx')
+        doc.save(backup_out)
+        print(f"[NOTICE] '{os.path.basename(DOCX_OUT)}' is currently open in Word.")
+        print(f"[OK] Generated updated document with all integrated B&W diagrams at: {backup_out}")
 
 if __name__ == '__main__':
     generate_wiegers_srs()
