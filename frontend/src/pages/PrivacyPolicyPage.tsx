@@ -49,7 +49,6 @@ export const PrivacyPolicyPage: React.FC = () => {
         <p>We collect information you provide directly when you:</p>
         <ul className="list-disc pl-5 space-y-1">
           <li><strong>Place an order</strong> — name, shipping address, email, phone number, payment method (we do not store card numbers)</li>
-          <li><strong>Create an account or wishlist</strong> — email address and saved preferences</li>
           <li><strong>Submit a product review</strong> — name, rating, and written review</li>
           <li><strong>Contact us</strong> — name, email, and message content</li>
           <li><strong>Use the foot size finder</strong> — camera images processed locally in your browser; images are not uploaded to our servers unless you explicitly submit them</li>
@@ -63,7 +62,7 @@ export const PrivacyPolicyPage: React.FC = () => {
           <li><strong>Order fulfillment</strong> — processing payments, packing, shipping, and delivery tracking</li>
           <li><strong>Customer support</strong> — responding to inquiries, replacement requests, and complaints</li>
           <li><strong>Marketing communications</strong> — promotional emails (only with your consent; unsubscribe any time)</li>
-          <li><strong>Personalization</strong> — remembering your size preferences, wishlist, and cart items between sessions</li>
+          <li><strong>Personalization</strong> — remembering your size preferences and cart items between sessions</li>
           <li><strong>Security</strong> — detecting and preventing fraud, unauthorized access, and abuse</li>
           <li><strong>Legal compliance</strong> — meeting applicable Pakistani and international data protection laws</li>
         </ul>
@@ -73,7 +72,6 @@ export const PrivacyPolicyPage: React.FC = () => {
         <p>Our website uses browser local storage (not traditional cookies) to save:</p>
         <ul className="list-disc pl-5 space-y-1">
           <li>Your shopping cart items</li>
-          <li>Your wishlist</li>
           <li>Store preferences (language, currency)</li>
           <li>Admin session tokens (sessionStorage — cleared when browser closes)</li>
         </ul>

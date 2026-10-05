@@ -243,8 +243,8 @@ export const CustomersTab: React.FC = () => {
                 <span className="font-serif font-bold text-lg text-blue-600">Rs. {selectedCustomer.totalSpend.toLocaleString()}</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                <span className="text-slate-500 uppercase block text-[10px]">Saved Wishlist</span>
-                <span className="font-serif font-bold text-lg text-slate-900">{selectedCustomer.wishlistCount} Items</span>
+                <span className="text-slate-500 uppercase block text-[10px]">Total Orders</span>
+                <span className="font-serif font-bold text-lg text-slate-900">{selectedCustomer.orderCount} Orders</span>
               </div>
             </div>
 

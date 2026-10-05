@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, NavLink, useLocation } from 'react-router-dom';
-import { ShoppingBag, Heart, Sparkles, Menu, X, Home, Grid, Ruler, Truck, Info, Tag, Mail } from 'lucide-react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { ShoppingBag, Sparkles, Menu, X, Home, Grid, Ruler, Truck, Info, Tag, Mail, Search } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
-import { useWishlist } from '../../context/WishlistContext';
 import { useStoreSettings } from '../../context/StoreSettingsContext';
 import { apiService } from '../../services/api';
 import { normalizeAssetUrl } from '../../utils/assetUrl';
@@ -11,15 +10,18 @@ import type { PromoCode } from '../../types/admin';
 
 export const Header: React.FC = () => {
   const { itemCount } = useCart();
-  const { wishlistCount } = useWishlist();
   const { settings } = useStoreSettings();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [activePromos, setActivePromos] = useState<PromoCode[]>([]);
   const location = useLocation();
+  const navigate = useNavigate();
 
-  // Close mobile menu on route change
+  // Close mobile menu and search on route change
   useEffect(() => {
     setMobileMenuOpen(false);
+    setMobileSearchOpen(false);
   }, [location.pathname]);
 
   // Lock body scroll when mobile menu drawer is open
@@ -39,6 +41,15 @@ export const Header: React.FC = () => {
       setActivePromos(list.filter(p => p.active));
     });
   }, []);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/products?q=${encodeURIComponent(searchQuery.trim())}`);
+      setMobileSearchOpen(false);
+      setMobileMenuOpen(false);
+    }
+  };
 
   const productsLabel = settings.hideCategories ? 'Products' : 'Catalog';
 
@@ -156,32 +167,60 @@ export const Header: React.FC = () => {
             </nav>
           </div>
 
-          {/* Action Controls & Mobile Toggle */}
+          {/* Action Controls: Full Search Bar (Desktop), Search Icon (Mobile), Bag, Mobile Menu Toggle */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Wishlist Heart Icon (Always visible outside on both mobile & desktop) */}
-            <Link
-              to="/wishlist"
-              className="relative p-2 sm:p-2.5 rounded-full backdrop-blur-md bg-white/75 hover:bg-white border border-slate-200/90 transition-all text-slate-700 shadow-xs flex items-center justify-center hover:shadow-sm"
-              title="Wishlist"
+            {/* Desktop Full Search Bar */}
+            <form
+              onSubmit={handleSearchSubmit}
+              className="hidden lg:flex items-center relative"
             >
-              <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700" />
-              {wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
-                  {wishlistCount}
-                </span>
-              )}
-            </Link>
+              <div className="relative flex items-center">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search chappals, models..."
+                  className="w-44 xl:w-64 pl-9 pr-8 py-2 rounded-full text-xs bg-slate-100/90 hover:bg-white focus:bg-white border border-slate-200/90 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-slate-800 placeholder-slate-400 outline-none transition-all shadow-2xs"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                    aria-label="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </form>
 
-            {/* Shopping Bag Icon with Floating Notification Badge */}
+            {/* Mobile Search Icon Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
+              className={`lg:hidden p-2 sm:p-2.5 rounded-full backdrop-blur-md transition-all border shadow-xs flex items-center justify-center cursor-pointer ${
+                mobileSearchOpen
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/25'
+                  : 'bg-white/75 hover:bg-white border-slate-200/90 text-slate-700 hover:shadow-sm'
+              }`}
+              aria-label="Search"
+              title="Search products"
+            >
+              <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+
+            {/* Shopping Bag Simple Icon (No text, transparent/glass background) */}
             <Link
               to="/bag"
-              className="relative p-2 sm:p-2.5 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white transition-all shadow-md shadow-blue-600/25 border border-white/20 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 cursor-pointer"
+              className="relative p-2 sm:p-2.5 rounded-full backdrop-blur-md bg-white/75 hover:bg-white border border-slate-200/90 text-slate-700 hover:text-blue-600 transition-all shadow-xs flex items-center justify-center cursor-pointer hover:shadow-sm"
               title="Shopping Bag"
+              aria-label="Shopping Bag"
             >
               <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-xs font-bold hidden sm:inline">Bag</span>
               {itemCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] sm:text-[11px] font-black min-w-[18px] h-[18px] sm:min-w-[20px] sm:h-[20px] px-1 rounded-full flex items-center justify-center shadow-md ring-2 ring-white animate-in zoom-in">
+                <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[9px] sm:text-[10px] font-black min-w-[17px] h-[17px] sm:min-w-[18px] sm:h-[18px] px-1 rounded-full flex items-center justify-center shadow-xs ring-2 ring-white animate-in zoom-in">
                   {itemCount}
                 </span>
               )}
@@ -198,6 +237,41 @@ export const Header: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Mobile Expandable Search Dropdown */}
+        {mobileSearchOpen && (
+          <div className="lg:hidden bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-3 shadow-md animate-in slide-in-from-top duration-200">
+            <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 max-w-md mx-auto">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  autoFocus
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search chappals, sizes, models..."
+                  className="w-full pl-9 pr-8 py-2.5 rounded-xl text-xs bg-slate-100 border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-slate-800 placeholder-slate-400 outline-none transition-all"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                    aria-label="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              <button
+                type="submit"
+                className="btn-copper text-xs py-2.5 px-4 shrink-0 rounded-xl"
+              >
+                Search
+              </button>
+            </form>
+          </div>
+        )}
       </header>
 
       {/* Mobile Right-Side Slide-Over Drawer Navigation (Mounted on document.body to prevent backdrop-filter clipping) */}
@@ -252,6 +326,20 @@ export const Header: React.FC = () => {
               >
                 <X className="w-5 h-5" />
               </button>
+            </div>
+
+            {/* Quick Search inside Drawer */}
+            <div className="p-4 pb-2 border-b border-sky-50">
+              <form onSubmit={handleSearchSubmit} className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Quick search products..."
+                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-100 border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 outline-none"
+                />
+              </form>
             </div>
 
             {/* Navigation Links in Drawer (Home, Products, Size Finder, AI Outfit, Orders, Heritage) */}

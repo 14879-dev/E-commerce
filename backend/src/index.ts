@@ -47,6 +47,44 @@ export const inMemorySettings: any = {
   faviconUrl: '/favicon.ico',
   heroMediaUrl: '/uploads/hero.webp',
   heroMediaType: 'image',
+  heroSlides: [
+    {
+      id: 'slide-1',
+      url: '/uploads/hero.webp',
+      type: 'image',
+      badge: 'Heritage Re-imagined With AI Fit',
+      title: 'Authentic Peshawari Chappal',
+      subtitle: 'Crafted for Royalty.',
+      description: 'Hand-tanned full-grain cowhide leather, double-stitched by master craftsmen in Khyber Pakhtunkhwa.',
+      linkText: 'Shop Collection',
+      linkUrl: '/products',
+      active: true
+    },
+    {
+      id: 'slide-2',
+      url: '/images/ai-foot-scanner-demo.jpg',
+      type: 'image',
+      badge: 'Camera Size Calibration',
+      title: 'AI Foot Size Finder',
+      subtitle: 'True-to-Size Peshawari Fit.',
+      description: 'Place your foot on standard A4 paper. Millimeter-accurate size recommendation with zero guesswork.',
+      linkText: 'Try Size Finder',
+      linkUrl: '/size-finder',
+      active: true
+    },
+    {
+      id: 'slide-3',
+      url: '/images/ai-outfit-matcher-demo.jpg',
+      type: 'image',
+      badge: 'Color Harmony & Tone AI',
+      title: 'AI Traditional Outfit Matcher',
+      subtitle: 'Color & Tone Pairing.',
+      description: 'Upload a photo of your Shalwar Kameez or Kurta. Match with the ideal leather shade and silhouette.',
+      linkText: 'Match Your Outfit',
+      linkUrl: '/outfit-match',
+      active: true
+    }
+  ],
   socialLinks: {
     whatsapp: '+923001234567',
     instagram: 'https://instagram.com/peshawarichappal',
@@ -1900,6 +1938,8 @@ app.post('/api/ai/size-calculate', (req: Request, res: Response) => {
 // ============================================================
 // HERO MEDIA UPLOAD
 // ============================================================
+// HERO MEDIA & SLIDER UPLOAD (ADMIN & MANAGER)
+// ============================================================
 const UPLOADS_DIR = path.join(__dirname, 'data', 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
@@ -1908,68 +1948,103 @@ const HERO_MEDIA_FILE = path.join(UPLOADS_DIR, 'hero_media_info.json');
 const heroStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
   filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname) || (file.mimetype.includes('video') ? '.webm' : '.webp');
-    cb(null, `hero${ext}`);
+    const ext = path.extname(file.originalname) || (file.mimetype.includes('video') ? '.mp4' : '.webp');
+    cb(null, `hero_slide_${Date.now()}_${Math.random().toString(36).substring(2, 8)}${ext}`);
   },
 });
 const heroUpload = multer({
   storage: heroStorage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
   fileFilter: (_req, file, cb) => {
-    const allowed = ['image/webp', 'image/jpeg', 'image/png', 'video/webm', 'video/mp4'];
-    if (allowed.includes(file.mimetype)) cb(null, true);
-    else cb(new Error('Only WebP/JPEG/PNG images and WebM/MP4 videos are allowed'));
+    const allowed = ['image/webp', 'image/jpeg', 'image/png', 'image/gif', 'image/avif', 'video/webm', 'video/mp4', 'video/ogg'];
+    if (allowed.includes(file.mimetype) || file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) cb(null, true);
+    else cb(new Error('Only WebP, PNG, JPG images and WebM, MP4 videos are allowed'));
   },
 });
 
 // Serve uploaded hero media and brand files as static with 7-day browser caching
 app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '7d', etag: true }));
 
-// Get current hero media info
+// Get current hero media and slides info
 app.get('/api/hero-media', (_req: Request, res: Response) => {
   try {
-    if (fs.existsSync(HERO_MEDIA_FILE)) {
-      const info = JSON.parse(fs.readFileSync(HERO_MEDIA_FILE, 'utf-8'));
-      res.json({ success: true, ...info });
-    } else {
-      res.json({ success: true, url: null, type: null });
-    }
+    const slides = inMemorySettings.heroSlides || [];
+    res.json({
+      success: true,
+      url: inMemorySettings.heroMediaUrl || (slides[0]?.url ?? null),
+      type: inMemorySettings.heroMediaType || (slides[0]?.type ?? 'image'),
+      heroSlides: slides,
+    });
   } catch {
-    res.json({ success: true, url: null, type: null });
+    res.json({ success: true, url: null, type: null, heroSlides: [] });
   }
 });
 
-// Upload new hero media (super admin only)
-app.post('/api/admin/hero-media', authenticateAdmin, requireSuperAdmin, heroUpload.single('media'), (req: Request, res: Response) => {
+// Upload new hero media slide (Admin and Manager permitted)
+app.post('/api/admin/hero-media', authenticateAdmin, heroUpload.single('media'), (req: Request, res: Response) => {
   if (!req.file) {
     res.status(400).json({ error: 'No file uploaded' });
     return;
   }
-  const isVideo = req.file.mimetype.startsWith('video/');
+  const isVideo = req.file.mimetype.startsWith('video/') || req.file.originalname.endsWith('.mp4') || req.file.originalname.endsWith('.webm');
   const url = `/uploads/${req.file.filename}`;
-  const info = { url, type: isVideo ? 'video' : 'image', filename: req.file.filename, uploadedAt: new Date().toISOString() };
-  fs.writeFileSync(HERO_MEDIA_FILE, JSON.stringify(info, null, 2), 'utf-8');
+  const slideId = `slide-${Date.now()}`;
+  
+  const newSlide = {
+    id: slideId,
+    url,
+    type: isVideo ? 'video' : 'image',
+    badge: req.body?.badge || 'New Collection',
+    title: req.body?.title || 'Handcrafted Excellence',
+    subtitle: req.body?.subtitle || 'Pure Leather Artisanship',
+    description: req.body?.description || 'Authentic Peshawari craftsmanship, tailored with precision and care.',
+    linkText: req.body?.linkText || 'Shop Now',
+    linkUrl: req.body?.linkUrl || '/products',
+    active: true,
+    filename: req.file.filename,
+    uploadedAt: new Date().toISOString()
+  };
+
+  if (!Array.isArray(inMemorySettings.heroSlides)) {
+    inMemorySettings.heroSlides = [];
+  }
+  inMemorySettings.heroSlides.push(newSlide);
   inMemorySettings.heroMediaUrl = url;
-  inMemorySettings.heroMediaType = info.type;
+  inMemorySettings.heroMediaType = newSlide.type;
+  
+  const info = { url, type: newSlide.type, filename: req.file.filename, uploadedAt: newSlide.uploadedAt, slide: newSlide, heroSlides: inMemorySettings.heroSlides };
+  fs.writeFileSync(HERO_MEDIA_FILE, JSON.stringify(info, null, 2), 'utf-8');
   saveSettingsToDisk();
   res.json({ success: true, ...info });
 });
 
-// Delete hero media (super admin only)
-app.delete('/api/admin/hero-media', authenticateAdmin, requireSuperAdmin, (_req: Request, res: Response) => {
+// Delete hero media or specific slide (Admin and Manager permitted)
+app.delete('/api/admin/hero-media/:slideId?', authenticateAdmin, (req: Request, res: Response) => {
   try {
-    if (fs.existsSync(HERO_MEDIA_FILE)) {
-      const info = JSON.parse(fs.readFileSync(HERO_MEDIA_FILE, 'utf-8'));
-      const filePath = path.join(UPLOADS_DIR, info.filename);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      fs.unlinkSync(HERO_MEDIA_FILE);
+    const { slideId } = req.params;
+    if (slideId && Array.isArray(inMemorySettings.heroSlides)) {
+      const slide = inMemorySettings.heroSlides.find((s: any) => s.id === slideId);
+      if (slide && slide.filename) {
+        const filePath = path.join(UPLOADS_DIR, slide.filename);
+        if (fs.existsSync(filePath)) try { fs.unlinkSync(filePath); } catch {}
+      }
+      inMemorySettings.heroSlides = inMemorySettings.heroSlides.filter((s: any) => s.id !== slideId);
+      if (inMemorySettings.heroSlides.length > 0) {
+        inMemorySettings.heroMediaUrl = inMemorySettings.heroSlides[0].url;
+        inMemorySettings.heroMediaType = inMemorySettings.heroSlides[0].type;
+      } else {
+        inMemorySettings.heroMediaUrl = null;
+        inMemorySettings.heroMediaType = null;
+      }
+    } else {
+      inMemorySettings.heroSlides = [];
+      inMemorySettings.heroMediaUrl = null;
+      inMemorySettings.heroMediaType = null;
     }
-    inMemorySettings.heroMediaUrl = null;
-    inMemorySettings.heroMediaType = null;
     saveSettingsToDisk();
-    res.json({ success: true });
+    res.json({ success: true, heroSlides: inMemorySettings.heroSlides });
   } catch {
-    res.json({ success: true });
+    res.json({ success: true, heroSlides: inMemorySettings.heroSlides || [] });
   }
 });
 

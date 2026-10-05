@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Download, Eye, X, RefreshCw, Trash2, Printer, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Search, Download, Eye, X, RefreshCw, Trash2, Printer, AlertTriangle, CheckCircle2, Plus, ShoppingBag, User, MapPin, CreditCard, Truck, Tag, PackagePlus } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { useStoreSettings } from '../../context/StoreSettingsContext';
 import { normalizeAssetUrl } from '../../utils/assetUrl';
-import type { Order } from '../../types';
+import type { Order, Product, CartItem } from '../../types';
+
+interface ManualOrderItem {
+  productId: string;
+  size: number;
+  selectedColor: string;
+  quantity: number;
+  unitPrice: number;
+}
 
 export const OrdersTab: React.FC = () => {
   const { settings, formatPrice } = useStoreSettings();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filter States
@@ -18,6 +27,28 @@ export const OrdersTab: React.FC = () => {
   // Detail Modal State
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+  // Manual Order Modal State
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [manualOrderError, setManualOrderError] = useState<string | null>(null);
+
+  // Manual Order Form Fields
+  const [custName, setCustName] = useState('');
+  const [custPhone, setCustPhone] = useState('');
+  const [custEmail, setCustEmail] = useState('');
+  const [custAddress, setCustAddress] = useState('');
+  const [custCity, setCustCity] = useState('Peshawar');
+  const [custPostal, setCustPostal] = useState('25000');
+  const [custPayment, setCustPayment] = useState<'cod' | 'card' | 'jazzcash' | 'easypaisa'>('cod');
+  const [custShipping, setCustShipping] = useState<'standard' | 'express' | 'artisan-courier'>('standard');
+  const [custShippingFee, setCustShippingFee] = useState<number>(0);
+  const [custDiscount, setCustDiscount] = useState<number>(0);
+  const [custPromoCode, setCustPromoCode] = useState('');
+  const [custStatus, setCustStatus] = useState<'Placed' | 'Shipped' | 'Delivered'>('Placed');
+  const [manualItems, setManualItems] = useState<ManualOrderItem[]>([
+    { productId: '', size: 9, selectedColor: 'saddle-tan', quantity: 1, unitPrice: 0 }
+  ]);
+
   // Print & Delete States
   const [orderToPrint, setOrderToPrint] = useState<Order | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<{ id: string; orderNumber: string } | null>(null);
@@ -26,8 +57,22 @@ export const OrdersTab: React.FC = () => {
 
   useEffect(() => {
     loadOrders();
+    apiService.getProducts().then(prods => {
+      setAllProducts(prods);
+      if (prods.length > 0) {
+        setManualItems([
+          {
+            productId: prods[0].id,
+            size: prods[0].availableSizes?.[0] || 9,
+            selectedColor: prods[0].availableColors?.[0] || 'saddle-tan',
+            quantity: 1,
+            unitPrice: prods[0].price,
+          }
+        ]);
+      }
+    });
+
     const handleOrdersChanged = () => loadOrders();
-    // Silent auto-refresh - quietly reloads orders list every ~9s
     const handleAutoRefresh = async () => {
       try {
         const list = await apiService.getOrders();
@@ -126,6 +171,142 @@ export const OrdersTab: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const handleAddManualItem = () => {
+    const firstProd = allProducts[0];
+    setManualItems(prev => [
+      ...prev,
+      {
+        productId: firstProd ? firstProd.id : '',
+        size: firstProd?.availableSizes?.[0] || 9,
+        selectedColor: firstProd?.availableColors?.[0] || 'saddle-tan',
+        quantity: 1,
+        unitPrice: firstProd ? firstProd.price : 0,
+      }
+    ]);
+  };
+
+  const handleRemoveManualItem = (index: number) => {
+    if (manualItems.length <= 1) return;
+    setManualItems(prev => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleUpdateManualItem = (index: number, field: keyof ManualOrderItem, val: any) => {
+    setManualItems(prev => {
+      const copy = [...prev];
+      const current = { ...copy[index], [field]: val };
+      if (field === 'productId') {
+        const prod = allProducts.find(p => p.id === val);
+        if (prod) {
+          current.unitPrice = prod.price;
+          current.size = prod.availableSizes?.[0] || 9;
+          current.selectedColor = prod.availableColors?.[0] || 'saddle-tan';
+        }
+      }
+      copy[index] = current;
+      return copy;
+    });
+  };
+
+  const manualSubtotal = manualItems.reduce((acc, item) => acc + (Number(item.unitPrice || 0) * Number(item.quantity || 1)), 0);
+  const manualTotal = Math.max(0, manualSubtotal + Number(custShippingFee || 0) - Number(custDiscount || 0));
+
+  const handleCreateManualOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setManualOrderError(null);
+
+    if (!custName.trim()) {
+      setManualOrderError('Customer full name is required');
+      return;
+    }
+    if (!custPhone.trim()) {
+      setManualOrderError('Customer phone number is required');
+      return;
+    }
+    if (!custAddress.trim()) {
+      setManualOrderError('Delivery address is required');
+      return;
+    }
+    if (!custCity.trim()) {
+      setManualOrderError('City is required');
+      return;
+    }
+
+    const validItems: CartItem[] = [];
+    for (let i = 0; i < manualItems.length; i++) {
+      const item = manualItems[i];
+      const prod = allProducts.find(p => p.id === item.productId);
+      if (!prod) {
+        setManualOrderError(`Please select a valid product for Item #${i + 1}`);
+        return;
+      }
+      validItems.push({
+        id: `item-${Date.now()}-${i}`,
+        product: { ...prod, price: Number(item.unitPrice || prod.price) },
+        size: item.size,
+        selectedColor: item.selectedColor,
+        quantity: Math.max(1, Number(item.quantity || 1)),
+      });
+    }
+
+    if (validItems.length === 0) {
+      setManualOrderError('At least one product item must be added');
+      return;
+    }
+
+    setIsSubmittingOrder(true);
+    try {
+      const orderPayload: Omit<Order, 'id' | 'orderNumber' | 'date' | 'status' | 'trackingSteps'> & { status?: Order['status'] } = {
+        items: validItems,
+        shippingAddress: {
+          fullName: custName.trim(),
+          email: custEmail.trim() || 'customer@order.manual',
+          phone: custPhone.trim(),
+          address: custAddress.trim(),
+          city: custCity.trim(),
+          postalCode: custPostal.trim() || '25000',
+          country: 'Pakistan',
+        },
+        shippingMethod: custShipping,
+        paymentMethod: custPayment,
+        subtotal: manualSubtotal,
+        shippingFee: Number(custShippingFee || 0),
+        discount: Number(custDiscount || 0),
+        total: manualTotal,
+        status: custStatus,
+        promoCode: custPromoCode.trim() || undefined,
+      };
+
+      const created = await apiService.createOrder(orderPayload);
+      setNotification({ type: 'success', message: `Manual Order #${created.orderNumber} successfully created!` });
+      setShowCreateModal(false);
+      // Reset form
+      setCustName('');
+      setCustPhone('');
+      setCustEmail('');
+      setCustAddress('');
+      setCustDiscount(0);
+      setCustPromoCode('');
+      setCustShippingFee(0);
+      setCustStatus('Placed');
+      if (allProducts.length > 0) {
+        setManualItems([
+          {
+            productId: allProducts[0].id,
+            size: allProducts[0].availableSizes?.[0] || 9,
+            selectedColor: allProducts[0].availableColors?.[0] || 'saddle-tan',
+            quantity: 1,
+            unitPrice: allProducts[0].price,
+          }
+        ]);
+      }
+      loadOrders();
+    } catch (err: any) {
+      setManualOrderError(err.message || 'Failed to create manual order');
+    } finally {
+      setIsSubmittingOrder(false);
+      setTimeout(() => setNotification(null), 4000);
+    }
+  };
 
   const filteredOrders = orders.filter(o => {
     if (activeSubTab === 'replacements' && !o.replacementRequested) return false;
@@ -145,12 +326,24 @@ export const OrdersTab: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
           <h2 className="font-serif font-bold text-2xl text-slate-900">Order Management & Fulfillment</h2>
-          <p className="text-xs text-slate-500">Track production status, courier handovers & customer size exchange requests.</p>
+          <p className="text-xs text-slate-500">Track production status, courier handovers, add manual customer orders & handle size exchanges.</p>
         </div>
 
-        <button onClick={handleExportCSV} className="btn-copper text-xs py-2 px-5 flex items-center gap-2">
-          <Download className="w-4 h-4" /> Export Orders to CSV
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="btn-copper text-xs py-2.5 px-4 flex items-center gap-2 font-bold shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> + Create Manual Order
+          </button>
+
+          <button
+            onClick={handleExportCSV}
+            className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-all shadow-xs"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
+        </div>
       </div>
 
       {/* Sub Tab Selection Pills */}
@@ -751,6 +944,381 @@ export const OrdersTab: React.FC = () => {
               </div>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Manual Customer Order Creation Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white w-full max-w-3xl rounded-3xl border border-slate-200 shadow-2xl overflow-hidden animate-scaleUp flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700">
+                  <PackagePlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-lg text-slate-900 leading-tight">Create Manual Customer Order</h3>
+                  <p className="text-[11px] text-slate-500">Record phone, WhatsApp, or in-person orders into the fulfillment queue.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                className="p-1.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Scrollable Form Body */}
+            <form onSubmit={handleCreateManualOrder} className="flex-1 overflow-y-auto p-6 space-y-6">
+              {manualOrderError && (
+                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{manualOrderError}</span>
+                </div>
+              )}
+
+              {/* 1. Customer Information */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <User className="w-4 h-4 text-blue-600" /> Customer Information
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={custName}
+                      onChange={e => setCustName(e.target.value)}
+                      placeholder="e.g. Tariq Khan"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Phone Number (WhatsApp/COD) *</label>
+                    <input
+                      type="text"
+                      required
+                      value={custPhone}
+                      onChange={e => setCustPhone(e.target.value)}
+                      placeholder="e.g. 03001234567"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Delivery Street Address *</label>
+                    <input
+                      type="text"
+                      required
+                      value={custAddress}
+                      onChange={e => setCustAddress(e.target.value)}
+                      placeholder="House/Shop #, Street, Sector, Area..."
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">City *</label>
+                    <input
+                      type="text"
+                      required
+                      value={custCity}
+                      onChange={e => setCustCity(e.target.value)}
+                      placeholder="Peshawar, Lahore, etc."
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address (Optional)</label>
+                    <input
+                      type="email"
+                      value={custEmail}
+                      onChange={e => setCustEmail(e.target.value)}
+                      placeholder="customer@example.com"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Postal Code</label>
+                    <input
+                      type="text"
+                      value={custPostal}
+                      onChange={e => setCustPostal(e.target.value)}
+                      placeholder="e.g. 25000"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Order Items */}
+              <div className="space-y-3 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <ShoppingBag className="w-4 h-4 text-blue-600" /> Order Items ({manualItems.length})
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={handleAddManualItem}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Product
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {manualItems.map((item, idx) => {
+                    const selectedProd = allProducts.find(p => p.id === item.productId);
+                    const sizes = selectedProd?.availableSizes || [7, 8, 9, 10, 11, 12, 13];
+                    const colors = selectedProd?.availableColors || ['saddle-tan', 'espresso', 'midnight-black', 'vintage-tan'];
+
+                    return (
+                      <div key={idx} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[11px] font-bold text-slate-500">Item #{idx + 1}</span>
+                          {manualItems.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveManualItem(idx)}
+                              className="text-[11px] font-bold text-red-600 hover:text-red-700"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                          {/* Product Dropdown */}
+                          <div className="sm:col-span-6">
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-1">Select Product</label>
+                            <select
+                              value={item.productId}
+                              onChange={e => handleUpdateManualItem(idx, 'productId', e.target.value)}
+                              className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                            >
+                              {allProducts.map(p => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name} {p.articleTag ? `(${p.articleTag})` : ''} — Rs. {p.price}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Size */}
+                          <div className="sm:col-span-2">
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-1">Size</label>
+                            <select
+                              value={item.size}
+                              onChange={e => handleUpdateManualItem(idx, 'size', Number(e.target.value))}
+                              className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600 font-bold"
+                            >
+                              {sizes.map(s => (
+                                <option key={s} value={s}>
+                                  Size {s}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Color */}
+                          <div className="sm:col-span-2">
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-1">Color</label>
+                            <select
+                              value={item.selectedColor}
+                              onChange={e => handleUpdateManualItem(idx, 'selectedColor', e.target.value)}
+                              className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600 capitalize"
+                            >
+                              {colors.map(c => (
+                                <option key={c} value={c}>
+                                  {c.replace(/-/g, ' ')}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Quantity */}
+                          <div className="sm:col-span-2">
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-1">Qty</label>
+                            <input
+                              type="number"
+                              min={1}
+                              max={50}
+                              value={item.quantity}
+                              onChange={e => handleUpdateManualItem(idx, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
+                              className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600 font-bold text-center"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Price & Line Subtotal */}
+                        <div className="flex items-center justify-between pt-1 text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-500 text-[11px]">Unit Price (Rs.):</span>
+                            <input
+                              type="number"
+                              value={item.unitPrice}
+                              onChange={e => handleUpdateManualItem(idx, 'unitPrice', Math.max(0, parseInt(e.target.value) || 0))}
+                              className="w-24 px-2 py-1 rounded-lg bg-white border border-slate-200 text-xs text-slate-900 font-mono font-bold"
+                            />
+                          </div>
+                          <div className="font-mono font-bold text-slate-900">
+                            Line Total: {formatPrice(item.unitPrice * item.quantity)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 3. Payment, Shipping & Status */}
+              <div className="space-y-3 pt-3 border-t border-slate-100">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <CreditCard className="w-4 h-4 text-blue-600" /> Payment, Delivery & Fulfillment
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Payment Method</label>
+                    <select
+                      value={custPayment}
+                      onChange={e => setCustPayment(e.target.value as any)}
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                    >
+                      <option value="cod">Cash on Delivery (COD)</option>
+                      <option value="card">Debit/Credit Card</option>
+                      <option value="jazzcash">JazzCash</option>
+                      <option value="easypaisa">Easypaisa</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Delivery Method</label>
+                    <select
+                      value={custShipping}
+                      onChange={e => {
+                        const method = e.target.value as any;
+                        setCustShipping(method);
+                        if (method === 'express') setCustShippingFee(settings.expressShippingFee || 450);
+                        else if (method === 'artisan-courier') setCustShippingFee(750);
+                        else setCustShippingFee(0);
+                      }}
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                    >
+                      <option value="standard">Standard Free Delivery</option>
+                      <option value="express">Express Courier (+Rs. 450)</option>
+                      <option value="artisan-courier">Artisan VIP Courier (+Rs. 750)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Initial Status</label>
+                    <select
+                      value={custStatus}
+                      onChange={e => setCustStatus(e.target.value as any)}
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 font-bold focus:outline-none focus:border-blue-600"
+                    >
+                      <option value="Placed">Placed (Pending Processing)</option>
+                      <option value="Shipped">Shipped (In Transit)</option>
+                      <option value="Delivered">Delivered (Completed)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Shipping Fee (Rs.)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={custShippingFee}
+                      onChange={e => setCustShippingFee(Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:border-blue-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Discount Amount (Rs.)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={custDiscount}
+                      onChange={e => setCustDiscount(Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:border-blue-600 text-emerald-700"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Promo / Note Code</label>
+                    <input
+                      type="text"
+                      value={custPromoCode}
+                      onChange={e => setCustPromoCode(e.target.value)}
+                      placeholder="e.g. VIP-MANUAL, EID10"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600 uppercase"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Live Order Calculation Summary */}
+              <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200/70 space-y-1.5">
+                <div className="flex justify-between text-xs text-slate-600">
+                  <span>Gross Subtotal ({manualItems.reduce((a, b) => a + Number(b.quantity || 1), 0)} items):</span>
+                  <span className="font-mono font-bold text-slate-900">{formatPrice(manualSubtotal)}</span>
+                </div>
+                {custDiscount > 0 && (
+                  <div className="flex justify-between text-xs text-emerald-700 font-semibold">
+                    <span>Discount Applied:</span>
+                    <span className="font-mono">-{formatPrice(custDiscount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-xs text-slate-600">
+                  <span>Shipping Fee:</span>
+                  <span className="font-mono">{custShippingFee === 0 ? 'FREE' : formatPrice(custShippingFee)}</span>
+                </div>
+                <div className="flex justify-between text-sm font-bold text-slate-950 pt-2 border-t border-blue-200">
+                  <span>Total Order Payable:</span>
+                  <span className="font-mono text-base text-blue-700 font-black">{formatPrice(manualTotal)}</span>
+                </div>
+              </div>
+
+              {/* Modal Footer Actions */}
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingOrder}
+                  className="btn-copper text-xs py-2.5 px-6 font-bold flex items-center gap-2 disabled:opacity-50 shadow-md"
+                >
+                  {isSubmittingOrder ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Creating Order...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" /> Create & Confirm Order
+                    </>
+                  )}
+                </button>
+              </div>
+
+            </form>
           </div>
         </div>
       )}

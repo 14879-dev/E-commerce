@@ -15,9 +15,10 @@ export const CatalogPage: React.FC = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryParam = searchParams.get('category');
+  const queryParam = searchParams.get('q') || searchParams.get('search') || '';
 
   // Filters State
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(queryParam);
   const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam || 'All');
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [selectedColor, setSelectedColor] = useState<LeatherColor | 'All'>('All');
@@ -73,6 +74,10 @@ export const CatalogPage: React.FC = () => {
       setSelectedCategory(categoryParam);
     }
   }, [categoryParam]);
+
+  useEffect(() => {
+    setSearchTerm(queryParam || '');
+  }, [queryParam]);
 
   const categoryNames = useMemo(() => {
     return ['All', ...categories.map(c => c.name)];

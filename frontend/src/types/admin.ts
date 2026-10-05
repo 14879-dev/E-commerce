@@ -66,6 +66,19 @@ export interface SocialLinks {
   youtube?: string;
 }
 
+export interface HeroSlide {
+  id: string;
+  url: string;
+  type: 'image' | 'video';
+  badge?: string;
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  linkText?: string;
+  linkUrl?: string;
+  active?: boolean;
+}
+
 export interface StoreSettings {
   storeName: string;
   logoUrl: string;
@@ -87,6 +100,7 @@ export interface StoreSettings {
   hideCategories?: boolean;
   heroMediaUrl?: string | null;
   heroMediaType?: 'image' | 'video' | null;
+  heroSlides?: HeroSlide[];
   supplierProductBudget?: number;
   supplierBudgetLogs?: SupplierBudgetLog[];
 }

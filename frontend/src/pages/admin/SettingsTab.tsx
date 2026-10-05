@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Settings, ShieldCheck, Truck, CreditCard, Ruler, Save, CheckCircle, ImagePlay, Trash2, Upload, Share2, Globe, MessageCircle } from 'lucide-react';
+import { Settings, ShieldCheck, Truck, CreditCard, Ruler, Save, CheckCircle, ImagePlay, Trash2, Upload, Share2, Globe, MessageCircle, ChevronUp, ChevronDown, Edit3, Plus, Eye, EyeOff, Layers, Sparkles, X } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { useStoreSettings } from '../../context/StoreSettingsContext';
 import { normalizeAssetUrl } from '../../utils/assetUrl';
-import type { StoreSettings, SizeMapping, SocialLinks } from '../../types/admin';
+import type { StoreSettings, SizeMapping, SocialLinks, HeroSlide } from '../../types/admin';
 
 export const SettingsTab: React.FC<{
   currentRole: 'superadmin' | 'manager' | 'staff';
@@ -14,11 +14,13 @@ export const SettingsTab: React.FC<{
   const [loading, setLoading] = useState(true);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  // Hero media state
+  // Hero media & slides state
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>(storeCtxSettings.heroSlides || []);
   const [heroMediaUrl, setHeroMediaUrl] = useState<string | null>(storeCtxSettings.heroMediaUrl || null);
   const [heroMediaType, setHeroMediaType] = useState<'image' | 'video' | null>(storeCtxSettings.heroMediaType || null);
   const [heroUploading, setHeroUploading] = useState(false);
   const [heroError, setHeroError] = useState<string | null>(null);
+  const [editingSlide, setEditingSlide] = useState<HeroSlide | null>(null);
   const heroFileRef = useRef<HTMLInputElement>(null);
 
   // Logo & Favicon upload state
@@ -36,9 +38,14 @@ export const SettingsTab: React.FC<{
     fetch('/api/hero-media')
       .then(r => (r.ok ? r.json() : null))
       .then(d => {
-        if (d && d.url) {
-          setHeroMediaUrl(normalizeAssetUrl(d.url));
-          setHeroMediaType(d.type);
+        if (d) {
+          if (Array.isArray(d.heroSlides) && d.heroSlides.length > 0) {
+            setHeroSlides(d.heroSlides.map((s: any) => ({ ...s, url: normalizeAssetUrl(s.url) })));
+          }
+          if (d.url) {
+            setHeroMediaUrl(normalizeAssetUrl(d.url));
+            setHeroMediaType(d.type);
+          }
         }
       })
       .catch(() => {});
@@ -148,8 +155,37 @@ export const SettingsTab: React.FC<{
       const cleanUrl = normalizeAssetUrl(data.url);
       setHeroMediaUrl(cleanUrl);
       setHeroMediaType(data.type);
-      // Persist to storeCtxSettings so HomePage picks it up immediately
-      syncToPublicSite({ ...storeCtxSettings, heroMediaUrl: cleanUrl, heroMediaType: data.type } as any);
+      
+      let updatedSlides = heroSlides;
+      if (data.heroSlides && Array.isArray(data.heroSlides)) {
+        updatedSlides = data.heroSlides.map((s: any) => ({ ...s, url: normalizeAssetUrl(s.url) }));
+      } else if (data.slide) {
+        updatedSlides = [...heroSlides, { ...data.slide, url: cleanUrl }];
+      } else {
+        updatedSlides = [...heroSlides, {
+          id: `slide-${Date.now()}`,
+          url: cleanUrl,
+          type: data.type,
+          badge: 'New Slide',
+          title: 'Handcrafted Peshawari Chappal',
+          subtitle: 'Crafted for Royalty.',
+          description: 'Premium full-grain cowhide leather crafted by master artisans.',
+          linkText: 'Shop Collection',
+          linkUrl: '/products',
+          active: true
+        }];
+      }
+      setHeroSlides(updatedSlides);
+      
+      const newSettings = {
+        ...(settings || storeCtxSettings),
+        heroMediaUrl: cleanUrl,
+        heroMediaType: data.type,
+        heroSlides: updatedSlides,
+      } as StoreSettings;
+      
+      setSettings(newSettings);
+      syncToPublicSite(newSettings);
     } catch (err: any) {
       setHeroError(err.message || 'Upload failed');
     } finally {
@@ -158,17 +194,61 @@ export const SettingsTab: React.FC<{
     }
   };
 
-  const handleHeroDelete = async () => {
+  const handleSlideToggleActive = (slideId: string) => {
+    const updated = heroSlides.map(s => s.id === slideId ? { ...s, active: s.active === false ? true : false } : s);
+    setHeroSlides(updated);
+    if (settings) {
+      const newSettings = { ...settings, heroSlides: updated };
+      setSettings(newSettings);
+      syncToPublicSite(newSettings);
+    }
+  };
+
+  const handleSlideMove = (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= heroSlides.length) return;
+    const updated = [...heroSlides];
+    const temp = updated[index];
+    updated[index] = updated[targetIndex];
+    updated[targetIndex] = temp;
+    setHeroSlides(updated);
+    if (settings) {
+      const newSettings = { ...settings, heroSlides: updated };
+      setSettings(newSettings);
+      syncToPublicSite(newSettings);
+    }
+  };
+
+  const handleSlideDelete = async (slideId: string) => {
     const token = getAdminToken();
     try {
-      await fetch('/api/admin/hero-media', {
+      const res = await fetch(`/api/admin/hero-media/${slideId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      setHeroMediaUrl(null);
-      setHeroMediaType(null);
-      syncToPublicSite({ ...storeCtxSettings, heroMediaUrl: null, heroMediaType: null } as any);
+      const data = await res.json();
+      const updated = heroSlides.filter(s => s.id !== slideId);
+      setHeroSlides(updated);
+      const newSettings = {
+        ...(settings || storeCtxSettings),
+        heroSlides: updated,
+        heroMediaUrl: updated[0]?.url || null,
+        heroMediaType: updated[0]?.type || null,
+      } as StoreSettings;
+      setSettings(newSettings);
+      syncToPublicSite(newSettings);
     } catch {}
+  };
+
+  const handleSlideSaveEdit = (updatedSlide: HeroSlide) => {
+    const updated = heroSlides.map(s => s.id === updatedSlide.id ? updatedSlide : s);
+    setHeroSlides(updated);
+    if (settings) {
+      const newSettings = { ...settings, heroSlides: updated };
+      setSettings(newSettings);
+      syncToPublicSite(newSettings);
+    }
+    setEditingSlide(null);
   };
 
   const loadSettings = async () => {
@@ -684,69 +764,266 @@ export const SettingsTab: React.FC<{
           </div>
         </div>
 
-        {/* Hero Media Upload */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
-          <h3 className="font-serif font-bold text-lg text-slate-900 pb-2 border-b border-slate-100 flex items-center gap-2">
-            <ImagePlay className="w-5 h-5 text-blue-600" /> Hero Section Background Media
-          </h3>
-          <p className="text-xs text-slate-500">Upload a WebP image or WebP/MP4 video to replace the hero section background on the public storefront. Recommended: 1920×1080 minimum.</p>
-
-          <div className="flex flex-col sm:flex-row gap-4 items-start">
-            {/* Preview */}
-            <div className="w-full sm:w-72 aspect-video rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
-              {heroMediaUrl ? (
-                heroMediaType === 'video' ? (
-                  <video src={heroMediaUrl} className="w-full h-full object-cover" autoPlay muted loop playsInline />
-                ) : (
-                  <img src={heroMediaUrl} alt="Hero background" className="w-full h-full object-cover" />
-                )
-              ) : (
-                <div className="flex flex-col items-center gap-2 text-slate-400">
-                  <ImagePlay className="w-10 h-10 opacity-40" />
-                  <span className="text-xs">No hero media set</span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-3 flex-1">
-              {heroError && (
-                <p className="text-xs text-red-600 font-semibold bg-red-50 px-3 py-2 rounded-lg border border-red-200">{heroError}</p>
-              )}
-
-              <label
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed ${
-                  currentRole !== 'superadmin' ? 'opacity-50 cursor-not-allowed border-slate-200' : 'border-blue-300 hover:border-blue-500 cursor-pointer bg-blue-50/50'
-                } text-xs font-semibold text-blue-700 transition-all`}
-              >
-                <Upload className="w-4 h-4" />
-                {heroUploading ? 'Uploading...' : 'Choose WebP image or WebM/MP4 video'}
-                <input
-                  ref={heroFileRef}
-                  type="file"
-                  accept="image/webp,image/jpeg,image/png,video/webm,video/mp4"
-                  className="hidden"
-                  disabled={currentRole !== 'superadmin' || heroUploading}
-                  onChange={handleHeroUpload}
-                />
-              </label>
-
-              {heroMediaUrl && (
-                <button
-                  type="button"
-                  onClick={handleHeroDelete}
-                  disabled={currentRole !== 'superadmin'}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 text-red-600 text-xs font-bold hover:bg-red-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Trash2 className="w-4 h-4" /> Remove Hero Media
-                </button>
-              )}
-
-              <p className="text-[11px] text-slate-400">
-                {heroMediaUrl ? `Active: ${heroMediaType === 'video' ? '🎬 Video' : '🖼️ Image'} background` : 'Default gradient will show when no media is set.'}
+        {/* Hero Section Slides & Video/Image Slider Manager */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div>
+              <h3 className="font-serif font-bold text-lg text-slate-900 flex items-center gap-2">
+                <ImagePlay className="w-5 h-5 text-blue-600" /> Hero Section Media Slider
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Upload WebP images, animated WebP, or WebM/MP4 videos. The storefront hero automatically transitions through these active slides one by one.
               </p>
             </div>
+            <label
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm transition-all ${
+                currentRole === 'staff'
+                  ? 'bg-slate-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
+              }`}
+            >
+              <Upload className="w-4 h-4" />
+              {heroUploading ? 'Uploading Media...' : '+ Upload New Slide'}
+              <input
+                ref={heroFileRef}
+                type="file"
+                accept="image/webp,image/jpeg,image/png,image/gif,image/avif,video/webm,video/mp4"
+                className="hidden"
+                disabled={currentRole === 'staff' || heroUploading}
+                onChange={handleHeroUpload}
+              />
+            </label>
+          </div>
+
+          {heroError && (
+            <p className="text-xs text-red-600 font-semibold bg-red-50 px-3.5 py-2.5 rounded-xl border border-red-200">
+              {heroError}
+            </p>
+          )}
+
+          {/* Slides List */}
+          <div className="space-y-4">
+            {heroSlides.length === 0 ? (
+              <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-500">
+                <ImagePlay className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                <p className="text-xs font-semibold">No custom hero slides uploaded yet.</p>
+                <p className="text-[11px] text-slate-400 mt-1">Default brand slides are currently showing on the storefront.</p>
+              </div>
+            ) : (
+              heroSlides.map((slide, idx) => (
+                <div
+                  key={slide.id || idx}
+                  className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl border transition-all ${
+                    slide.active !== false ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-50 border-slate-200 opacity-60'
+                  }`}
+                >
+                  {/* Media Thumbnail */}
+                  <div className="flex items-center gap-3.5 w-full sm:w-auto">
+                    <div className="w-24 h-16 sm:w-28 sm:h-18 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 relative">
+                      {slide.type === 'video' ? (
+                        <>
+                          <video src={normalizeAssetUrl(slide.url)} className="w-full h-full object-cover" muted playsInline />
+                          <span className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/70 text-[9px] font-bold text-white rounded">
+                            VIDEO
+                          </span>
+                        </>
+                      ) : (
+                        <img src={normalizeAssetUrl(slide.url)} alt={slide.title || 'Slide'} className="w-full h-full object-cover" />
+                      )}
+                    </div>
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-[10px] font-bold text-blue-700">
+                          Slide #{idx + 1}
+                        </span>
+                        {slide.badge && (
+                          <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md truncate max-w-[140px]">
+                            {slide.badge}
+                          </span>
+                        )}
+                        {slide.active === false && (
+                          <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">
+                            Disabled
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="font-serif font-bold text-sm text-slate-900 truncate">
+                        {slide.title || 'Untitled Slide'}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 truncate max-w-sm">
+                        {slide.subtitle || slide.description || 'No subtitle set'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actions Toolbar */}
+                  <div className="flex items-center gap-1.5 self-end sm:self-center">
+                    {/* Reorder Up */}
+                    <button
+                      type="button"
+                      disabled={idx === 0 || currentRole === 'staff'}
+                      onClick={() => handleSlideMove(idx, 'up')}
+                      title="Move Up"
+                      className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <ChevronUp className="w-4 h-4" />
+                    </button>
+                    {/* Reorder Down */}
+                    <button
+                      type="button"
+                      disabled={idx === heroSlides.length - 1 || currentRole === 'staff'}
+                      onClick={() => handleSlideMove(idx, 'down')}
+                      title="Move Down"
+                      className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                    {/* Toggle Active */}
+                    <button
+                      type="button"
+                      disabled={currentRole === 'staff'}
+                      onClick={() => handleSlideToggleActive(slide.id)}
+                      title={slide.active !== false ? 'Hide Slide' : 'Show Slide'}
+                      className={`p-2 rounded-xl border transition-all ${
+                        slide.active !== false
+                          ? 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'
+                          : 'border-slate-200 text-slate-400 hover:bg-slate-100'
+                      }`}
+                    >
+                      {slide.active !== false ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                    </button>
+                    {/* Edit Slide Details */}
+                    <button
+                      type="button"
+                      disabled={currentRole === 'staff'}
+                      onClick={() => setEditingSlide(slide)}
+                      title="Edit Slide Text & Links"
+                      className="p-2 rounded-xl border border-blue-200 text-blue-600 hover:bg-blue-50"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    {/* Delete Slide */}
+                    <button
+                      type="button"
+                      disabled={currentRole === 'staff'}
+                      onClick={() => handleSlideDelete(slide.id)}
+                      title="Delete Slide"
+                      className="p-2 rounded-xl border border-red-200 text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
+
+        {/* Edit Slide Modal */}
+        {editingSlide && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+            <div className="bg-white w-full max-w-lg rounded-3xl border border-slate-200 shadow-2xl overflow-hidden animate-scaleUp">
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="font-serif font-bold text-lg text-slate-900 flex items-center gap-2">
+                  <Edit3 className="w-5 h-5 text-blue-600" /> Edit Slide Text & Links
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setEditingSlide(null)}
+                  className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Badge Tag</label>
+                  <input
+                    type="text"
+                    value={editingSlide.badge || ''}
+                    onChange={e => setEditingSlide({ ...editingSlide, badge: e.target.value })}
+                    placeholder="e.g. Heritage Re-imagined, Camera Calibration"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:border-blue-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Primary Title</label>
+                  <input
+                    type="text"
+                    value={editingSlide.title || ''}
+                    onChange={e => setEditingSlide({ ...editingSlide, title: e.target.value })}
+                    placeholder="e.g. Authentic Peshawari Chappal"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:border-blue-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Subtitle / Tagline</label>
+                  <input
+                    type="text"
+                    value={editingSlide.subtitle || ''}
+                    onChange={e => setEditingSlide({ ...editingSlide, subtitle: e.target.value })}
+                    placeholder="e.g. Crafted for Royalty."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:border-blue-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
+                  <textarea
+                    rows={3}
+                    value={editingSlide.description || ''}
+                    onChange={e => setEditingSlide({ ...editingSlide, description: e.target.value })}
+                    placeholder="Short description highlighting craftsmanship, camera fit, or outfit pairing..."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:border-blue-600 focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Button Text</label>
+                    <input
+                      type="text"
+                      value={editingSlide.linkText || ''}
+                      onChange={e => setEditingSlide({ ...editingSlide, linkText: e.target.value })}
+                      placeholder="e.g. Shop Collection, Try Size Finder"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:border-blue-600 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Button Link URL</label>
+                    <input
+                      type="text"
+                      value={editingSlide.linkUrl || ''}
+                      onChange={e => setEditingSlide({ ...editingSlide, linkUrl: e.target.value })}
+                      placeholder="e.g. /products, /size-finder, /outfit-match"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:border-blue-600 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingSlide(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSlideSaveEdit(editingSlide)}
+                  className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-sm"
+                >
+                  Save Slide Details
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </form>
     </div>

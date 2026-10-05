@@ -47,6 +47,44 @@ const DEFAULT_SETTINGS: StoreSettings = {
   hideCategories: true, // Currently hidden per store requirements
   heroMediaUrl: null,
   heroMediaType: null,
+  heroSlides: [
+    {
+      id: 'slide-1',
+      url: '/uploads/hero.webp',
+      type: 'image',
+      badge: 'Heritage Re-imagined With AI Fit',
+      title: 'Authentic Peshawari Chappal',
+      subtitle: 'Crafted for Royalty.',
+      description: 'Hand-tanned full-grain cowhide leather, double-stitched by master craftsmen in Khyber Pakhtunkhwa.',
+      linkText: 'Shop Collection',
+      linkUrl: '/products',
+      active: true
+    },
+    {
+      id: 'slide-2',
+      url: '/images/ai-foot-scanner-demo.jpg',
+      type: 'image',
+      badge: 'Camera Size Calibration',
+      title: 'AI Foot Size Finder',
+      subtitle: 'True-to-Size Peshawari Fit.',
+      description: 'Place your foot on standard A4 paper. Millimeter-accurate size recommendation with zero guesswork.',
+      linkText: 'Try Size Finder',
+      linkUrl: '/size-finder',
+      active: true
+    },
+    {
+      id: 'slide-3',
+      url: '/images/ai-outfit-matcher-demo.jpg',
+      type: 'image',
+      badge: 'Color Harmony & Tone AI',
+      title: 'AI Traditional Outfit Matcher',
+      subtitle: 'Color & Tone Pairing.',
+      description: 'Upload a photo of your Shalwar Kameez or Kurta. Match with the ideal leather shade and silhouette.',
+      linkText: 'Match Your Outfit',
+      linkUrl: '/outfit-match',
+      active: true
+    }
+  ],
 };
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -68,6 +106,9 @@ export const StoreSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         if (parsed.logoUrl) parsed.logoUrl = normalizeAssetUrl(parsed.logoUrl);
         if (parsed.faviconUrl) parsed.faviconUrl = normalizeAssetUrl(parsed.faviconUrl);
         if (parsed.heroMediaUrl) parsed.heroMediaUrl = normalizeAssetUrl(parsed.heroMediaUrl);
+        if (Array.isArray(parsed.heroSlides)) {
+          parsed.heroSlides = parsed.heroSlides.map((s: any) => ({ ...s, url: normalizeAssetUrl(s.url) }));
+        }
         return { ...DEFAULT_SETTINGS, ...parsed };
       } catch {}
     }
@@ -85,6 +126,9 @@ export const StoreSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
             logoUrl: normalizeAssetUrl(data.logoUrl),
             faviconUrl: normalizeAssetUrl(data.faviconUrl) || '/favicon.ico',
             heroMediaUrl: normalizeAssetUrl(data.heroMediaUrl),
+            heroSlides: Array.isArray(data.heroSlides)
+              ? data.heroSlides.map((s: any) => ({ ...s, url: normalizeAssetUrl(s.url) }))
+              : undefined,
           };
           setSettings(prev => {
             const merged = { ...prev, ...normalized };
@@ -116,6 +160,9 @@ export const StoreSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       logoUrl: normalizeAssetUrl(s.logoUrl),
       faviconUrl: normalizeAssetUrl(s.faviconUrl),
       heroMediaUrl: normalizeAssetUrl(s.heroMediaUrl),
+      heroSlides: Array.isArray(s.heroSlides)
+        ? s.heroSlides.map((sl: any) => ({ ...sl, url: normalizeAssetUrl(sl.url) }))
+        : undefined,
     };
     setSettings(clean);
     localStorage.setItem('psh_store_settings', JSON.stringify(clean));

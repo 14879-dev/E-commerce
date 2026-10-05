@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
-import { WishlistProvider } from './context/WishlistContext';
 import { AdminAuthProvider } from './context/AdminAuthContext';
 import { StoreSettingsProvider } from './context/StoreSettingsContext';
 
@@ -12,7 +11,6 @@ import { AdminAuthGuard } from './components/admin/AdminAuthGuard';
 import { HomePage } from './pages/HomePage';
 import { CatalogPage } from './pages/CatalogPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
-import { WishlistPage } from './pages/WishlistPage';
 import { ShoppingBagPage } from './pages/ShoppingBagPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { OrderTrackingPage } from './pages/OrderTrackingPage';
@@ -56,7 +54,7 @@ const AppContent: React.FC = () => {
           <Route path="/" element={<HomePage />} />
           <Route path="/products" element={<CatalogPage />} />
           <Route path="/products/:slug" element={<ProductDetailPage />} />
-          <Route path="/wishlist" element={<WishlistPage />} />
+          <Route path="/wishlist" element={<Navigate to="/products" replace />} />
           <Route path="/bag" element={<ShoppingBagPage />} />
           <Route path="/cart" element={<Navigate to="/bag" replace />} />
           <Route path="/buy" element={<Navigate to="/checkout" replace />} />
@@ -66,6 +64,7 @@ const AppContent: React.FC = () => {
           <Route path="/customize/*" element={<Navigate to="/products" replace />} />
           <Route path="/customize" element={<Navigate to="/products" replace />} />
           <Route path="/size-finder" element={<FootSizeFinderPage />} />
+          <Route path="/foot-size-finder" element={<FootSizeFinderPage />} />
           <Route path="/outfit-match" element={<OutfitMatcherPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
@@ -101,10 +100,8 @@ export const App: React.FC = () => {
       <StoreSettingsProvider>
         <AdminAuthProvider>
           <CartProvider>
-            <WishlistProvider>
-              <ScrollToTop />
-              <AppContent />
-            </WishlistProvider>
+            <ScrollToTop />
+            <AppContent />
           </CartProvider>
         </AdminAuthProvider>
       </StoreSettingsProvider>

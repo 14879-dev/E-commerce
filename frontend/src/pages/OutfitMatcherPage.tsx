@@ -52,38 +52,73 @@ export const OutfitMatcherPage: React.FC = () => {
   const handleRunMatch = async () => {
     if (!canAnalyze) return;
     setIsAnalyzing(true);
-    const allProducts = await apiService.getProducts();
 
-    setTimeout(() => {
-      const results = allProducts.map(p => {
+    try {
+      const allProducts = await apiService.getProducts();
+
+      // Call Gemini-powered AI endpoint
+      let aiSlug = '';
+      let aiScore = 0;
+      let aiAdvice = '';
+
+      try {
+        const res = await fetch('/api/py/match-outfit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            outfit_type: outfitType === 'shalwar' ? 'Shalwar Kameez' : outfitType.charAt(0).toUpperCase() + outfitType.slice(1),
+            primary_color: outfitColor,
+            ...(inputMode === 'photo' && uploadedOutfitImg ? { image_base64: uploadedOutfitImg.split(',')[1] } : {}),
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.recommended_slug) {
+            aiSlug = data.recommended_slug;
+            aiScore = data.compatibility_score ?? 97;
+            aiAdvice = data.stylist_notes ?? '';
+          }
+        }
+      } catch (_) {
+        // AI endpoint unreachable – use local scoring only
+      }
+
+      // Score all products locally as a base
+      const scored = allProducts.map(p => {
         let score = 92;
         let advice = 'Harmonizes beautifully with natural leather grain tones.';
 
-        // Color scoring works for both modes
         if (outfitColor === 'cream' || outfitColor === 'white') {
           if (p.availableColors.includes('saddle-tan') || p.availableColors.includes('burnt-copper')) {
-            score = 98;
-            advice = 'High contrast luxury pairing — Saddle Tan upper highlights crisp white/cream fabrics perfectly.';
+            score = 98; advice = 'High contrast luxury pairing — Saddle Tan upper highlights crisp white/cream fabrics perfectly.';
           }
         } else if (outfitColor === 'black' || outfitColor === 'navy') {
-          if (p.availableColors.includes('espresso') || p.availableColors.includes('midnight-black')) {
-            score = 96;
-            advice = 'Monochromatic sophistication — Deep Espresso complements dark evening attire with refined depth.';
+          if (p.availableColors.includes('espresso') || p.availableColors.includes('midnight-black') || p.availableColors.includes('espresso-mocha-brown') || p.availableColors.includes('midnight-jet-black')) {
+            score = 96; advice = 'Monochromatic sophistication — Deep Espresso complements dark evening attire with refined depth.';
           }
         } else if (outfitColor === 'maroon' || outfitColor === 'olive') {
-          if (p.availableColors.includes('mustard-gold') || p.availableColors.includes('burnt-copper')) {
-            score = 97;
-            advice = 'Warm regal synergy — Burnt copper & brass details elevate traditional velvet and silk fabrics.';
+          if (p.availableColors.includes('mustard-gold') || p.availableColors.includes('burnt-copper') || p.availableColors.includes('vintage-tan') || p.availableColors.includes('mustard-camel')) {
+            score = 97; advice = 'Warm regal synergy — Burnt copper & brass details elevate traditional velvet and silk fabrics.';
           }
         }
 
-        return { product: p, matchScore: score, advice };
-      }).sort((a, b) => b.matchScore - a.matchScore).slice(0, 3);
+        // Boost AI-recommended product to the top
+        if (aiSlug && p.slug === aiSlug) {
+          score = aiScore;
+          advice = aiAdvice || advice;
+        }
 
+        return { product: p, matchScore: score, advice };
+      });
+
+      const results = scored.sort((a, b) => b.matchScore - a.matchScore).slice(0, 3);
       setMatchedProducts(results);
+      apiService.recordAiEvent('outfit_match');
+    } finally {
       setIsAnalyzing(false);
-    }, 1800);
+    }
   };
+
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -254,11 +289,13 @@ export const OutfitMatcherPage: React.FC = () => {
             {matchedProducts.map(({ product, matchScore, advice }, idx) => (
               <div key={product.id} className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
                 {/* Match Score Banner */}
-                <div className="px-4 py-2 bg-blue-50 border-b border-blue-100 flex items-center justify-between">
-                  <span className="font-bold text-blue-600 text-xs flex items-center gap-1.5">
+                <div className={`px-4 py-2 border-b flex items-center justify-between ${idx === 0 ? 'bg-amber-50 border-amber-100' : 'bg-blue-50 border-blue-100'}`}>
+                  <span className={`font-bold text-xs flex items-center gap-1.5 ${idx === 0 ? 'text-amber-700' : 'text-blue-600'}`}>
                     <Sparkles className="w-3.5 h-3.5" /> #{idx + 1} — {matchScore}% Match
                   </span>
-                  <span className="text-[10px] text-slate-400 font-medium">AI Certified</span>
+                  <span className={`text-[10px] font-bold ${idx === 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                    {idx === 0 ? '✦ Gemini AI Pick' : 'AI Certified'}
+                  </span>
                 </div>
 
                 {/* Compact Horizontal Card */}

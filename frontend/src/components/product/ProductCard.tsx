@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, Star, ShoppingBag, Check } from 'lucide-react';
+import { Star, ShoppingBag, Check } from 'lucide-react';
 import type { Product, LeatherColor } from '../../types';
-import { useWishlist } from '../../context/WishlistContext';
 import { useCart } from '../../context/CartContext';
 import { useStoreSettings } from '../../context/StoreSettingsContext';
 
 export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
-  const { isInWishlist, toggleWishlist } = useWishlist();
   const { addToCart } = useCart();
   const { formatPrice } = useStoreSettings();
   const navigate = useNavigate();
-  const isWishlisted = isInWishlist(product.id);
   const [justAdded, setJustAdded] = useState(false);
 
   const getDefaults = (): { size: number; color: LeatherColor } => {
@@ -47,22 +44,6 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
     <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md hover:border-blue-400/60 transition-all duration-200 group flex flex-col justify-between overflow-hidden h-full transform-gpu">
       {/* Image Container with Link */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-50 p-2 sm:p-3">
-        {/* Wishlist Button Top Right */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            toggleWishlist(product);
-          }}
-          className={`absolute top-2 right-2 z-20 p-2 sm:p-2.5 rounded-full backdrop-blur-md transition-all duration-200 cursor-pointer ${isWishlisted
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'bg-white/80 hover:bg-white text-slate-700 border border-slate-200 shadow-xs'
-            }`}
-          title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
-        >
-          <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isWishlisted ? 'fill-current' : ''}`} />
-        </button>
 
         {/* Sale Badge */}
         {Boolean(product.originalPrice && product.originalPrice > product.price) && (

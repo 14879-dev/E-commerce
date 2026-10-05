@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Heart, ShoppingBag, Ruler, Star, CheckCircle } from 'lucide-react';
+import { ShoppingBag, Ruler, Star, CheckCircle } from 'lucide-react';
 import { ProductReviews } from '../components/product/ProductReviews';
 import { ProductCard } from '../components/product/ProductCard';
 import { SEOHelmet } from '../components/common/SEOHelmet';
 import { apiService } from '../services/api';
 import type { Product, LeatherColor } from '../types';
 import { useCart } from '../context/CartContext';
-import { useWishlist } from '../context/WishlistContext';
 import { useStoreSettings } from '../context/StoreSettingsContext';
 
 const COLOR_HEX_MAP: Record<string, string> = {
@@ -23,7 +22,6 @@ export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  const { isInWishlist, toggleWishlist } = useWishlist();
   const { formatPrice } = useStoreSettings();
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -115,8 +113,6 @@ export const ProductDetailPage: React.FC = () => {
       </div>
     );
   }
-
-  const isWishlisted = isInWishlist(product.id);
 
   const handleAddToCart = () => {
     addToCart(product, selectedSize, selectedColor);
@@ -305,19 +301,6 @@ export const ProductDetailPage: React.FC = () => {
                 <span>Buy Now</span>
               </button>
 
-              {/* Wishlist Button */}
-              <button
-                type="button"
-                onClick={() => toggleWishlist(product)}
-                className={`p-3 sm:p-3.5 rounded-xl border transition-all cursor-pointer shrink-0 active:scale-95 ${
-                  isWishlisted
-                    ? 'border-rose-300 bg-rose-50 text-rose-600 shadow-xs'
-                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                }`}
-                title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
-              >
-                <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${isWishlisted ? 'fill-current' : ''}`} />
-              </button>
             </div>
 
             {addedNotice && (
