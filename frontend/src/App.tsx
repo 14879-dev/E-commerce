@@ -43,7 +43,7 @@ const AppContent: React.FC = () => {
   const isHomePage = location.pathname === '/';
 
   return (
-    <div className="min-h-screen flex flex-col relative selection:bg-blue-600 selection:text-white bg-white">
+    <div className="min-h-screen flex flex-col relative selection:bg-[#565449] selection:text-[#F7F4EB] bg-[#F7F4EB] text-[#1A1A18]">
       {/* Top Navigation Header (Only on public storefront routes) */}
       {!isAdminRoute && <Header />}
 

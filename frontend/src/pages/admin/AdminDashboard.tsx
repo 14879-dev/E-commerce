@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, Box, ShoppingBag, Users, Star, Tag, BarChart3, 
-  MessageSquare, Settings, Bell, Search, ShieldCheck, ChevronDown, LogOut, Menu, X, Layers, KeyRound, UserCog, Coins
+  MessageSquare, Settings, Bell, Search, ShieldCheck, ChevronDown, LogOut, Menu, X, Layers, KeyRound, UserCog, Coins, Radio
 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { DashboardTab } from './DashboardTab';
@@ -53,8 +53,6 @@ const getInitialTab = (): AdminTab => {
     const urlParams = new URLSearchParams(window.location.search);
     const tabFromUrl = urlParams.get('tab') as AdminTab;
     if (tabFromUrl && VALID_TABS.includes(tabFromUrl)) return tabFromUrl;
-    const saved = localStorage.getItem('psh_admin_active_tab') as AdminTab;
-    if (saved && VALID_TABS.includes(saved)) return saved;
   } catch {}
   return 'dashboard';
 };
@@ -239,12 +237,15 @@ export const AdminDashboard: React.FC = () => {
 
   const unreadNotifCount = notifications.filter(n => !n.read).length;
 
-  const allSidebarNavItems = [
+  const mainNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'orders', label: 'Orders & Fulfillment', icon: ShoppingBag },
     { id: 'products', label: 'Product Catalog', icon: Box },
+  ] as const;
+
+  const allMoreNavItems = [
     { id: 'categories', label: 'Categories Catalog', icon: Layers },
     { id: 'investments', label: 'Packaging & Investments', icon: Coins },
-    { id: 'orders', label: 'Orders & Fulfillment', icon: ShoppingBag },
     { id: 'customers', label: 'Buyer Directory', icon: Users },
     { id: 'reviews', label: 'Reviews & Ratings', icon: Star },
     { id: 'promo-codes', label: 'Promo Codes', icon: Tag },
@@ -254,54 +255,84 @@ export const AdminDashboard: React.FC = () => {
   ] as const;
 
   // Filter out restricted items if user is manager
-  const sidebarNavItems = isManager
-    ? allSidebarNavItems.filter(item => ['dashboard', 'products', 'categories', 'investments', 'orders', 'customers', 'reviews'].includes(item.id))
-    : allSidebarNavItems;
+  const moreNavItems = isManager
+    ? allMoreNavItems.filter(item => ['categories', 'investments', 'customers', 'reviews'].includes(item.id))
+    : allMoreNavItems;
 
   // Shared sidebar nav content rendered in both mobile overlay and desktop panel
   const SidebarContent = () => (
-    <nav className="space-y-1">
-      <div className="flex items-center justify-between px-3 mb-2">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-          {isManager ? 'Manager Portal' : 'Main Management'}
-        </span>
-        {isManager && (
-          <span className="text-[9px] bg-amber-500/10 text-amber-600 font-bold px-1.5 py-0.5 rounded border border-amber-500/20 uppercase">
-            Restricted
+    <nav className="space-y-5">
+      {/* Main Section */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between px-3 mb-2">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[#F7F4EB]/70">
+            Main Menu
           </span>
-        )}
+          {isManager && (
+            <span className="text-[9px] bg-[#45433A] text-[#F7F4EB] font-bold px-1.5 py-0.5 rounded border border-[#F7F4EB]/20 uppercase">
+              Manager
+            </span>
+          )}
+        </div>
+        {mainNavItems.map(item => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          const showQueueBadge = item.id === 'orders' && liveOrderCount !== null && liveOrderCount > 0;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id as any)}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
+                isActive
+                  ? 'bg-[#F7F4EB] text-[#565449] shadow-sm font-black'
+                  : 'text-[#F7F4EB]/85 hover:bg-[#45433A] hover:text-[#F7F4EB]'
+              }`}
+            >
+              <Icon className={`w-4 h-4 ${isActive ? 'text-[#565449]' : 'text-[#F7F4EB]/70'}`} />
+              <span className="flex-1">{item.label}</span>
+              {showQueueBadge && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center ${
+                  isActive ? 'bg-[#565449] text-[#F7F4EB]' : 'bg-orange-500 text-white shadow-xs'
+                }`}>
+                  {liveOrderCount}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
-      {sidebarNavItems.map(item => {
-        const Icon = item.icon;
-        const isActive = activeTab === item.id;
-        const showQueueBadge = item.id === 'orders' && liveOrderCount !== null && liveOrderCount > 0;
-        return (
-          <button
-            key={item.id}
-            onClick={() => setActiveTab(item.id as any)}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left ${
-              isActive
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-            <span className="flex-1">{item.label}</span>
-            {showQueueBadge && (
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center ${
-                isActive ? 'bg-white/25 text-white' : 'bg-amber-500 text-white'
-              }`}>
-                {liveOrderCount}
-              </span>
-            )}
-          </button>
-        );
-      })}
+
+      {/* More Section */}
+      <div className="space-y-1 pt-3 border-t border-[#F7F4EB]/20">
+        <div className="px-3 mb-2">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[#F7F4EB]/70">
+            More
+          </span>
+        </div>
+        {moreNavItems.map(item => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id as any)}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
+                isActive
+                  ? 'bg-[#F7F4EB] text-[#565449] shadow-sm font-black'
+                  : 'text-[#F7F4EB]/85 hover:bg-[#45433A] hover:text-[#F7F4EB]'
+              }`}
+            >
+              <Icon className={`w-4 h-4 ${isActive ? 'text-[#565449]' : 'text-[#F7F4EB]/70'}`} />
+              <span className="flex-1">{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
     </nav>
   );
 
   return (
-    <div className="min-h-screen bg-slate-50/50 flex flex-col -mx-4 sm:-mx-6 lg:-mx-8 -my-6 sm:-my-8 relative">
+    <div className="min-h-screen bg-[#F7F4EB] text-[#1A1A18] flex flex-col -mx-4 sm:-mx-6 lg:-mx-8 -my-6 sm:-my-8 relative">
       <SEOHelmet
         title="Admin Control Center"
         description="Protected administration portal for Peshawari Chappal products, categories catalog, order tracking, and reviews."
@@ -309,17 +340,17 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Floating Real-Time Live Notification Pop-Up Toast */}
       {liveToast && (
-        <div className="fixed top-5 right-5 z-[99999] max-w-sm w-full bg-slate-900/95 text-white p-4 rounded-2xl shadow-2xl border border-blue-500/40 backdrop-blur-md flex items-start gap-3 animate-in slide-in-from-top-4 duration-300">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-lg mt-0.5">
+        <div className="fixed top-5 right-5 z-[99999] max-w-sm w-full bg-[#565449] text-[#F7F4EB] p-4 rounded-2xl shadow-2xl border border-[#A0988A]/40 backdrop-blur-md flex items-start gap-3 animate-in slide-in-from-top-4 duration-300">
+          <div className="w-9 h-9 rounded-xl bg-[#A0988A]/30 text-[#F7F4EB] flex items-center justify-center shrink-0 shadow-lg mt-0.5 border border-[#F7F4EB]/40">
             <Bell className="w-4 h-4 animate-bounce" />
           </div>
           <div className="flex-1 min-w-0 pr-1">
             <div className="flex items-center justify-between gap-1">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-blue-400">Live Alert</span>
-              <span className="text-[10px] text-slate-400">{liveToast.timestamp || 'Just now'}</span>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#F7F4EB]">Live Alert</span>
+              <span className="text-[10px] text-[#F7F4EB]/70">{liveToast.timestamp || 'Just now'}</span>
             </div>
-            <h5 className="font-bold text-xs text-white truncate mt-0.5">{liveToast.title}</h5>
-            <p className="text-[11px] text-slate-300 line-clamp-2 mt-0.5 leading-snug">{liveToast.description}</p>
+            <h5 className="font-bold text-xs text-[#F7F4EB] truncate mt-0.5">{liveToast.title}</h5>
+            <p className="text-[11px] text-[#F7F4EB]/80 line-clamp-2 mt-0.5 leading-snug">{liveToast.description}</p>
             {liveToast.link && (
               <button
                 onClick={() => {
@@ -330,7 +361,7 @@ export const AdminDashboard: React.FC = () => {
                   handleMarkNotifRead(liveToast.id);
                   setLiveToast(null);
                 }}
-                className="mt-2 text-[11px] font-bold text-blue-400 hover:text-blue-300 underline underline-offset-2 flex items-center gap-1 cursor-pointer"
+                className="mt-2 text-[11px] font-bold text-[#F7F4EB] underline underline-offset-2 flex items-center gap-1 cursor-pointer"
               >
                 View in Portal →
               </button>
@@ -338,7 +369,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
           <button
             onClick={() => setLiveToast(null)}
-            className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
+            className="text-[#F7F4EB]/70 hover:text-[#F7F4EB] p-1 rounded-lg transition-colors cursor-pointer"
             aria-label="Dismiss notification"
           >
             <X className="w-3.5 h-3.5" />
@@ -347,52 +378,48 @@ export const AdminDashboard: React.FC = () => {
       )}
 
       {/* Top Global Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 sm:px-8 py-3 flex items-center justify-between gap-4 shadow-xs">
+      <header className="sticky top-0 z-40 bg-[#565449] border-b border-[#45433A] px-4 sm:px-8 py-3 flex items-center justify-between gap-4 shadow-md text-[#F7F4EB]">
 
         {/* Left: Hamburger (mobile) + Brand */}
         <div className="flex items-center gap-3">
           {/* ☰ Hamburger — mobile only */}
           <button
             onClick={() => setMobileSidebarOpen(true)}
-            className="md:hidden p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900 transition-all"
+            className="md:hidden p-2 rounded-xl bg-[#45433A] border border-[#F7F4EB]/25 text-[#F7F4EB] hover:bg-[#3F3E36] transition-all cursor-pointer"
             aria-label="Open navigation menu"
           >
             <Menu className="w-5 h-5" />
           </button>
 
-          <div className="font-serif text-xl font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2">
-            <span className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm">P</span>
+          <div className="font-serif text-xl font-bold uppercase tracking-wider text-[#F7F4EB] flex items-center gap-2">
+            <span className="w-8 h-8 rounded-xl bg-[#F7F4EB] text-[#565449] border border-[#F7F4EB]/30 flex items-center justify-center font-bold text-sm">P</span>
             <span>Peshawari</span>
-            <span className="text-xs font-sans text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 uppercase tracking-widest font-semibold hidden sm:inline">Admin Hub</span>
+            <span className="text-xs font-sans text-[#F7F4EB] bg-[#45433A] px-2 py-0.5 rounded-full border border-[#F7F4EB]/25 uppercase tracking-widest font-bold hidden sm:inline">Admin Hub</span>
             {/* LIVE indicator */}
-            <span className={`hidden lg:flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-widest transition-all duration-300 ${
-              isLivePulse
-                ? 'bg-emerald-100 text-emerald-700 border-emerald-400 scale-105'
-                : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+            <span className={`hidden lg:flex items-center gap-1.5 text-[10px] font-extrabold px-3 py-1 rounded-full border border-emerald-400 bg-emerald-950/80 text-emerald-400 shadow-sm uppercase tracking-widest transition-all duration-300 ${
+              isLivePulse ? 'scale-105 ring-2 ring-emerald-400/50' : ''
             }`}>
-              <span className={`w-1.5 h-1.5 rounded-full bg-emerald-500 ${
-                isLivePulse ? 'animate-ping' : 'animate-pulse'
-              }`} />
-              Live
+              <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+              <span className="text-emerald-400 font-black">Live</span>
             </span>
           </div>
 
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700">
-            <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+          <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#45433A] border border-[#F7F4EB]/25 text-xs font-bold text-[#F7F4EB]">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#F7F4EB]" />
             <span>Role:</span>
-            <span className="uppercase text-blue-600">{currentRole}</span>
+            <span className="uppercase text-[#F7F4EB] font-bold">{currentRole}</span>
           </div>
         </div>
 
         {/* Center: Global Search */}
         <div className="hidden sm:flex flex-1 max-w-md relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#1A1A18]/60" />
           <input
             type="text"
             value={globalSearch}
             onChange={e => setGlobalSearch(e.target.value)}
             placeholder="Search orders, customers, SKUs, promo codes..."
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-blue-600"
+            className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#F7F4EB] border border-[#45433A] text-[#1A1A18] placeholder-[#1A1A18]/50 text-xs focus:outline-none focus:ring-2 focus:ring-[#F7F4EB]/50"
           />
         </div>
 
@@ -403,23 +430,23 @@ export const AdminDashboard: React.FC = () => {
           <div className="relative" ref={notifRef}>
             <button
               onClick={() => setShowNotificationsDropdown(!showNotificationsDropdown)}
-              className="relative p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 transition-all"
+              className="relative p-2 rounded-xl bg-[#45433A] border border-[#F7F4EB]/30 text-[#F7F4EB] hover:bg-[#3F3E36] transition-all cursor-pointer"
             >
               <Bell className="w-4 h-4" />
               {unreadNotifCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center border-2 border-white">
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center border-2 border-[#565449]">
                   {unreadNotifCount}
                 </span>
               )}
             </button>
 
             {showNotificationsDropdown && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl border border-slate-200 shadow-2xl p-4 space-y-3 z-50">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-[#F7F4EB] rounded-2xl border border-[#565449]/35 shadow-2xl p-4 space-y-3 z-50">
+                <div className="flex items-center justify-between pb-2 border-b border-[#565449]/20">
                   <div className="flex items-center gap-2">
-                    <h4 className="font-serif font-bold text-sm text-slate-900">Live Admin Notifications</h4>
+                    <h4 className="font-serif font-bold text-sm text-[#1A1A18]">Live Admin Notifications</h4>
                     {unreadNotifCount > 0 && (
-                      <span className="text-[10px] bg-blue-50 text-blue-600 font-bold px-2 py-0.5 rounded-full border border-blue-200">
+                      <span className="text-[10px] bg-[#565449] text-[#F7F4EB] font-bold px-2 py-0.5 rounded-full">
                         {unreadNotifCount} unread
                       </span>
                     )}
@@ -427,7 +454,7 @@ export const AdminDashboard: React.FC = () => {
                   {notifications.length > 0 && (
                     <button
                       onClick={handleClearAllNotifs}
-                      className="text-[11px] text-slate-400 hover:text-rose-600 transition-colors font-medium"
+                      className="text-[11px] text-[#1A1A18]/70 hover:text-[#1A1A18] transition-colors font-bold cursor-pointer"
                     >
                       Clear All
                     </button>
@@ -435,10 +462,10 @@ export const AdminDashboard: React.FC = () => {
                 </div>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {notifications.length === 0 ? (
-                    <div className="py-6 text-center text-slate-400 text-xs">
-                      <Bell className="w-8 h-8 text-slate-300 mx-auto mb-2 opacity-50" />
-                      <p className="font-semibold text-slate-700">All caught up!</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5 max-w-xs mx-auto">
+                    <div className="py-6 text-center text-[#1A1A18]/70 text-xs">
+                      <Bell className="w-8 h-8 text-[#1A1A18]/40 mx-auto mb-2 opacity-50" />
+                      <p className="font-bold text-[#1A1A18]">All caught up!</p>
+                      <p className="text-[11px] text-[#1A1A18]/80 mt-0.5 max-w-xs mx-auto">
                         Real-time alerts will appear here as orders, reviews, and stock changes occur.
                       </p>
                     </div>
@@ -448,14 +475,14 @@ export const AdminDashboard: React.FC = () => {
                         key={n.id}
                         onClick={() => handleMarkNotifRead(n.id)}
                         className={`p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
-                          !n.read ? 'bg-blue-50/70 border-blue-200' : 'bg-slate-50 border-slate-200 opacity-75'
+                          !n.read ? 'bg-[#A0988A]/30 border-[#565449]/30' : 'bg-[#A0988A]/15 border-[#565449]/15 opacity-75'
                         }`}
                       >
-                        <div className="flex items-center justify-between font-bold text-slate-900">
+                        <div className="flex items-center justify-between font-bold text-[#1A1A18]">
                           <span>{n.title}</span>
-                          <span className="text-[10px] text-slate-400 font-normal">{n.timestamp}</span>
+                          <span className="text-[10px] text-[#1A1A18]/70 font-normal">{n.timestamp}</span>
                         </div>
-                        <p className="text-[11px] text-slate-600 mt-0.5">{n.description}</p>
+                        <p className="text-[11px] text-[#1A1A18]/80 mt-0.5">{n.description}</p>
                       </div>
                     ))
                   )}
@@ -468,11 +495,11 @@ export const AdminDashboard: React.FC = () => {
           {currentRole === 'superadmin' && (
             <button
               onClick={() => setShowManagersModal(true)}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 hover:bg-amber-500/20 text-xs font-bold transition-all shadow-xs"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#45433A] text-[#F7F4EB] hover:bg-[#3F3E36] border border-[#F7F4EB]/30 text-xs font-bold transition-all shadow-xs cursor-pointer"
               title="Add or remove managers"
             >
-              <UserCog className="w-4 h-4 text-amber-600" />
-              <span>Team & Managers</span>
+              <UserCog className="w-4 h-4 text-[#F7F4EB]" />
+              <span>Team &amp; Managers</span>
             </button>
           )}
 
@@ -480,27 +507,27 @@ export const AdminDashboard: React.FC = () => {
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center gap-2.5 p-1.5 pl-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-all text-xs"
+              className="flex items-center gap-2.5 p-1.5 pl-2.5 rounded-xl bg-[#45433A] border border-[#F7F4EB]/30 hover:bg-[#3F3E36] transition-all text-xs cursor-pointer text-[#F7F4EB]"
             >
-              <div className="w-7 h-7 rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center font-serif">
+              <div className="w-7 h-7 rounded-lg bg-[#F7F4EB] text-[#565449] border border-[#F7F4EB]/30 font-bold flex items-center justify-center font-serif">
                 {user?.username ? user.username.charAt(0).toUpperCase() : 'A'}
               </div>
               <div className="hidden md:block text-left">
-                <span className="font-bold text-slate-900 block leading-none">
+                <span className="font-bold text-[#F7F4EB] block leading-none">
                   {user?.username || 'Admin'}
                 </span>
-                <span className="text-[10px] text-slate-500 uppercase font-semibold">
+                <span className="text-[10px] text-[#F7F4EB]/70 uppercase font-bold">
                   {currentRole === 'superadmin' ? 'Super Admin' : currentRole === 'manager' ? 'Store Manager' : currentRole}
                 </span>
               </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <ChevronDown className="w-3.5 h-3.5 text-[#F7F4EB]/70" />
             </button>
 
             {showProfileMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-slate-200 shadow-2xl p-2 space-y-1 text-xs z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                <div className="p-2.5 border-b border-slate-100">
-                  <span className="font-bold text-slate-900 block text-sm">{user?.username || 'Admin User'}</span>
-                  <span className="text-[11px] font-medium text-blue-600 uppercase tracking-wide">
+              <div className="absolute right-0 mt-2 w-56 bg-[#F7F4EB] rounded-2xl border border-[#565449]/35 shadow-2xl p-2 space-y-1 text-xs z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="p-2.5 border-b border-[#565449]/20">
+                  <span className="font-bold text-[#1A1A18] block text-sm">{user?.username || 'Admin User'}</span>
+                  <span className="text-[11px] font-medium text-[#1A1A18]/70 uppercase tracking-wide">
                     {currentRole === 'superadmin' ? 'Super Admin (Full Access)' : currentRole === 'manager' ? 'Store Manager (Restricted)' : currentRole}
                   </span>
                 </div>
@@ -511,9 +538,9 @@ export const AdminDashboard: React.FC = () => {
                     setShowProfileMenu(false);
                     setShowCredentialsModal(true);
                   }}
-                  className="w-full text-left p-2 rounded-xl flex items-center gap-2.5 font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                  className="w-full text-left p-2 rounded-xl flex items-center gap-2.5 font-bold text-[#1A1A18] hover:bg-[#A0988A]/30 transition-colors cursor-pointer"
                 >
-                  <KeyRound className="w-4 h-4 text-amber-600" />
+                  <KeyRound className="w-4 h-4 text-[#1A1A18]" />
                   <span>Change Username / Password</span>
                 </button>
 
@@ -524,17 +551,17 @@ export const AdminDashboard: React.FC = () => {
                       setShowProfileMenu(false);
                       setShowManagersModal(true);
                     }}
-                    className="w-full text-left p-2 rounded-xl flex items-center gap-2.5 font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                    className="w-full text-left p-2 rounded-xl flex items-center gap-2.5 font-bold text-[#1A1A18] hover:bg-[#A0988A]/30 transition-colors cursor-pointer"
                   >
-                    <UserCog className="w-4 h-4 text-blue-600" />
+                    <UserCog className="w-4 h-4 text-[#1A1A18]" />
                     <span>Manage Store Managers</span>
                   </button>
                 )}
 
-                <div className="border-t border-slate-100 mt-1 pt-1">
+                <div className="border-t border-[#565449]/20 mt-1 pt-1">
                   <button
                     onClick={() => logout()}
-                    className="w-full text-left p-2 rounded-xl flex items-center gap-2.5 font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
+                    className="w-full text-left p-2 rounded-xl flex items-center gap-2.5 font-bold text-[#1A1A18] hover:bg-[#565449] hover:text-[#F7F4EB] transition-colors cursor-pointer"
                   >
                     <LogOut className="w-4 h-4" />
                     <span>Sign Out</span>
@@ -554,19 +581,19 @@ export const AdminDashboard: React.FC = () => {
           <div className="fixed inset-0 z-50 md:hidden">
             {/* Semi-transparent backdrop — tap to close */}
             <div
-              className="absolute inset-0 bg-slate-900/50 backdrop-blur-xs"
+              className="absolute inset-0 bg-[#565449]/60 backdrop-blur-xs"
               onClick={() => setMobileSidebarOpen(false)}
             />
             {/* Slide-in panel */}
-            <aside className="absolute left-0 top-0 bottom-0 w-72 bg-white shadow-2xl p-5 overflow-y-auto flex flex-col gap-4 animate-in slide-in-from-left duration-200">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <aside className="absolute left-0 top-0 bottom-0 w-72 bg-[#565449] border-r border-[#45433A] shadow-2xl p-5 overflow-y-auto flex flex-col gap-4 animate-in slide-in-from-left duration-200 text-[#F7F4EB]">
+              <div className="flex items-center justify-between pb-3 border-b border-[#F7F4EB]/20">
                 <div className="flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm">P</span>
-                  <span className="font-serif font-bold text-slate-900">Admin Panel</span>
+                  <span className="w-7 h-7 rounded-lg bg-[#F7F4EB] text-[#565449] border border-[#F7F4EB]/30 flex items-center justify-center font-bold text-sm">P</span>
+                  <span className="font-serif font-bold text-[#F7F4EB]">Admin Panel</span>
                 </div>
                 <button
                   onClick={() => setMobileSidebarOpen(false)}
-                  className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400"
+                  className="p-1.5 rounded-lg hover:bg-[#45433A] text-[#F7F4EB] cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -577,7 +604,7 @@ export const AdminDashboard: React.FC = () => {
         )}
 
         {/* ── Desktop Persistent Sidebar ── */}
-        <aside className="hidden md:block w-64 bg-white border-r border-slate-200 p-4 shrink-0 sticky top-[57px] self-start h-[calc(100vh-57px)] overflow-y-auto">
+        <aside className="hidden md:block w-64 bg-[#565449] border-r border-[#45433A] p-4 shrink-0 sticky top-[57px] self-start h-[calc(100vh-57px)] overflow-y-auto text-[#F7F4EB]">
           <SidebarContent />
         </aside>
 

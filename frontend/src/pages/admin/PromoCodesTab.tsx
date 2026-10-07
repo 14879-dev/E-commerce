@@ -172,10 +172,11 @@ export const PromoCodesTab: React.FC = () => {
                     <td className="py-3.5 px-4 text-right space-x-2">
                       <button
                         onClick={() => handleDeletePromo(promo.id)}
-                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-rose-500 transition-colors"
+                        className="p-1.5 rounded-lg border transition-colors shadow-2xs hover:scale-105"
+                        style={{ color: '#DC2626', backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }}
                         title="Delete Promo"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5" style={{ color: '#DC2626', stroke: '#DC2626' }} />
                       </button>
                     </td>
                   </tr>

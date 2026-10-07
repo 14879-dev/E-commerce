@@ -232,10 +232,11 @@ export const ManagersModal: React.FC<ManagersModalProps> = ({ isOpen, onClose })
                       </span>
                       <button
                         onClick={() => handleDeleteManager(m.id, m.username)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer"
+                        className="p-1.5 rounded-lg border transition-all cursor-pointer shadow-2xs hover:scale-105"
+                        style={{ color: '#DC2626', backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }}
                         title="Remove manager"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" style={{ color: '#DC2626', stroke: '#DC2626' }} />
                       </button>
                     </div>
                   </div>

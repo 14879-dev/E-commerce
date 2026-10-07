@@ -97,7 +97,17 @@ export const apiService = {
         return merged.filter(p => !disabledNames.has((p.category || '').toLowerCase()));
       }
     } catch {}
-    const stored = getStoredProducts().map(p => {
+    let localProducts = getStoredProducts();
+    if (localProducts.length === 0) {
+      try {
+        const localRes = await fetch('/data/products.json');
+        if (localRes.ok) {
+          localProducts = await localRes.json();
+          saveStoredProducts(localProducts);
+        }
+      } catch {}
+    }
+    const stored = localProducts.map(p => {
       const rawSizes = Array.isArray(p.availableSizes) ? p.availableSizes.map(Number).filter(s => s >= 7 && s <= 13) : [];
       return {
         ...p,
@@ -622,6 +632,9 @@ export const apiService = {
     const orders = getStoredOrders();
     return orders.find(o => o.id === id || o.orderNumber === id) || null;
   },
+  async getOrder(id: string): Promise<Order | null> {
+    return this.getOrderById(id);
+  },
   async createOrder(orderData: Omit<Order, 'id' | 'orderNumber' | 'date' | 'status' | 'trackingSteps'>): Promise<Order> {
     const id = `ord-${Date.now()}`;
     const orderNumber = `PSH-${Math.floor(10000 + Math.random() * 90000)}`;
@@ -967,6 +980,28 @@ export const apiService = {
     const filtered = promos.filter(p => p.id !== id);
     localStorage.setItem('psh_promos', JSON.stringify(filtered));
     return true;
+  },
+  async validatePromoCode(code: string, subtotal: number): Promise<{ valid: boolean; promoCode?: PromoCode; message?: string }> {
+    const promos = await this.getPromoCodes();
+    const clean = code.trim().toUpperCase();
+    const promo = promos.find(p => p.code.toUpperCase() === clean);
+    if (!promo) {
+      return { valid: false, message: 'Invalid or unrecognized promo code.' };
+    }
+    if (!promo.active) {
+      return { valid: false, message: 'This promo code is currently inactive.' };
+    }
+    if (promo.minOrderValue && subtotal < promo.minOrderValue) {
+      return { valid: false, message: `Minimum order value for this code is Rs. ${promo.minOrderValue.toLocaleString()}.` };
+    }
+    const today = new Date().toISOString().split('T')[0];
+    if (promo.expiryDate && promo.expiryDate < today) {
+      return { valid: false, message: 'This promo code has expired.' };
+    }
+    if (promo.usageLimit && promo.timesUsed >= promo.usageLimit) {
+      return { valid: false, message: 'This promo code has reached its usage limit.' };
+    }
+    return { valid: true, promoCode: promo };
   },
 
   // --- MESSAGES ---

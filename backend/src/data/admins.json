@@ -6,13 +6,5 @@
     "role": "superadmin",
     "name": "Super Administrator",
     "createdAt": "2026-09-18T10:27:00.623Z"
-  },
-  {
-    "id": "manager-1789728930886",
-    "username": "yamaank640",
-    "passwordHash": "geo123",
-    "role": "manager",
-    "name": "YAMAAN",
-    "createdAt": "2026-09-18T10:55:30.886Z"
   }
 ]

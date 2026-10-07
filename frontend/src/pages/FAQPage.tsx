@@ -108,27 +108,27 @@ export const FAQPage: React.FC = () => {
 
       {/* Hero Header */}
       <div className="text-center space-y-4 pt-4 pb-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200/80 text-blue-700 text-xs font-semibold tracking-wide shadow-xs">
-          <HelpCircle className="w-3.5 h-3.5" />
-          <span>Knowledge Base & Support</span>
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#A0988A]/25 border border-[#565449]/30 text-[#1A1A18] text-xs font-bold tracking-wide shadow-xs">
+          <HelpCircle className="w-3.5 h-3.5 text-[#1A1A18]" />
+          <span>Knowledge Base &amp; Support</span>
         </div>
-        <h1 className="font-serif text-3xl sm:text-5xl font-bold text-slate-900 tracking-tight">
+        <h1 className="font-serif text-3xl sm:text-5xl font-bold text-[#1A1A18] tracking-tight">
           Frequently Asked Questions
         </h1>
-        <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed">
+        <p className="text-sm sm:text-base text-[#1A1A18]/80 max-w-2xl mx-auto leading-relaxed">
           Everything you need to know about our handcrafted Peshawari chappals, artisan leatherwork, camera sizing, delivery, and guarantees.
         </p>
 
         {/* Live Search Input */}
         <div className="max-w-xl mx-auto pt-4 relative">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1A1A18]/60" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search questions (e.g., sizing, leather, COD, return)..."
-              className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all"
+              className="w-full pl-11 pr-4 py-3 bg-[#F7F4EB] border border-[#565449]/30 rounded-2xl text-sm text-[#1A1A18] placeholder-[#565449]/50 focus:outline-none focus:border-[#565449] shadow-sm transition-all"
             />
           </div>
         </div>
@@ -148,10 +148,10 @@ export const FAQPage: React.FC = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveCategory(tab.id)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
-                    : 'bg-slate-100 hover:bg-slate-200/80 text-slate-700'
+                    ? 'bg-[#565449] text-[#F7F4EB] shadow-sm'
+                    : 'bg-[#A0988A]/25 hover:bg-[#A0988A]/40 text-[#1A1A18]'
                 }`}
               >
                 {tab.icon && <tab.icon className="w-3.5 h-3.5" />}
@@ -165,17 +165,17 @@ export const FAQPage: React.FC = () => {
       {/* FAQs List Accordion */}
       <div className="space-y-3">
         {filteredFaqs.length === 0 ? (
-          <div className="text-center py-12 px-4 rounded-3xl bg-slate-50 border border-slate-200/80 space-y-3">
-            <HelpCircle className="w-10 h-10 text-slate-400 mx-auto" />
-            <h3 className="font-serif font-bold text-slate-800 text-lg">No matching questions found</h3>
-            <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
+          <div className="text-center py-12 px-4 rounded-3xl bg-[#A0988A]/20 border border-[#A0988A]/40 space-y-3">
+            <HelpCircle className="w-10 h-10 text-[#1A1A18]/50 mx-auto" />
+            <h3 className="font-serif font-bold text-[#1A1A18] text-lg">No matching questions found</h3>
+            <p className="text-xs sm:text-sm text-[#1A1A18]/80 max-w-md mx-auto">
               We couldn't find an answer matching "{searchQuery}". You can message our artisans directly on WhatsApp!
             </p>
             <a
               href={whatsappHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-colors mt-2"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] text-xs font-bold shadow-sm transition-colors mt-2"
             >
               <MessageSquare className="w-4 h-4" /> Ask on WhatsApp
             </a>
@@ -188,8 +188,8 @@ export const FAQPage: React.FC = () => {
                 key={faq.id}
                 className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
                   isOpen
-                    ? 'bg-gradient-to-b from-blue-50/40 via-white to-white border-blue-200 shadow-sm'
-                    : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-xs'
+                    ? 'bg-[#A0988A]/25 border-[#565449]/40 shadow-sm'
+                    : 'bg-[#A0988A]/15 border-[#A0988A]/35 hover:border-[#565449]/50 shadow-xs'
                 }`}
               >
                 <button
@@ -199,23 +199,23 @@ export const FAQPage: React.FC = () => {
                   aria-expanded={isOpen}
                 >
                   <div className="space-y-0.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 block">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#1A1A18]/70 block">
                       {faq.categoryLabel}
                     </span>
-                    <span className="font-serif font-semibold text-slate-900 text-sm sm:text-base block">
+                    <span className="font-serif font-semibold text-[#1A1A18] text-sm sm:text-base block">
                       {faq.question}
                     </span>
                   </div>
                   <div
                     className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-transform duration-200 ${
-                      isOpen ? 'bg-blue-600 text-white rotate-180' : 'bg-slate-100 text-slate-600'
+                      isOpen ? 'bg-[#565449] text-[#F7F4EB] rotate-180' : 'bg-[#F7F4EB] text-[#1A1A18]'
                     }`}
                   >
                     <ChevronDown className="w-4 h-4" />
                   </div>
                 </button>
                 {isOpen && (
-                  <div className="px-5 pb-4 pt-1 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-blue-100/60 bg-white/60">
+                  <div className="px-5 pb-4 pt-1 text-xs sm:text-sm text-[#1A1A18]/85 leading-relaxed border-t border-[#565449]/20">
                     {faq.answer}
                   </div>
                 )}
@@ -229,26 +229,26 @@ export const FAQPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6">
         <Link
           to="/size-finder"
-          className="p-5 rounded-2xl bg-gradient-to-br from-slate-50 to-sky-50/50 border border-slate-200/80 hover:border-blue-300 transition-all group"
+          className="p-5 rounded-2xl bg-[#A0988A]/20 border border-[#A0988A]/40 hover:border-[#565449]/60 transition-all group"
         >
-          <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-[#565449] text-[#F7F4EB] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
             <Ruler className="w-5 h-5" />
           </div>
-          <h4 className="font-serif font-bold text-slate-900 text-sm mb-1">AI Size Finder</h4>
-          <p className="text-xs text-slate-500 leading-relaxed">
+          <h4 className="font-serif font-bold text-[#1A1A18] text-sm mb-1">AI Size Finder</h4>
+          <p className="text-xs text-[#1A1A18]/80 leading-relaxed">
             Scan your foot with reference card to get your precise chappal size.
           </p>
         </Link>
 
         <Link
           to="/orders"
-          className="p-5 rounded-2xl bg-gradient-to-br from-slate-50 to-sky-50/50 border border-slate-200/80 hover:border-blue-300 transition-all group"
+          className="p-5 rounded-2xl bg-[#A0988A]/20 border border-[#A0988A]/40 hover:border-[#565449]/60 transition-all group"
         >
-          <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-[#565449] text-[#F7F4EB] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
             <Truck className="w-5 h-5" />
           </div>
-          <h4 className="font-serif font-bold text-slate-900 text-sm mb-1">Track Your Order</h4>
-          <p className="text-xs text-slate-500 leading-relaxed">
+          <h4 className="font-serif font-bold text-[#1A1A18] text-sm mb-1">Track Your Order</h4>
+          <p className="text-xs text-[#1A1A18]/80 leading-relaxed">
             Check real-time dispatch and delivery status for your handcrafted parcel.
           </p>
         </Link>
@@ -257,13 +257,13 @@ export const FAQPage: React.FC = () => {
           href={whatsappHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="p-5 rounded-2xl bg-gradient-to-br from-slate-50 to-emerald-50/50 border border-slate-200/80 hover:border-emerald-300 transition-all group cursor-pointer"
+          className="p-5 rounded-2xl bg-[#A0988A]/20 border border-[#A0988A]/40 hover:border-[#565449]/60 transition-all group cursor-pointer"
         >
-          <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-[#565449] text-[#F7F4EB] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
             <MessageSquare className="w-5 h-5" />
           </div>
-          <h4 className="font-serif font-bold text-slate-900 text-sm mb-1">WhatsApp Concierge</h4>
-          <p className="text-xs text-slate-500 leading-relaxed">
+          <h4 className="font-serif font-bold text-[#1A1A18] text-sm mb-1">WhatsApp Concierge</h4>
+          <p className="text-xs text-[#1A1A18]/80 leading-relaxed">
             Connect directly with our master craftsmen for bespoke or custom inquiries.
           </p>
         </a>

@@ -180,24 +180,24 @@ export const FootSizeFinderPage: React.FC = () => {
 
         {/* Clean Header */}
         <div className="text-center mb-6">
-          <span className="text-xs font-bold tracking-widest text-amber-600 uppercase mb-1 block">
+          <span className="text-xs font-bold tracking-widest text-[#1A1A18] uppercase mb-1 block">
             Computer Vision Sizing
           </span>
-          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-slate-900">
+          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#1A1A18]">
             Find Your Exact Shoe Size
           </h1>
-          <p className="text-sm text-slate-600 mt-1 max-w-md mx-auto">
-            Place your bare foot on a plain <span className="font-semibold text-slate-800">white A4 paper sheet</span> and point your camera straight down.
+          <p className="text-sm text-[#1A1A18]/80 mt-1 max-w-md mx-auto">
+            Place your bare foot on a plain <span className="font-semibold text-[#1A1A18]">white A4 paper sheet</span> and point your camera straight down.
           </p>
         </div>
 
-        {/* Main Step Container */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
+        {/* Main Step Container (Warm Taupe Section Contrast) */}
+        <div className="bg-[#A0988A]/20 rounded-2xl border border-[#A0988A] shadow-md p-4 sm:p-6 backdrop-blur-xs">
 
           {/* 1. CAMERA CAPTURE STEP */}
           {step === 'camera' && (
             <div className="space-y-4">
-              <div className="relative rounded-xl overflow-hidden bg-slate-950 aspect-[3/4] sm:aspect-[4/3] flex items-center justify-center shadow-inner">
+              <div className="relative rounded-xl overflow-hidden bg-[#565449] aspect-[3/4] sm:aspect-[4/3] flex items-center justify-center shadow-inner">
                 <video
                   ref={videoRef}
                   playsInline
@@ -207,41 +207,41 @@ export const FootSizeFinderPage: React.FC = () => {
                 />
 
                 {/* Viewfinder Target Overlays */}
-                <div className="absolute inset-4 pointer-events-none border-2 border-dashed border-white/50 rounded-xl flex flex-col justify-between p-3">
+                <div className="absolute inset-4 pointer-events-none border-2 border-dashed border-[#F7F4EB]/60 rounded-xl flex flex-col justify-between p-3">
                   <div className="flex justify-between items-start">
-                    <span className="text-xs bg-black/60 backdrop-blur-xs text-amber-300 px-2.5 py-1 rounded-md font-medium">
+                    <span className="text-xs bg-[#565449]/85 backdrop-blur-xs text-[#F7F4EB] px-2.5 py-1 rounded-md font-medium border border-[#F7F4EB]/30">
                       📄 White A4 Paper Area
                     </span>
                     <button
                       type="button"
                       onClick={toggleCameraFacing}
-                      className="pointer-events-auto p-2 rounded-full bg-black/60 text-white hover:bg-black/80 transition"
+                      className="pointer-events-auto p-2 rounded-full bg-[#565449]/85 text-[#F7F4EB] hover:bg-[#45433A] border border-[#F7F4EB]/30 transition"
                       title="Flip camera"
                     >
                       <RotateCcw className="w-4 h-4" />
                     </button>
                   </div>
-                  <div className="text-center text-xs bg-black/60 backdrop-blur-xs text-white py-1.5 px-3 rounded-md mx-auto">
+                  <div className="text-center text-xs bg-[#565449]/85 backdrop-blur-xs text-[#F7F4EB] py-1.5 px-3 rounded-md mx-auto border border-[#F7F4EB]/30">
                     Keep the entire A4 sheet and bare foot inside the frame
                   </div>
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons: Strict Olive Drab Primary Button */}
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={handleCapture}
-                  className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md transition active:scale-95 text-sm sm:text-base"
+                  className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md transition active:scale-95 text-sm sm:text-base border border-[#565449] cursor-pointer"
                 >
                   <Camera className="w-5 h-5" />
-                  <span>Capture & Measure</span>
+                  <span>Capture &amp; Measure</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold py-3.5 px-5 rounded-xl flex items-center justify-center gap-2 border border-slate-300 transition"
+                  className="bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3.5 px-5 rounded-xl flex items-center justify-center gap-2 border border-[#565449] transition cursor-pointer"
                   title="Upload photo from gallery"
                 >
                   <Upload className="w-5 h-5" />
@@ -255,13 +255,13 @@ export const FootSizeFinderPage: React.FC = () => {
           {step === 'analyzing' && (
             <div className="py-12 text-center space-y-4">
               <div className="relative w-16 h-16 mx-auto">
-                <div className="w-16 h-16 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin" />
-                <Sparkles className="w-6 h-6 text-amber-600 absolute inset-0 m-auto animate-pulse" />
+                <div className="w-16 h-16 border-4 border-[#A0988A] border-t-[#565449] rounded-full animate-spin" />
+                <Sparkles className="w-6 h-6 text-[#1A1A18] absolute inset-0 m-auto animate-pulse" />
               </div>
-              <h2 className="font-serif font-bold text-xl text-slate-900">
+              <h2 className="font-serif font-bold text-xl text-[#1A1A18]">
                 Measuring Foot Dimensions...
               </h2>
-              <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">
+              <p className="text-xs sm:text-sm text-[#1A1A18]/70 max-w-sm mx-auto">
                 Running computer vision pipeline to isolate the A4 reference scale and compute millimeter dimensions.
               </p>
             </div>
@@ -276,53 +276,53 @@ export const FootSizeFinderPage: React.FC = () => {
 
             return (
               <div className="space-y-6">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center justify-between pb-3 border-b border-[#A0988A]/40">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-[#A0988A]/40 text-[#1A1A18] flex items-center justify-center">
                       <Check className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-sm text-slate-900">Measurement Successful</h3>
-                      <p className="text-xs text-slate-500">Calibrated via A4 Reference</p>
+                      <h3 className="font-bold text-sm text-[#1A1A18]">Measurement Successful</h3>
+                      <p className="text-xs text-[#1A1A18]/70">Calibrated via A4 Reference</p>
                     </div>
                   </div>
-                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                  <span className="text-xs font-bold text-[#1A1A18] bg-[#A0988A]/30 px-3 py-1 rounded-full border border-[#565449]">
                     Accurate Fit
                   </span>
                 </div>
 
-                {/* Main Recommended Size Card */}
-                <div className="text-center py-6 bg-slate-50 rounded-xl border border-slate-200">
-                  <span className="text-xs uppercase tracking-wider text-slate-500 font-bold block mb-1">
+                {/* Main Recommended Size Card (Bone Card) */}
+                <div className="text-center py-6 bg-[#F7F4EB] rounded-xl border border-[#A0988A]">
+                  <span className="text-xs uppercase tracking-wider text-[#1A1A18]/80 font-bold block mb-1">
                     Recommended Peshawari Chappal Size
                   </span>
-                  <div className="font-serif font-bold text-5xl sm:text-6xl text-slate-900 my-2">
+                  <div className="font-serif font-bold text-5xl sm:text-6xl text-[#1A1A18] my-2">
                     Size {ukSize}
                   </div>
-                  <p className="text-xs sm:text-sm text-slate-600 font-medium">
+                  <p className="text-xs sm:text-sm text-[#1A1A18]/80 font-medium">
                     Pak / UK {ukSize} &nbsp;·&nbsp; EU {euSize} &nbsp;·&nbsp; US {Number((ukSize + 0.5).toFixed(1))}
                   </p>
                 </div>
 
                 {/* Millimeter metrics */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
-                    <span className="text-xs uppercase text-slate-500 block font-semibold">Foot Length</span>
-                    <span className="font-bold text-xl text-slate-900">{lengthMm} mm</span>
+                  <div className="p-4 rounded-xl bg-[#F7F4EB] border border-[#A0988A] text-center">
+                    <span className="text-xs uppercase text-[#1A1A18]/80 block font-semibold">Foot Length</span>
+                    <span className="font-bold text-xl text-[#1A1A18]">{lengthMm} mm</span>
                   </div>
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
-                    <span className="text-xs uppercase text-slate-500 block font-semibold">Foot Width</span>
-                    <span className="font-bold text-xl text-slate-900">{widthMm} mm</span>
+                  <div className="p-4 rounded-xl bg-[#F7F4EB] border border-[#A0988A] text-center">
+                    <span className="text-xs uppercase text-[#1A1A18]/80 block font-semibold">Foot Width</span>
+                    <span className="font-bold text-xl text-[#1A1A18]">{widthMm} mm</span>
                   </div>
                 </div>
 
                 {/* Annotated Proof Image */}
                 {result.annotated_image_base64 && (
                   <div className="space-y-2">
-                    <span className="text-xs font-semibold text-slate-600 block">
+                    <span className="text-xs font-semibold text-[#1A1A18] block">
                       Detection Proof:
                     </span>
-                    <div className="rounded-xl overflow-hidden border border-slate-200 bg-black max-h-64 flex items-center justify-center">
+                    <div className="rounded-xl overflow-hidden border border-[#A0988A] bg-[#565449]/10 max-h-64 flex items-center justify-center">
                       <img
                         src={`data:image/jpeg;base64,${result.annotated_image_base64}`}
                         alt="Detection Proof"
@@ -332,12 +332,12 @@ export const FootSizeFinderPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* Action Buttons */}
+                {/* Action Buttons: Olive Drab */}
                 <div className="flex gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => startCamera(activeFacingMode)}
-                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 border border-slate-300 transition"
+                    className="flex-1 bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 border border-[#565449] transition cursor-pointer"
                   >
                     <RotateCcw className="w-4 h-4" />
                     <span>Scan Again</span>
@@ -345,7 +345,7 @@ export const FootSizeFinderPage: React.FC = () => {
 
                   <Link
                     to={`/products?size=${ukSize}`}
-                    className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition text-center"
+                    className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition text-center border border-[#565449] cursor-pointer"
                   >
                     <span>Shop Size {ukSize}</span>
                     <ArrowRight className="w-4 h-4" />
@@ -358,18 +358,18 @@ export const FootSizeFinderPage: React.FC = () => {
           {/* 4. ERROR STEP */}
           {step === 'error' && (
             <div className="py-6 text-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+              <div className="w-12 h-12 rounded-full bg-[#A0988A]/30 text-[#1A1A18] border border-[#565449]/40 flex items-center justify-center mx-auto">
                 <AlertTriangle className="w-6 h-6" />
               </div>
-              <h2 className="font-serif font-bold text-lg text-slate-900">
+              <h2 className="font-serif font-bold text-lg text-[#1A1A18]">
                 Detection Unsuccessful
               </h2>
-              <p className="text-xs sm:text-sm text-rose-700 bg-rose-50 p-3 rounded-xl border border-rose-200 max-w-md mx-auto">
+              <p className="text-xs sm:text-sm text-[#1A1A18] bg-[#A0988A]/25 p-3 rounded-xl border border-[#565449]/40 max-w-md mx-auto">
                 {errorMsg}
               </p>
 
-              <div className="text-left text-xs text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1.5 max-w-md mx-auto">
-                <span className="font-bold text-slate-800 block">Tips for an accurate measurement:</span>
+              <div className="text-left text-xs text-[#1A1A18] bg-[#F7F4EB] p-4 rounded-xl border border-[#A0988A] space-y-1.5 max-w-md mx-auto">
+                <span className="font-bold text-[#1A1A18] block">Tips for an accurate measurement:</span>
                 <p>1. Use a standard plain white A4 paper sheet flat on the floor.</p>
                 <p>2. Place your bare foot directly on top of the paper.</p>
                 <p>3. Hold the camera directly overhead with good lighting.</p>
@@ -379,7 +379,7 @@ export const FootSizeFinderPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => startCamera(activeFacingMode)}
-                  className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition"
+                  className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition border border-[#565449] cursor-pointer"
                 >
                   <RotateCcw className="w-4 h-4" />
                   <span>Try Camera Again</span>
@@ -388,7 +388,7 @@ export const FootSizeFinderPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 border border-slate-300 transition"
+                  className="bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 border border-[#565449] transition cursor-pointer"
                 >
                   <Upload className="w-4 h-4" />
                   <span>Upload Photo</span>
@@ -397,16 +397,16 @@ export const FootSizeFinderPage: React.FC = () => {
             </div>
           )}
 
-          {/* 5. CAMERA DENIED STEP */}
+          {/* 5. CAMERA DENIED STEP (Matches Image 1 exactly in Olive Drab, Warm Taupe, Bone) */}
           {step === 'camera_denied' && (
             <div className="py-8 text-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto">
+              <div className="w-12 h-12 rounded-full bg-[#A0988A]/30 text-[#1A1A18] border border-[#565449]/30 flex items-center justify-center mx-auto">
                 <Camera className="w-6 h-6" />
               </div>
-              <h2 className="font-serif font-bold text-lg text-slate-900">
+              <h2 className="font-serif font-bold text-lg text-[#1A1A18]">
                 Camera Access Needed
               </h2>
-              <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">
+              <p className="text-xs sm:text-sm text-[#1A1A18]/80 max-w-sm mx-auto">
                 Please allow camera access in your browser or choose a photo from your gallery.
               </p>
 
@@ -414,7 +414,7 @@ export const FootSizeFinderPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => startCamera('environment')}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-xl border border-slate-300 transition text-sm"
+                  className="bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3 px-5 rounded-xl border border-[#565449] transition text-sm cursor-pointer shadow-xs"
                 >
                   Retry Camera
                 </button>
@@ -422,7 +422,7 @@ export const FootSizeFinderPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-xl flex items-center gap-2 transition text-sm"
+                  className="bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3 px-5 rounded-xl flex items-center gap-2 transition text-sm cursor-pointer shadow-md border border-[#565449]"
                 >
                   <Upload className="w-4 h-4" />
                   <span>Upload Photo</span>

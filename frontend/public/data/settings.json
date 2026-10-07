@@ -1,0 +1,123 @@
+{
+  "storeName": "Peshawari Chappal Co.",
+  "logoUrl": "/uploads/asset_1790946826902.png",
+  "faviconUrl": "/uploads/asset_1790946835970.png",
+  "heroMediaUrl": "/uploads/hero.webp",
+  "heroMediaType": "image",
+  "heroSlides": [
+    {
+      "id": "slide-1",
+      "url": "/uploads/hero.webp",
+      "type": "image",
+      "badge": "Heritage Re-imagined With AI Fit",
+      "title": "Authentic Peshawari Chappal",
+      "subtitle": "Crafted for Royalty.",
+      "description": "Hand-tanned full-grain cowhide leather, double-stitched by master craftsmen in Khyber Pakhtunkhwa.",
+      "linkText": "Shop Collection",
+      "linkUrl": "/products",
+      "active": true
+    },
+    {
+      "id": "slide-2",
+      "url": "/images/ai-foot-scanner-demo.jpg",
+      "type": "image",
+      "badge": "Camera Size Calibration",
+      "title": "AI Foot Size Finder",
+      "subtitle": "True-to-Size Peshawari Fit.",
+      "description": "Place your foot on standard A4 paper. Millimeter-accurate size recommendation with zero guesswork.",
+      "linkText": "Try Size Finder",
+      "linkUrl": "/size-finder",
+      "active": true
+    },
+    {
+      "id": "slide-3",
+      "url": "/images/ai-outfit-matcher-demo.jpg",
+      "type": "image",
+      "badge": "Color Harmony & Tone AI",
+      "title": "AI Traditional Outfit Matcher",
+      "subtitle": "Color & Tone Pairing.",
+      "description": "Upload a photo of your Shalwar Kameez or Kurta. Match with the ideal leather shade and silhouette.",
+      "linkText": "Match Your Outfit",
+      "linkUrl": "/outfit-match",
+      "active": true
+    }
+  ],
+  "socialLinks": {
+    "whatsapp": "+923001234567",
+    "instagram": "https://instagram.com/peshawarichappal",
+    "facebook": "https://facebook.com/peshawarichappal",
+    "tiktok": "https://tiktok.com/@peshawarichappal",
+    "twitter": "https://x.com/peshawarichappal",
+    "youtube": "https://youtube.com/@peshawarichappal"
+  },
+  "supportEmail": "concierge@peshawarichappal.com",
+  "supportPhone": "+92 91 111 222 333",
+  "currency": "PKR (Rs.)",
+  "freeShippingMode": "threshold",
+  "freeShippingThreshold": 4500,
+  "standardShippingFee": 250,
+  "expressShippingFee": 450,
+  "codEnabled": true,
+  "easypaisaEnabled": true,
+  "walletEnabled": true,
+  "lowStockThreshold": 5,
+  "sizeChartMap": [
+    {
+      "eu": 39,
+      "uk": 5,
+      "mm": 245,
+      "widthNote": "Narrow bridge fit"
+    },
+    {
+      "eu": 40,
+      "uk": 6,
+      "mm": 252,
+      "widthNote": "Regular slim fit"
+    },
+    {
+      "eu": 41,
+      "uk": 7,
+      "mm": 260,
+      "widthNote": "Standard fit"
+    },
+    {
+      "eu": 42,
+      "uk": 8,
+      "mm": 268,
+      "widthNote": "Standard regular bridge"
+    },
+    {
+      "eu": 43,
+      "uk": 9,
+      "mm": 275,
+      "widthNote": "Wide bridge"
+    },
+    {
+      "eu": 44,
+      "uk": 10,
+      "mm": 283,
+      "widthNote": "Extra wide fit"
+    },
+    {
+      "eu": 45,
+      "uk": 11,
+      "mm": 290,
+      "widthNote": "Maximum comfort width"
+    }
+  ],
+  "hideCategories": true,
+  "success": true,
+  "supplierProductBudget": 167500,
+  "supplierBudgetLogs": [
+    {
+      "id": "sbl-inventory-15000",
+      "type": "set",
+      "amount": 15000,
+      "previousBudget": 1500,
+      "newBudget": 15000,
+      "note": "Initial inventory stock procurement: 10 pairs × Rs. 1,500/pair from supplier",
+      "date": "2026-09-20",
+      "createdAt": "2026-09-19T19:55:00.000Z"
+    }
+  ]
+}

@@ -56,9 +56,9 @@ export const AngleImageUploader: React.FC<UploaderProps> = ({ images, onChange }
         </div>
 
         <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${
-          isComplete ? 'bg-emerald-950 text-emerald-400 border border-emerald-700' : 'bg-amber-950 text-amber-400 border border-amber-700'
+          isComplete ? 'bg-[#565449] text-[#F7F4EB] border border-[#565449]' : 'bg-[#A0988A]/30 text-[#1A1A18] border border-[#565449]/20'
         }`}>
-          {isComplete ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {isComplete ? <CheckCircle2 className="w-4 h-4 text-[#F7F4EB]" /> : <AlertCircle className="w-4 h-4 text-[#1A1A18]" />}
           {filledCount} / 6 Slots Uploaded
         </div>
       </div>
@@ -67,24 +67,24 @@ export const AngleImageUploader: React.FC<UploaderProps> = ({ images, onChange }
         {ANGLES.map(ang => {
           const val = images[ang.key];
           return (
-            <div key={ang.key} className="p-3 rounded-xl bg-espresso-900 border border-glass-border space-y-2">
+            <div key={ang.key} className="p-3 rounded-xl bg-[#A0988A]/20 border border-[#A0988A]/30 space-y-2">
               <div className="flex justify-between items-center text-xs">
-                <span className="font-bold text-brass">{ang.label}</span>
-                {val && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                <span className="font-bold text-[#1A1A18]">{ang.label}</span>
+                {val && <CheckCircle2 className="w-4 h-4 text-[#1A1A18]" />}
               </div>
 
-              <div className="relative aspect-video rounded-lg overflow-hidden bg-espresso-800 border border-dashed border-glass-border flex items-center justify-center">
+              <div className="relative aspect-video rounded-lg overflow-hidden bg-[#F7F4EB] border border-dashed border-[#565449]/30 flex items-center justify-center">
                 {val ? (
                   <img src={val} alt={ang.label} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="text-center p-2 text-text-muted">
-                    <Upload className="w-5 h-5 mx-auto mb-1 text-copper" />
+                  <div className="text-center p-2 text-[#1A1A18]/70">
+                    <Upload className="w-5 h-5 mx-auto mb-1 text-[#1A1A18]" />
                     <span className="text-[10px] block leading-tight">{ang.guide}</span>
                   </div>
                 )}
               </div>
 
-              <label className="btn-glass text-[11px] py-1.5 px-3 w-full text-center cursor-pointer block">
+              <label className="btn-copper text-[11px] py-1.5 px-3 w-full text-center cursor-pointer block">
                 {val ? 'Replace Shot' : 'Upload Angle'}
                 <input
                   type="file"

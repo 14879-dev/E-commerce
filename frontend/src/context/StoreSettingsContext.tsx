@@ -14,8 +14,8 @@ interface StoreSettingsContextType {
 
 const DEFAULT_SETTINGS: StoreSettings = {
   storeName: 'Peshawari Chappal Co.',
-  logoUrl: '',
-  faviconUrl: '/favicon.ico',
+  logoUrl: '/uploads/asset_1790946826902.png',
+  faviconUrl: '/uploads/asset_1790946835970.png',
   socialLinks: {
     whatsapp: '+923001234567',
     instagram: 'https://instagram.com/peshawarichappal',
@@ -45,8 +45,8 @@ const DEFAULT_SETTINGS: StoreSettings = {
     { size: 13, uk: 13, eu: 47, mm: 310, widthNote: 'Maximum comfort width' },
   ],
   hideCategories: true, // Currently hidden per store requirements
-  heroMediaUrl: null,
-  heroMediaType: null,
+  heroMediaUrl: '/uploads/hero.webp',
+  heroMediaType: 'image',
   heroSlides: [
     {
       id: 'slide-1',

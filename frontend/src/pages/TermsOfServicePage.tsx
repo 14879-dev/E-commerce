@@ -5,9 +5,9 @@ import { SEOHelmet } from '../components/common/SEOHelmet';
 import { useStoreSettings } from '../context/StoreSettingsContext';
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <section className="space-y-3">
-    <h2 className="font-serif font-bold text-xl text-slate-900 border-b border-slate-200 pb-2">{title}</h2>
-    <div className="text-sm text-slate-600 leading-relaxed space-y-3">{children}</div>
+  <section className="space-y-3 bg-[#A0988A]/15 border border-[#A0988A]/35 rounded-2xl p-5">
+    <h2 className="font-serif font-bold text-xl text-[#1A1A18] border-b border-[#565449]/20 pb-2">{title}</h2>
+    <div className="text-sm text-[#1A1A18]/85 leading-relaxed space-y-3">{children}</div>
   </section>
 );
 
@@ -26,21 +26,21 @@ export const TermsOfServicePage: React.FC = () => {
 
       {/* Header */}
       <div className="space-y-3">
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <Link to="/" className="hover:text-blue-600 transition-colors">Home</Link>
-          <ChevronRight className="w-3 h-3" />
-          <span className="text-slate-900">Terms of Service</span>
+        <div className="flex items-center gap-2 text-xs text-[#1A1A18]/70">
+          <Link to="/" className="hover:text-[#1A1A18] font-bold transition-colors">Home</Link>
+          <ChevronRight className="w-3 h-3 text-[#1A1A18]/50" />
+          <span className="text-[#1A1A18] font-bold">Terms of Service</span>
         </div>
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center shrink-0 mt-1">
-            <FileText className="w-6 h-6 text-amber-600" />
+          <div className="w-12 h-12 rounded-2xl bg-[#565449] text-[#F7F4EB] flex items-center justify-center shrink-0 mt-1 shadow-xs">
+            <FileText className="w-6 h-6 text-[#F7F4EB]" />
           </div>
           <div>
-            <h1 className="font-serif font-bold text-3xl text-slate-900">Terms of Service</h1>
-            <p className="text-sm text-slate-500 mt-1">Peshawari Chappal Co. — Effective Date: August 1, 2026</p>
+            <h1 className="font-serif font-bold text-3xl text-[#1A1A18]">Terms of Service</h1>
+            <p className="text-sm text-[#1A1A18]/70 mt-1">Peshawari Chappal Co. — Effective Date: August 1, 2026</p>
           </div>
         </div>
-        <p className="text-sm text-slate-600 leading-relaxed bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
+        <p className="text-sm text-[#1A1A18]/90 leading-relaxed bg-[#A0988A]/25 border border-[#565449]/30 rounded-xl px-4 py-3">
           By using our website or placing an order, you agree to these Terms of Service. Please read them carefully before making a purchase.
         </p>
       </div>
@@ -66,21 +66,21 @@ export const TermsOfServicePage: React.FC = () => {
         <p>
           Our chappals are individually handcrafted by skilled artisans. Standard processing times are:
         </p>
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2 text-sm">
-          <div className="flex justify-between border-b border-slate-100 pb-1.5">
-            <span className="font-semibold text-slate-700">Standard Catalog Chappal</span>
+        <div className="bg-[#F7F4EB] border border-[#565449]/20 rounded-xl p-4 space-y-2 text-sm text-[#1A1A18]">
+          <div className="flex justify-between border-b border-[#565449]/15 pb-1.5">
+            <span className="font-bold text-[#1A1A18]">Standard Catalog Chappal</span>
             <span>3–5 business days crafting + shipping</span>
           </div>
-          <div className="flex justify-between border-b border-slate-100 pb-1.5">
-            <span className="font-semibold text-slate-700">Artisan Double-Stitched</span>
+          <div className="flex justify-between border-b border-[#565449]/15 pb-1.5">
+            <span className="font-bold text-[#1A1A18]">Artisan Double-Stitched</span>
             <span>5–7 business days crafting + shipping</span>
           </div>
           <div className="flex justify-between">
-            <span className="font-semibold text-slate-700">Limited / Royal Edition</span>
+            <span className="font-bold text-[#1A1A18]">Limited / Royal Edition</span>
             <span>14–21 business days crafting + shipping</span>
           </div>
         </div>
-        <p className="mt-2 text-xs text-slate-500 italic">
+        <p className="mt-2 text-xs text-[#1A1A18]/70 italic">
           Handcrafting times are estimates and may vary. We will notify you of any significant delays.
         </p>
       </Section>
@@ -163,20 +163,20 @@ export const TermsOfServicePage: React.FC = () => {
 
       <Section title="13. Contact">
         <p>For questions about these terms:</p>
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-1 text-sm">
-          <p className="font-bold text-slate-900">{storeName}</p>
-          <p>Email: <a href={`mailto:${supportEmail}`} className="text-blue-600 hover:underline">{supportEmail}</a></p>
-          <p>Phone: <a href={`tel:${supportPhone.replace(/[^0-9+]/g, '')}`} className="text-blue-600 hover:underline">{supportPhone}</a></p>
+        <div className="bg-[#F7F4EB] border border-[#565449]/20 rounded-xl p-4 space-y-1 text-sm text-[#1A1A18]">
+          <p className="font-bold text-[#1A1A18]">{storeName}</p>
+          <p>Email: <a href={`mailto:${supportEmail}`} className="text-[#1A1A18] font-bold underline">{supportEmail}</a></p>
+          <p>Phone: <a href={`tel:${supportPhone.replace(/[^0-9+]/g, '')}`} className="text-[#1A1A18] font-bold underline">{supportPhone}</a></p>
           <p>Address: Qissa Khwani Bazaar, Peshawar, Khyber Pakhtunkhwa, Pakistan</p>
         </div>
       </Section>
 
       {/* Footer Navigation */}
-      <div className="pt-6 border-t border-slate-200 flex flex-wrap gap-4 text-xs text-slate-500">
-        <Link to="/contact" className="hover:text-blue-600 transition-colors">Contact Us</Link>
-        <Link to="/privacy" className="hover:text-blue-600 transition-colors">Privacy Policy</Link>
-        <Link to="/about" className="hover:text-blue-600 transition-colors">About Us</Link>
-        <Link to="/" className="hover:text-blue-600 transition-colors">← Back to Store</Link>
+      <div className="pt-6 border-t border-[#565449]/20 flex flex-wrap gap-4 text-xs text-[#1A1A18]/80">
+        <Link to="/contact" className="hover:text-[#1A1A18] font-bold transition-colors">Contact Us</Link>
+        <Link to="/privacy" className="hover:text-[#1A1A18] font-bold transition-colors">Privacy Policy</Link>
+        <Link to="/about" className="hover:text-[#1A1A18] font-bold transition-colors">About Us</Link>
+        <Link to="/" className="hover:text-[#1A1A18] font-bold transition-colors">← Back to Store</Link>
       </div>
     </div>
   );

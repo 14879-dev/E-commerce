@@ -1,93 +1,80 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, Plus, Minus, Trash2, ArrowRight, ShieldCheck, Tag, Check, AlertCircle, Home } from 'lucide-react';
+import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, ShieldCheck, Tag, Check, AlertCircle, Home } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useStoreSettings } from '../context/StoreSettingsContext';
+import { SEOHelmet } from '../components/common/SEOHelmet';
 import { apiService } from '../services/api';
 import type { PromoCode } from '../types/admin';
-import { SEOHelmet } from '../components/common/SEOHelmet';
 
 export const ShoppingBagPage: React.FC = () => {
-  const { items, removeFromCart, updateQuantity, itemCount, subtotal } = useCart();
-  const { formatPrice, settings } = useStoreSettings();
+  const { items, removeFromCart, updateQuantity, subtotal, itemCount } = useCart();
+  const { settings, formatPrice } = useStoreSettings();
 
-  // Promo Code State
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
-  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoError, setPromoError] = useState('');
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
 
-  const handleApplyPromo = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!promoCodeInput.trim()) return;
+  // Free shipping check
+  const isFreeShipping = settings.freeShippingMode === 'all'
+    || (settings.freeShippingMode === 'threshold' && subtotal >= settings.freeShippingThreshold)
+    || (settings.freeShippingMode === 'product-specific' && items.some(i => i.product.freeShipping));
 
-    setIsApplyingPromo(true);
-    setPromoError(null);
-
-    try {
-      const promos = await apiService.getPromoCodes();
-      const match = promos.find(p => p.code.toUpperCase() === promoCodeInput.trim().toUpperCase() && p.active);
-
-      if (!match) {
-        setPromoError('Invalid or expired promo code.');
-        setAppliedPromo(null);
-        return;
-      }
-
-      if (subtotal < match.minOrderValue) {
-        setPromoError(`Minimum order of ${formatPrice(match.minOrderValue)} required for this code.`);
-        setAppliedPromo(null);
-        return;
-      }
-
-      setAppliedPromo(match);
-      setPromoError(null);
-    } catch {
-      setPromoError('Failed to apply promo code.');
-    } finally {
-      setIsApplyingPromo(false);
-    }
-  };
+  const shippingFee = isFreeShipping ? 0 : settings.standardShippingFee;
 
   // Calculate discount
   let discountAmount = 0;
   if (appliedPromo) {
     if (appliedPromo.discountType === 'percentage') {
-      discountAmount = (subtotal * appliedPromo.value) / 100;
+      discountAmount = Math.round((subtotal * appliedPromo.value) / 100);
     } else {
       discountAmount = appliedPromo.value;
     }
   }
 
   const effectiveSubtotal = Math.max(0, subtotal - discountAmount);
-
-  // Free shipping policy rule matching Admin Settings
-  const isFreeShipping = 
-    itemCount === 0 ||
-    settings.freeShippingMode === 'all' ||
-    (settings.freeShippingMode === 'threshold' && effectiveSubtotal >= settings.freeShippingThreshold) ||
-    (settings.freeShippingMode === 'product-specific' && items.some(i => i.product.freeShipping)) ||
-    items.some(i => i.product.freeShipping);
-
-  const shippingFee = isFreeShipping ? 0 : settings.standardShippingFee;
   const total = effectiveSubtotal + shippingFee;
 
+  const handleApplyPromo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!promoCodeInput.trim()) return;
+
+    setIsApplyingPromo(true);
+    setPromoError('');
+
+    try {
+      const res = await apiService.validatePromoCode(promoCodeInput.trim(), subtotal);
+      if (res.valid && res.promoCode) {
+        setAppliedPromo(res.promoCode);
+        setPromoError('');
+      } else {
+        setPromoError(res.message || 'Invalid promotion code.');
+        setAppliedPromo(null);
+      }
+    } catch {
+      setPromoError('Failed to validate promotional code. Please try again.');
+    } finally {
+      setIsApplyingPromo(false);
+    }
+  };
+
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
+    <div className="space-y-8">
       <SEOHelmet
-        title="Shopping Bag"
-        description="Review your selected handcrafted Peshawari Chappal order before checkout."
+        title="Your Shopping Bag — Peshawari Chappal Co."
+        description="Review your selected handcrafted Peshawari leather chappals and proceed to secure checkout."
       />
 
       {/* Page Header */}
-      <div className="border-b border-slate-200 pb-6">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-blue-600 block mb-1">
+      <div className="border-b border-[#A0988A]/40 pb-6">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-[#1A1A18] block mb-1">
           Review Your Order
         </span>
-        <h1 className="font-serif text-3xl sm:text-4xl font-bold text-slate-900">
+        <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[#1A1A18]">
           Your Shopping Bag
         </h1>
-        <p className="text-sm text-slate-500 mt-1">
+        <p className="text-sm text-[#1A1A18]/80 mt-1">
           {itemCount} {itemCount === 1 ? 'item' : 'items'} in your cart. {
             settings.freeShippingMode === 'all'
               ? 'Free Nationwide Shipping on all orders!'
@@ -102,11 +89,11 @@ export const ShoppingBagPage: React.FC = () => {
 
       {items.length === 0 ? (
         <div className="py-16 text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center mx-auto">
+          <div className="w-16 h-16 rounded-full bg-[#A0988A]/30 text-[#1A1A18] border border-[#565449]/30 flex items-center justify-center mx-auto">
             <ShoppingBag className="w-8 h-8" />
           </div>
-          <h2 className="font-serif font-bold text-2xl text-slate-900">Your Bag is Empty</h2>
-          <p className="text-sm text-slate-500 max-w-md mx-auto">
+          <h2 className="font-serif font-bold text-2xl text-[#1A1A18]">Your Bag is Empty</h2>
+          <p className="text-sm text-[#1A1A18]/80 max-w-md mx-auto">
             Explore our collection of authentic handcrafted Peshawari Chappals to add your ideal size and style.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
@@ -130,26 +117,26 @@ export const ShoppingBagPage: React.FC = () => {
               const colorDisplay = (item.selectedColor || 'saddle-tan').toString().replace(/-/g, ' ');
 
               return (
-                <div key={item.id} className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 border-b border-slate-100 last:border-0 bg-white rounded-2xl border border-slate-200/80">
+                <div key={item.id} className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 bg-[#A0988A]/20 rounded-2xl border border-[#A0988A]">
                   <div className="flex items-center gap-4">
                     <img
                       src={imageUrl}
                       alt={item.product.name}
-                      className="w-20 h-20 object-cover rounded-xl bg-slate-50 border border-slate-200 shrink-0"
+                      className="w-20 h-20 object-cover rounded-xl bg-[#F7F4EB]/40 border border-[#A0988A] shrink-0"
                     />
 
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-serif font-bold text-base text-slate-900">
+                        <h3 className="font-serif font-bold text-base text-[#1A1A18]">
                           {item.product.name}
                         </h3>
                       </div>
 
-                      <div className="text-xs text-slate-500 mt-1 space-y-0.5">
-                        <p>Size: <strong className="text-slate-900">Size {item.size}</strong> • Color: <strong className="text-slate-900 capitalize">{colorDisplay}</strong></p>
+                      <div className="text-xs text-[#1A1A18]/80 mt-1 space-y-0.5">
+                        <p>Size: <strong className="text-[#1A1A18]">Size {item.size}</strong> • Color: <strong className="text-[#1A1A18] capitalize">{colorDisplay}</strong></p>
                       </div>
 
-                      <span className="font-serif font-bold text-base text-slate-900 block mt-1.5">
+                      <span className="font-serif font-bold text-base text-[#1A1A18] block mt-1.5">
                         {formatPrice(itemPrice)}
                       </span>
                     </div>
@@ -157,17 +144,17 @@ export const ShoppingBagPage: React.FC = () => {
 
                   {/* Quantity Stepper & Remove */}
                   <div className="flex items-center gap-3 self-end sm:self-center">
-                    <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl p-1">
+                    <div className="flex items-center gap-1 bg-[#F7F4EB] border border-[#A0988A] rounded-xl p-1">
                       <button
                         onClick={() => updateQuantity(item.id, -1)}
-                        className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-700 transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-[#A0988A]/30 text-[#1A1A18] transition-colors cursor-pointer"
                       >
                         <Minus className="w-3.5 h-3.5" />
                       </button>
-                      <span className="text-sm font-bold w-6 text-center text-slate-900">{item.quantity}</span>
+                      <span className="text-sm font-bold w-6 text-center text-[#1A1A18]">{item.quantity}</span>
                       <button
                         onClick={() => updateQuantity(item.id, 1)}
-                        className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-700 transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-[#A0988A]/30 text-[#1A1A18] transition-colors cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" />
                       </button>
@@ -175,7 +162,7 @@ export const ShoppingBagPage: React.FC = () => {
 
                     <button
                       onClick={() => removeFromCart(item.id)}
-                      className="p-2 rounded-xl hover:bg-rose-50 text-rose-400 border border-slate-200 transition-colors"
+                      className="p-2 rounded-xl hover:bg-[#A0988A]/30 text-[#1A1A18]/70 hover:text-[#1A1A18] border border-[#A0988A] transition-colors cursor-pointer"
                       title="Remove item"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -186,59 +173,59 @@ export const ShoppingBagPage: React.FC = () => {
             })}
           </div>
 
-          {/* Order Summary Sidebar */}
-          <div className="lg:col-span-4 bg-slate-50 border border-slate-200 rounded-2xl p-6 space-y-5 sticky top-24 shadow-xs">
-            <h2 className="font-serif font-bold text-xl text-slate-900 pb-3 border-b border-slate-200">
+          {/* Order Summary Sidebar (Warm Taupe Section Panel) */}
+          <div className="lg:col-span-4 bg-[#A0988A]/25 border border-[#A0988A] rounded-2xl p-6 space-y-5 sticky top-24 shadow-xs">
+            <h2 className="font-serif font-bold text-xl text-[#1A1A18] pb-3 border-b border-[#A0988A]/40">
               Order Summary
             </h2>
 
             {/* Promo Code Input Box */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider block">Have a Promo Code?</label>
+              <label className="text-xs font-semibold text-[#1A1A18] uppercase tracking-wider block">Have a Promo Code?</label>
               <form onSubmit={handleApplyPromo} className="flex gap-2">
                 <div className="relative flex-1">
-                  <Tag className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Tag className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#1A1A18]/60" />
                   <input
                     type="text"
                     value={promoCodeInput}
                     onChange={e => setPromoCodeInput(e.target.value)}
                     placeholder="Enter code (e.g. PSH20)"
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-white border border-slate-200 text-slate-900 uppercase font-semibold focus:outline-none focus:border-blue-600"
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-[#F7F4EB] border border-[#A0988A] text-[#1A1A18] uppercase font-semibold focus:outline-none focus:border-[#565449]"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={isApplyingPromo || !promoCodeInput.trim()}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all whitespace-nowrap shadow-xs"
+                  className="px-4 py-2 bg-[#565449] hover:bg-[#45433A] border border-[#565449] disabled:opacity-50 text-[#F7F4EB] rounded-xl text-xs font-bold transition-all whitespace-nowrap shadow-xs cursor-pointer"
                 >
                   Apply
                 </button>
               </form>
 
               {appliedPromo && (
-                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium flex items-center justify-between">
+                <div className="p-2.5 rounded-xl bg-[#A0988A]/30 border border-[#565449]/30 text-[#1A1A18] text-xs font-medium flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
-                    <Check className="w-4 h-4 text-emerald-600" /> Code <strong>{appliedPromo.code}</strong> Applied!
+                    <Check className="w-4 h-4 text-[#1A1A18]" /> Code <strong>{appliedPromo.code}</strong> Applied!
                   </span>
-                  <button onClick={() => { setAppliedPromo(null); setPromoCodeInput(''); }} className="text-emerald-800 underline text-[11px]">Remove</button>
+                  <button onClick={() => { setAppliedPromo(null); setPromoCodeInput(''); }} className="text-[#1A1A18] underline text-[11px] cursor-pointer">Remove</button>
                 </div>
               )}
 
               {promoError && (
-                <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs font-medium flex items-center gap-1.5">
-                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" /> {promoError}
+                <div className="p-2.5 rounded-xl bg-[#A0988A]/30 border border-[#565449]/40 text-[#1A1A18] text-xs font-medium flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 text-[#1A1A18] shrink-0" /> {promoError}
                 </div>
               )}
             </div>
 
-            <div className="space-y-3 text-sm text-slate-500 border-t border-slate-200 pt-4">
+            <div className="space-y-3 text-sm text-[#1A1A18]/80 border-t border-[#A0988A]/40 pt-4">
               <div className="flex justify-between">
                 <span>Subtotal ({itemCount} items)</span>
-                <span className="font-semibold text-slate-900">{formatPrice(subtotal)}</span>
+                <span className="font-semibold text-[#1A1A18]">{formatPrice(subtotal)}</span>
               </div>
 
               {appliedPromo && (
-                <div className="flex justify-between text-emerald-600 font-semibold">
+                <div className="flex justify-between text-[#1A1A18] font-semibold">
                   <span>Promo Discount ({appliedPromo.code})</span>
                   <span>-{formatPrice(discountAmount)}</span>
                 </div>
@@ -246,33 +233,34 @@ export const ShoppingBagPage: React.FC = () => {
 
               <div className="flex justify-between">
                 <span>Estimated Shipping</span>
-                <span className="font-semibold text-slate-900">
-                  {shippingFee === 0 ? <strong className="text-emerald-600">FREE</strong> : formatPrice(shippingFee)}
+                <span className="font-semibold text-[#1A1A18]">
+                  {shippingFee === 0 ? <strong className="text-[#1A1A18]">FREE</strong> : formatPrice(shippingFee)}
                 </span>
               </div>
 
               {shippingFee > 0 && settings.freeShippingMode === 'threshold' && effectiveSubtotal < settings.freeShippingThreshold && (
-                <p className="text-[11px] text-blue-600">
+                <p className="text-[11px] text-[#1A1A18]">
                   Add {formatPrice(settings.freeShippingThreshold - effectiveSubtotal)} more for free delivery.
                 </p>
               )}
             </div>
 
-            <div className="pt-4 border-t border-slate-200 flex justify-between items-baseline">
-              <span className="font-serif font-bold text-lg text-slate-900">Total Amount</span>
-              <span className="font-serif font-bold text-3xl text-slate-900">{formatPrice(total)}</span>
+            <div className="pt-4 border-t border-[#A0988A]/40 flex justify-between items-baseline">
+              <span className="font-serif font-bold text-lg text-[#1A1A18]">Total Amount</span>
+              <span className="font-serif font-bold text-3xl text-[#1A1A18]">{formatPrice(total)}</span>
             </div>
 
+            {/* Strict Olive Drab Primary Button */}
             <Link
               to="/checkout"
               state={{ appliedPromoCode: appliedPromo?.code }}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 text-sm font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-md shadow-blue-600/20"
+              className="w-full bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] border border-[#565449] py-3.5 text-sm font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer active:scale-98"
             >
               Proceed to Checkout <ArrowRight className="w-4 h-4" />
             </Link>
 
-            <div className="pt-1 text-center text-xs text-slate-500 flex items-center justify-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-blue-600" /> 256-Bit SSL Encrypted Checkout
+            <div className="pt-1 text-center text-xs text-[#1A1A18]/70 flex items-center justify-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-[#1A1A18]" /> 256-Bit SSL Encrypted Checkout
             </div>
           </div>
         </div>
@@ -280,4 +268,3 @@ export const ShoppingBagPage: React.FC = () => {
     </div>
   );
 };
-

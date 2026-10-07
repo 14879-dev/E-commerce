@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, ShoppingBag, AlertTriangle, Sparkles, Clock, Coins, RefreshCw, Star, Box, Package, TrendingUp, ArrowRight, Layers } from 'lucide-react';
+import { DollarSign, ShoppingBag, AlertTriangle, Sparkles, Clock, Coins, Star, Box, Package, TrendingUp, ArrowRight, Layers } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts';
 import { apiService } from '../../services/api';
 import type { Product, Order, Review } from '../../types';
@@ -187,10 +187,10 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
   }, {});
 
   const orderStatusData = [
-    { name: 'Placed', value: statusMap['Placed'] || 0, color: '#2563eb' },
-    { name: 'Shipped', value: statusMap['Shipped'] || 0, color: '#d97706' },
-    { name: 'Delivered', value: statusMap['Delivered'] || 0, color: '#16a34a' },
-    { name: 'Cancelled', value: statusMap['Cancelled'] || 0, color: '#dc2626' },
+    { name: 'Placed', value: statusMap['Placed'] || 0, color: '#565449' },
+    { name: 'Shipped', value: statusMap['Shipped'] || 0, color: '#A0988A' },
+    { name: 'Delivered', value: statusMap['Delivered'] || 0, color: '#45433A' },
+    { name: 'Cancelled', value: statusMap['Cancelled'] || 0, color: '#F7F4EB' },
   ];
 
   const hasOrderStatusData = orders.length > 0;
@@ -218,35 +218,35 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
     <div className="space-y-8">
 
       {/* Top Controls Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#565449]/20 pb-4">
         <div>
-          <h2 className="font-serif font-bold text-2xl text-slate-900 flex items-center gap-2.5">
+          <h2 className="font-serif font-bold text-2xl text-[#1A1A18] flex items-center gap-2.5">
             Performance Executive Overview
             <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-widest transition-all duration-300 ${
               isRefreshing
-                ? 'bg-emerald-100 text-emerald-700 border-emerald-400'
-                : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                ? 'bg-[#565449] text-[#F7F4EB] border-[#565449]'
+                : 'bg-[#565449]/15 text-[#1A1A18] border-[#565449]/30'
             }`}>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#565449] animate-pulse" />
               Live
             </span>
           </h2>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-[#1A1A18]/70">
             Live operational metrics, net profit, supplier investment, and order pipeline.
             {lastRefresh && (
-              <span className="ml-2 text-slate-400">Updated {lastRefresh.toLocaleTimeString()}</span>
+              <span className="ml-2 text-[#1A1A18]/50">Updated {lastRefresh.toLocaleTimeString()}</span>
             )}
           </p>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div className="flex items-center gap-2 bg-[#565449]/10 p-1 rounded-xl border border-[#565449]/30">
           {(['day', 'week', 'month', 'year'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTimeRange(t)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${timeRange === t
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${timeRange === t
+                  ? 'bg-[#565449] text-[#F7F4EB] shadow-xs'
+                  : 'text-[#1A1A18] hover:bg-[#565449]/10'
                 }`}
             >
               {t}
@@ -259,56 +259,62 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         
         {/* Card 1: Pure Product Revenue */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-2">
+        <div className="bg-[#F7F4EB] rounded-2xl border-2 border-emerald-600/35 p-5 shadow-sm space-y-2 relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Product Sales Revenue</span>
-            <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-200">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
+              Product Sales Revenue
+            </span>
+            <div className="p-2 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs">
               <DollarSign className="w-4 h-4" />
             </div>
           </div>
-          <div className="font-serif font-bold text-2xl text-slate-900">Rs. {totalPureRevenue.toLocaleString()}</div>
-          <div className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
+          <div className="font-serif font-bold text-2xl text-emerald-900">Rs. {totalPureRevenue.toLocaleString()}</div>
+          <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-medium">
             Excludes COD delivery charges
           </div>
         </div>
 
         {/* Card 2: Net Profit */}
-        <div className="bg-white rounded-2xl border border-emerald-200 bg-gradient-to-br from-white to-emerald-50/40 p-5 shadow-sm space-y-2">
+        <div className="bg-[#F7F4EB] rounded-2xl border-2 border-emerald-600/35 p-5 shadow-sm space-y-2 relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-800">Net Profit</span>
-            <div className="p-2 rounded-xl bg-emerald-100 text-emerald-700 border border-emerald-300">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
+              Net Profit
+            </span>
+            <div className="p-2 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <div className="font-serif font-bold text-2xl text-emerald-700">Rs. {totalProfit.toLocaleString()}</div>
+          <div className="font-serif font-bold text-2xl text-emerald-900">Rs. {totalProfit.toLocaleString()}</div>
           <div className="flex items-center gap-1 text-[11px] text-emerald-800 font-medium">
-            <span className="font-bold">{profitMargin}% margin</span> • Selling price − Supplier cost
+            <span className="font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">{profitMargin}% margin</span> • Selling price − Supplier cost
           </div>
         </div>
 
         {/* Card 3: Total Investment (Supplier Products + Packaging & Monetization Operations) */}
         <div 
           onClick={() => onNavigateTab && onNavigateTab('investments')}
-          className="bg-white rounded-2xl border border-amber-200/90 bg-gradient-to-br from-white to-amber-50/30 p-5 shadow-sm space-y-2 cursor-pointer hover:border-amber-400 hover:shadow-md transition-all group"
+          className="bg-[#F7F4EB] rounded-2xl border-2 border-[#565449]/40 p-5 shadow-sm space-y-2 cursor-pointer hover:border-[#565449] hover:shadow-md transition-all group"
           title="Click to manage Packaging, Monetization, and Supplier Procurement Budget"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#1A1A18]/70 flex items-center gap-1.5">
               Total Investment
             </span>
-            <div className="p-2 rounded-xl bg-amber-100 text-amber-700 border border-amber-300 group-hover:scale-105 transition-transform">
+            <div className="p-2 rounded-xl bg-[#565449]/15 text-[#1A1A18] border border-[#565449]/30 group-hover:scale-105 transition-transform">
               <Coins className="w-4 h-4" />
             </div>
           </div>
-          <div className="font-serif font-bold text-2xl text-slate-900">
+          <div className="font-serif font-bold text-2xl text-[#1A1A18]">
             Rs. {grandTotalInvestment.toLocaleString()}
           </div>
-          <div className="flex flex-col gap-0.5 text-[11px] text-slate-600 font-medium">
+          <div className="flex flex-col gap-0.5 text-[11px] text-[#1A1A18]/70 font-medium">
             <span className="truncate" title={`Rs. ${totalSupplierInvestment.toLocaleString()} fixed supplier procurement (${totalPairsInStock} pairs) + Rs. ${totalOperationalInvestments.toLocaleString()} packaging, monetization & ops`}>
               Rs. {totalSupplierInvestment.toLocaleString()} supplier ({totalPairsInStock} pairs) + Rs. {totalOperationalInvestments.toLocaleString()} ops
             </span>
             {onNavigateTab && (
-              <span className="text-amber-700 font-semibold flex items-center gap-1 group-hover:underline text-[10px] pt-0.5">
+              <span className="text-[#1A1A18] font-bold flex items-center gap-1 group-hover:underline text-[10px] pt-0.5">
                 Adjust Supplier & Packaging Funds <ArrowRight className="w-3 h-3" />
               </span>
             )}
@@ -318,22 +324,22 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
         {/* Card 4: Total Orders */}
         <div 
           onClick={() => onNavigateTab && onNavigateTab('orders')}
-          className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-2 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all group"
+          className="bg-[#F7F4EB] rounded-2xl border border-[#565449]/35 p-5 shadow-sm space-y-2 cursor-pointer hover:border-[#565449] hover:shadow-md transition-all group"
           title="Click to view all customer orders"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Orders</span>
-            <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 group-hover:scale-105 transition-transform">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#1A1A18]/70">Total Orders</span>
+            <div className="p-2 rounded-xl bg-[#565449]/15 text-[#1A1A18] border border-[#565449]/30 group-hover:scale-105 transition-transform">
               <ShoppingBag className="w-4 h-4" />
             </div>
           </div>
-          <div className="font-serif font-bold text-2xl text-slate-900">{totalOrdersCount}</div>
-          <div className="flex flex-col gap-0.5 text-[11px] text-slate-500 font-medium">
+          <div className="font-serif font-bold text-2xl text-[#1A1A18]">{totalOrdersCount}</div>
+          <div className="flex flex-col gap-0.5 text-[11px] text-[#1A1A18]/70 font-medium">
             <span>
               {totalOrdersCount > 0 ? 'Total orders received to date' : 'No orders recorded yet'}
             </span>
             {onNavigateTab && (
-              <span className="text-blue-600 font-semibold flex items-center gap-1 group-hover:underline text-[10px] pt-0.5">
+              <span className="text-[#1A1A18] font-bold flex items-center gap-1 group-hover:underline text-[10px] pt-0.5">
                 View All Orders <ArrowRight className="w-3 h-3" />
               </span>
             )}
@@ -343,22 +349,25 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
         {/* Card 5: Pending Orders (Orders in Queue) */}
         <div 
           onClick={() => onNavigateTab && onNavigateTab('orders')}
-          className="bg-white rounded-2xl border border-amber-200/80 bg-gradient-to-br from-white to-amber-50/20 p-5 shadow-sm space-y-2 cursor-pointer hover:border-amber-400 hover:shadow-md transition-all group"
+          className="bg-[#F7F4EB] rounded-2xl border-2 border-orange-500/40 p-5 shadow-sm space-y-2 cursor-pointer hover:border-orange-500 hover:shadow-md transition-all group relative overflow-hidden"
           title="Click to view active orders in queue"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-900">Orders In Queue</span>
-            <div className="p-2 rounded-xl bg-amber-100 text-amber-700 border border-amber-300 group-hover:scale-105 transition-transform">
+            <span className="text-xs font-bold uppercase tracking-wider text-orange-950 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-orange-500 inline-block animate-pulse" />
+              Orders In Queue
+            </span>
+            <div className="p-2 rounded-xl bg-orange-100 text-orange-800 border border-orange-300 shadow-xs group-hover:scale-105 transition-transform">
               <Clock className="w-4 h-4" />
             </div>
           </div>
-          <div className="font-serif font-bold text-2xl text-amber-700">{pendingOrdersCount} In Queue</div>
-          <div className="flex flex-col gap-0.5 text-[11px] text-slate-500 font-medium">
+          <div className="font-serif font-bold text-2xl text-orange-950">{pendingOrdersCount} In Queue</div>
+          <div className="flex flex-col gap-0.5 text-[11px] text-orange-800 font-medium">
             <span>
               {pendingOrdersCount > 0 ? 'Awaiting courier dispatch or delivery' : 'All orders fulfilled / No pending tasks'}
             </span>
             {onNavigateTab && (
-              <span className="text-amber-700 font-semibold flex items-center gap-1 group-hover:underline text-[10px] pt-0.5">
+              <span className="text-orange-950 font-bold flex items-center gap-1 group-hover:underline text-[10px] pt-0.5">
                 Manage Order Queue <ArrowRight className="w-3 h-3" />
               </span>
             )}
@@ -367,7 +376,7 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
       </div>
 
       {/* Executive Capital Allocation & Investment Ledger Summary */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+      <div className="bg-[#F7F4EB] rounded-2xl border-2 border-[#565449]/40 p-5 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-200">
@@ -381,7 +390,7 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
           {onNavigateTab && (
             <button
               onClick={() => onNavigateTab('investments')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shadow-xs transition-all self-start sm:self-auto"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold text-xs shadow-xs transition-all self-start sm:self-auto"
             >
               <span>Manage Investments & Packaging</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -391,8 +400,8 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Supplier Footwear */}
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">1. Supplier Footwear</div>
+          <div className="p-4 rounded-xl bg-slate-50/80 border-2 border-slate-300 hover:border-slate-400 transition-all space-y-1 shadow-xs">
+            <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">1. Supplier Footwear</div>
             <div className="text-lg font-bold font-serif text-slate-900">Rs. {totalSupplierInvestment.toLocaleString()}</div>
             <div className="text-[11px] text-slate-500">
               {totalPairsInStock} pairs stock • Fixed capital (untouched by orders)
@@ -400,7 +409,7 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
           </div>
 
           {/* Packaging & Unboxing */}
-          <div className="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200 space-y-1">
+          <div className="p-4 rounded-xl bg-amber-50/70 border-2 border-amber-300 hover:border-amber-400 transition-all space-y-1 shadow-xs">
             <div className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">2. Packaging & Unboxing</div>
             <div className="text-lg font-bold font-serif text-amber-900">Rs. {packagingInvestment.toLocaleString()}</div>
             <div className="text-[11px] text-amber-700">
@@ -409,7 +418,7 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
           </div>
 
           {/* Monetization & Ads */}
-          <div className="p-3.5 rounded-xl bg-purple-50/60 border border-purple-200 space-y-1">
+          <div className="p-4 rounded-xl bg-purple-50/70 border-2 border-purple-300 hover:border-purple-400 transition-all space-y-1 shadow-xs">
             <div className="text-[11px] font-bold text-purple-800 uppercase tracking-wider">3. Monetization & Ads</div>
             <div className="text-lg font-bold font-serif text-purple-900">Rs. {monetizationInvestment.toLocaleString()}</div>
             <div className="text-[11px] text-purple-700">
@@ -418,7 +427,7 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
           </div>
 
           {/* Grand Combined Capital */}
-          <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200 space-y-1">
+          <div className="p-4 rounded-xl bg-emerald-50/70 border-2 border-emerald-400 hover:border-emerald-500 transition-all space-y-1 shadow-xs">
             <div className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">4. Total Capital In Play</div>
             <div className="text-lg font-bold font-serif text-emerald-900">Rs. {grandTotalInvestment.toLocaleString()}</div>
             <div className="text-[11px] text-emerald-700">
@@ -432,13 +441,13 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
         {/* Revenue Over Time Chart */}
-        <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
+        <div className="lg:col-span-8 bg-[#F7F4EB] rounded-2xl border border-[#565449]/35 p-6 space-y-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-serif font-bold text-lg text-slate-900">Revenue & Sales Trajectory</h3>
-              <p className="text-xs text-slate-500">Monthly revenue accumulation (PKR)</p>
+              <h3 className="font-serif font-bold text-lg text-[#1A1A18]">Revenue & Sales Trajectory</h3>
+              <p className="text-xs text-[#1A1A18]/70">Monthly revenue accumulation (PKR)</p>
             </div>
-            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+            <span className="text-xs font-bold text-[#1A1A18] bg-[#565449]/15 px-3 py-1 rounded-full border border-[#565449]/30">
               Filtered: {timeRange.toUpperCase()}
             </span>
           </div>
@@ -448,27 +457,27 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
               <AreaChart data={revenueChartData}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#565449" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#A0988A" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="label" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={val => `Rs. ${val}`} />
+                <XAxis dataKey="label" stroke="#1A1A18" fontSize={12} tickLine={false} />
+                <YAxis stroke="#1A1A18" fontSize={12} tickLine={false} tickFormatter={val => `Rs. ${val}`} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#fff' }}
+                  contentStyle={{ backgroundColor: '#565449', borderColor: '#A0988A', borderRadius: '12px', color: '#F7F4EB' }}
                   formatter={(val: any) => [`Rs. ${Number(val).toLocaleString()}`, 'Revenue']}
                 />
-                <Area type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                <Area type="monotone" dataKey="revenue" stroke="#565449" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Order Status Breakdown Chart */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm flex flex-col justify-between">
+        <div className="lg:col-span-4 bg-[#F7F4EB] rounded-2xl border border-[#565449]/35 p-6 space-y-4 shadow-sm flex flex-col justify-between">
           <div>
-            <h3 className="font-serif font-bold text-lg text-slate-900">Order Status Distribution</h3>
-            <p className="text-xs text-slate-500">Active fulfillment pipeline overview</p>
+            <h3 className="font-serif font-bold text-lg text-[#1A1A18]">Order Status Distribution</h3>
+            <p className="text-xs text-[#1A1A18]/70">Active fulfillment pipeline overview</p>
           </div>
 
           <div className="h-52 w-full relative flex items-center justify-center">
@@ -489,7 +498,7 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', color: '#fff' }}
+                    contentStyle={{ backgroundColor: '#565449', borderRadius: '12px', color: '#F7F4EB', borderColor: '#A0988A' }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -516,13 +525,13 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
         {/* Low Stock Widget */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-            <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-500" /> Low Stock & Restock Alert
+        <div className="lg:col-span-4 bg-[#F7F4EB] rounded-2xl border border-[#565449]/35 p-6 space-y-4 shadow-sm">
+          <div className="flex items-center justify-between pb-2 border-b border-[#565449]/20">
+            <h3 className="font-serif font-bold text-base text-red-700 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-600" /> Low Stock & Restock Alert
             </h3>
-            <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-              {lowStockProducts.length} Items
+            <span className="text-[11px] font-bold text-red-700 bg-red-100 px-2.5 py-0.5 rounded-full border border-red-300">
+              {lowStockProducts.length} Below Limit
             </span>
           </div>
 
@@ -545,7 +554,7 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="text-xs font-bold text-amber-600 block">{stock} Left</span>
+                      <span className="text-xs font-bold text-red-600 block">{stock} Left</span>
                       <span className="text-[10px] text-slate-400">Reorder threshold 5</span>
                     </div>
                   </div>
@@ -555,61 +564,60 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
           </div>
         </div>
 
-        {/* Product Studio & Image Processing Status */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-            <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-blue-600" /> Studio Asset Processing
+        {/* AI & Vision Model Usage */}
+        <div className="lg:col-span-4 bg-[#F7F4EB] rounded-2xl border border-[#565449]/35 p-6 space-y-4 shadow-sm">
+          <div className="flex items-center justify-between pb-2 border-b border-[#565449]/20">
+            <h3 className="font-serif font-bold text-base text-[#1A1A18] flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#1A1A18]" /> AI &amp; Vision Studio Models
             </h3>
-            <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-              Remove.bg Ready
+            <span className="text-[11px] font-bold text-[#1A1A18] bg-[#565449]/15 px-2.5 py-0.5 rounded-full border border-[#565449]/30">
+              Model Usage
             </span>
           </div>
 
-          <p className="text-xs text-slate-500 leading-relaxed">
-            Automated background isolation and unlimited photo gallery optimize product showcases.
+          <p className="text-xs text-[#1A1A18]/80 leading-relaxed">
+            Live AI model pipelines: Computer Vision Foot Sizing (OpenCV Camera) and AI Outfit Matching engines active.
           </p>
 
           <div className="space-y-2">
-            {products.length === 0 ? (
-              <div className="text-center py-6 text-slate-400 text-xs">
-                <Sparkles className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                <span>No products listed yet. Click below to add your first product.</span>
-                {onNavigateTab && (
-                  <button
-                    onClick={() => onNavigateTab('products')}
-                    className="mt-3 block mx-auto px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 font-bold text-xs hover:bg-blue-100 transition-all"
-                  >
-                    + Add First Product
-                  </button>
-                )}
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#565449]/10 border border-[#565449]/20 text-xs">
+              <div>
+                <span className="font-bold text-[#1A1A18] block">OpenCV Foot Landmark Sizer</span>
+                <span className="text-[10px] text-[#1A1A18]/70">Camera dimension scan pipeline</span>
               </div>
-            ) : (
-              products.slice(0, 3).map(p => (
-                <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 text-xs">
-                  <span className="font-medium text-slate-900 truncate max-w-[180px]">{p.name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold uppercase">
-                      Active
-                    </span>
-                    <button className="p-1 hover:bg-slate-200 rounded text-slate-500" title="Studio Refresh">
-                      <RefreshCw className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
+              <span className="px-2 py-0.5 rounded-full bg-[#565449] text-[#F7F4EB] text-[10px] font-bold uppercase">
+                Active
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#565449]/10 border border-[#565449]/20 text-xs">
+              <div>
+                <span className="font-bold text-[#1A1A18] block">AI Outfit Matcher Neural Core</span>
+                <span className="text-[10px] text-[#1A1A18]/70">Color-harmony style vectorizer</span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-[#565449] text-[#F7F4EB] text-[10px] font-bold uppercase">
+                Active
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#565449]/10 border border-[#565449]/20 text-xs">
+              <div>
+                <span className="font-bold text-[#1A1A18] block">Catalog Studio Processing</span>
+                <span className="text-[10px] text-[#1A1A18]/70">Product image asset pipelines</span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-[#565449] text-[#F7F4EB] text-[10px] font-bold uppercase">
+                Ready
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Recent Moderation Feed */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-            <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
-              <Star className="w-4 h-4 text-amber-500" /> Moderation Feed
+        <div className="lg:col-span-4 bg-[#F7F4EB] rounded-2xl border border-[#565449]/35 p-6 space-y-4 shadow-sm">
+          <div className="flex items-center justify-between pb-2 border-b border-[#565449]/20">
+            <h3 className="font-serif font-bold text-base text-[#1A1A18] flex items-center gap-2">
+              <Star className="w-4 h-4 fill-[#D4AF37] text-[#D4AF37]" /> Moderation Feed
             </h3>
             {onNavigateTab && (
-              <button onClick={() => onNavigateTab('reviews')} className="text-xs text-blue-600 font-semibold hover:underline">
+              <button onClick={() => onNavigateTab('reviews')} className="text-xs text-[#1A1A18] font-bold hover:underline">
                 View All
               </button>
             )}
@@ -626,7 +634,7 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
                 <div key={rev.id} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-slate-900">{rev.userName}</span>
-                    <div className="flex text-amber-400">
+                    <div className="flex text-[#D4AF37]">
                       {'★'.repeat(rev.rating)}
                     </div>
                   </div>
@@ -640,12 +648,12 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
       </div>
 
       {/* Orders Summary Quick Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
+      <div className="bg-[#F7F4EB] rounded-2xl border border-[#565449]/35 p-6 space-y-4 shadow-sm">
         <div className="flex items-center justify-between">
-          <h3 className="font-serif font-bold text-lg text-slate-900 flex items-center gap-2">
+          <h3 className="font-serif font-bold text-lg text-[#1A1A18] flex items-center gap-2">
             Recent Customer Orders
             {isRefreshing && (
-              <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
+              <span className="w-2 h-2 rounded-full bg-[#565449] animate-ping" />
             )}
           </h3>
           {onNavigateTab && (

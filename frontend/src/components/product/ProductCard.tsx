@@ -41,13 +41,13 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md hover:border-blue-400/60 transition-all duration-200 group flex flex-col justify-between overflow-hidden h-full transform-gpu">
+    <div className="bg-[#F7F4EB] rounded-2xl border border-[#A0988A]/40 shadow-xs hover:shadow-md hover:border-[#565449] transition-all duration-200 group flex flex-col justify-between overflow-hidden h-full transform-gpu">
       {/* Image Container with Link */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-50 p-2 sm:p-3">
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#A0988A]/15 p-2 sm:p-3">
 
         {/* Sale Badge */}
         {Boolean(product.originalPrice && product.originalPrice > product.price) && (
-          <div className="absolute bottom-2 left-2 z-10 px-2 py-0.5 rounded-full bg-rose-600 text-white text-[9px] sm:text-[10px] font-bold">
+          <div className="absolute bottom-2 left-2 z-10 px-2 py-0.5 rounded-full bg-[#565449] text-[#F7F4EB] border border-[#F7F4EB]/40 text-[9px] sm:text-[10px] font-bold tracking-wider">
             SALE
           </div>
         )}
@@ -73,71 +73,72 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
       <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between gap-1 mb-1">
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider font-semibold text-blue-600">
+            <span className="text-[10px] sm:text-xs uppercase tracking-wider font-semibold text-[#1A1A18]">
               {product.category && product.category !== 'None' ? product.category : 'Handcrafted'}
             </span>
-            <div className="flex items-center gap-0.5 text-[11px] sm:text-xs font-semibold text-slate-800">
-              <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-amber-400 text-amber-400" />
+            <div className="flex items-center gap-0.5 text-[11px] sm:text-xs font-semibold text-[#1A1A18]">
+              <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
               {product.averageRating.toFixed(1)}
-              <span className="text-slate-400 font-normal ml-0.5">({product.reviewCount})</span>
+              <span className="text-[#A0988A] font-normal ml-0.5">({product.reviewCount})</span>
             </div>
           </div>
 
-          <Link to={`/products/${product.slug}`} className="block group-hover:text-blue-600 transition-colors">
-            <h3 className="font-serif font-bold text-xs sm:text-base text-slate-900 line-clamp-1 leading-snug">
+          <Link to={`/products/${product.slug}`} className="block group-hover:text-[#45433A] transition-colors">
+            <h3 className="font-serif font-bold text-xs sm:text-base text-[#1A1A18] line-clamp-1 leading-snug">
               {product.name}
             </h3>
           </Link>
 
-          <p className="text-[11px] sm:text-xs text-slate-500 line-clamp-1 mt-0.5 mb-2 leading-relaxed">
+          <p className="hidden sm:block text-xs text-[#1A1A18]/80 line-clamp-1 mt-0.5 mb-2 leading-relaxed">
             {product.subtitle}
           </p>
         </div>
 
         {/* Price & Action Buttons */}
-        <div className="pt-2 border-t border-slate-100 mt-auto space-y-2">
-          {/* Price Stack: Horizontal Sale Price and Below the Actual/Original Price */}
+        <div className="pt-2 border-t border-[#A0988A]/40 mt-auto space-y-2">
+          {/* Price Stack */}
           <div className="flex flex-col items-start min-h-[36px] justify-center">
-            <span className="font-serif font-bold text-sm sm:text-base text-slate-900 leading-tight">
+            <span className="font-serif font-bold text-sm sm:text-base text-[#1A1A18] leading-tight">
               {formatPrice(product.price)}
             </span>
             {Boolean(product.originalPrice && product.originalPrice > product.price) && (
-              <span className="text-[10px] sm:text-xs text-slate-400 line-through leading-tight">
+              <span className="text-[10px] sm:text-xs text-[#A0988A] line-through leading-tight">
                 {formatPrice(product.originalPrice)}
               </span>
             )}
           </div>
 
-          {/* Action Buttons Row: Add to Bag & Direct Buy Now */}
-          <div className="grid grid-cols-2 gap-1.5">
+          {/* Action Buttons Row: Add to Bag (Warm Taupe with Olive border) & Direct Buy Now (Olive Drab) */}
+          <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
             <button
               type="button"
               onClick={handleAddToCart}
-              className={`py-1.5 px-2 rounded-lg text-[10px] sm:text-xs font-bold transition-all text-center cursor-pointer flex items-center justify-center gap-1 border active:scale-95 ${justAdded
-                  ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
-                }`}
+              className={`py-1.5 px-1 sm:px-2 rounded-lg text-[9px] xs:text-[10px] sm:text-xs font-bold transition-all text-center cursor-pointer flex items-center justify-center gap-0.5 sm:gap-1 border active:scale-95 whitespace-nowrap flex-nowrap ${
+                justAdded
+                  ? 'bg-[#565449] border-[#565449] text-[#F7F4EB]'
+                  : 'bg-[#A0988A]/30 text-[#1A1A18] border-[#565449] hover:bg-[#A0988A]/50'
+              }`}
               title="Add to shopping bag"
             >
               {justAdded ? (
                 <>
-                  <Check className="w-3 h-3 text-emerald-600" />
-                  <span>Added!</span>
+                  <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#F7F4EB] shrink-0" />
+                  <span className="whitespace-nowrap">Added!</span>
                 </>
               ) : (
                 <>
-                  <ShoppingBag className="w-3 h-3 text-slate-500" />
-                  <span>Add to Bag</span>
+                  <ShoppingBag className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#1A1A18] shrink-0" />
+                  <span className="whitespace-nowrap">Add to Bag</span>
                 </>
               )}
             </button>
             <button
               type="button"
               onClick={handleBuyNow}
-              className="py-1.5 px-2 rounded-lg text-[10px] sm:text-xs font-bold bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white transition-all text-center cursor-pointer shadow-xs flex items-center justify-center gap-1 active:scale-95"
+              className="py-1.5 px-1 sm:px-2 rounded-lg text-[9px] xs:text-[10px] sm:text-xs font-bold bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] border border-[#565449] transition-all text-center cursor-pointer shadow-xs flex items-center justify-center gap-0.5 sm:gap-1 active:scale-95 whitespace-nowrap flex-nowrap"
               title="Buy now with instant checkout"
             >
-              <span>Buy Now</span>
+              <span className="whitespace-nowrap">Buy Now</span>
             </button>
           </div>
         </div>

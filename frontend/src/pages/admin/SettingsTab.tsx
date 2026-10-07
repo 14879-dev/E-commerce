@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Settings, ShieldCheck, Truck, CreditCard, Ruler, Save, CheckCircle, ImagePlay, Trash2, Upload, Share2, Globe, MessageCircle, ChevronUp, ChevronDown, Edit3, Plus, Eye, EyeOff, Layers, Sparkles, X } from 'lucide-react';
+import { Settings, ShieldCheck, Truck, CreditCard, Ruler, Save, CheckCircle, ImagePlay, Trash2, Upload, Share2, Globe, MessageCircle, ChevronUp, ChevronDown, Edit3, Eye, EyeOff, X } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { useStoreSettings } from '../../context/StoreSettingsContext';
 import { normalizeAssetUrl } from '../../utils/assetUrl';
@@ -16,8 +16,8 @@ export const SettingsTab: React.FC<{
 
   // Hero media & slides state
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>(storeCtxSettings.heroSlides || []);
-  const [heroMediaUrl, setHeroMediaUrl] = useState<string | null>(storeCtxSettings.heroMediaUrl || null);
-  const [heroMediaType, setHeroMediaType] = useState<'image' | 'video' | null>(storeCtxSettings.heroMediaType || null);
+  const [, setHeroMediaUrl] = useState<string | null>(storeCtxSettings.heroMediaUrl || null);
+  const [, setHeroMediaType] = useState<'image' | 'video' | null>(storeCtxSettings.heroMediaType || null);
   const [heroUploading, setHeroUploading] = useState(false);
   const [heroError, setHeroError] = useState<string | null>(null);
   const [editingSlide, setEditingSlide] = useState<HeroSlide | null>(null);
@@ -226,7 +226,7 @@ export const SettingsTab: React.FC<{
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
+      await res.json();
       const updated = heroSlides.filter(s => s.id !== slideId);
       setHeroSlides(updated);
       const newSettings = {

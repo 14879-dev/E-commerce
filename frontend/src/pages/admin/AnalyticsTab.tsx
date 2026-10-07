@@ -22,7 +22,7 @@ const DEFAULT_PAKISTAN_CITIES = [
   'Gujranwala',
 ];
 
-const PALETTE_COLORS = ['#2563eb', '#d97706', '#16a34a', '#9333ea', '#dc2626', '#0891b2', '#4f46e5', '#ca8a04'];
+const PALETTE_COLORS = ['#565449', '#A0988A', '#F7F4EB', '#565449', '#A0988A', '#F7F4EB'];
 
 export const AnalyticsTab: React.FC = () => {
   const [period, setPeriod] = useState<'30days' | '90days' | '1year'>('30days');
@@ -354,7 +354,7 @@ export const AnalyticsTab: React.FC = () => {
                   </Pie>
                   <Tooltip
                     formatter={(val: any) => `Rs. ${Number(val).toLocaleString()}`}
-                    contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', color: '#fff' }}
+                    contentStyle={{ backgroundColor: '#565449', borderRadius: '12px', color: '#F7F4EB', borderColor: '#A0988A' }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -366,12 +366,12 @@ export const AnalyticsTab: React.FC = () => {
         <div className="lg:col-span-6 bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-xs">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-serif font-bold text-lg text-slate-900 flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-emerald-600" /> Geographic Courier Demographics
+              <h3 className="font-serif font-bold text-lg text-[#1A1A18] flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-[#1A1A18]" /> Geographic Courier Demographics
               </h3>
-              <p className="text-xs text-slate-500">Pakistani city destinations (Peshawar, Lahore, Karachi, Islamabad, etc.)</p>
+              <p className="text-xs text-[#1A1A18]/70">Pakistani city destinations (Peshawar, Lahore, Karachi, Islamabad, etc.)</p>
             </div>
-            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+            <span className="text-[11px] font-bold text-[#1A1A18] bg-[#565449]/15 px-2.5 py-0.5 rounded-full border border-[#565449]/30">
               Domestic Delivery Hubs
             </span>
           </div>
@@ -379,18 +379,18 @@ export const AnalyticsTab: React.FC = () => {
           <div className="h-64 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={regionalSalesData}>
-                <XAxis dataKey="region" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                <XAxis dataKey="region" stroke="#1A1A18" fontSize={11} tickLine={false} />
                 <YAxis
-                  stroke="#94a3b8"
+                  stroke="#1A1A18"
                   fontSize={11}
                   tickLine={false}
                   tickFormatter={val => `Rs. ${val}`}
                 />
                 <Tooltip
                   formatter={(val: any) => `Rs. ${Number(val).toLocaleString()}`}
-                  contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', color: '#fff' }}
+                  contentStyle={{ backgroundColor: '#565449', borderRadius: '12px', color: '#F7F4EB', borderColor: '#A0988A' }}
                 />
-                <Bar dataKey="revenue" fill="#2563eb" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="revenue" fill="#565449" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

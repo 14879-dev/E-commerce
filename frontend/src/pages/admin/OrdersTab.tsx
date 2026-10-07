@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Download, Eye, X, RefreshCw, Trash2, Printer, AlertTriangle, CheckCircle2, Plus, ShoppingBag, User, MapPin, CreditCard, Truck, Tag, PackagePlus } from 'lucide-react';
+import { Search, Download, Eye, X, RefreshCw, Trash2, Printer, AlertTriangle, CheckCircle2, Plus, ShoppingBag, User, CreditCard, PackagePlus } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { useStoreSettings } from '../../context/StoreSettingsContext';
 import { normalizeAssetUrl } from '../../utils/assetUrl';
@@ -339,9 +339,9 @@ export const OrdersTab: React.FC = () => {
 
           <button
             onClick={handleExportCSV}
-            className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-all shadow-xs"
+            className="px-4 py-2.5 rounded-xl border border-emerald-400 bg-emerald-50 hover:bg-emerald-100 text-xs font-bold text-emerald-700 flex items-center gap-2 transition-all shadow-xs cursor-pointer"
           >
-            <Download className="w-4 h-4" /> Export CSV
+            <Download className="w-4 h-4 text-emerald-700" /> Export CSV
           </button>
         </div>
       </div>
@@ -352,8 +352,8 @@ export const OrdersTab: React.FC = () => {
           onClick={() => setActiveSubTab('orders')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
             activeSubTab === 'orders'
-              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+              ? 'bg-[#565449] text-[#F7F4EB] border-[#565449] shadow-xs'
+              : 'bg-[#A0988A]/20 text-[#1A1A18] border-[#565449]/20 hover:bg-[#A0988A]/30'
           }`}
         >
           All Orders ({orders.length})
@@ -363,8 +363,8 @@ export const OrdersTab: React.FC = () => {
           onClick={() => setActiveSubTab('replacements')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
             activeSubTab === 'replacements'
-              ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
-              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+              ? 'bg-[#565449] text-[#F7F4EB] border-[#565449] shadow-xs'
+              : 'bg-[#A0988A]/20 text-[#1A1A18] border-[#565449]/20 hover:bg-[#A0988A]/30'
           }`}
         >
           <RefreshCw className="w-3.5 h-3.5" /> Size Exchange Requests ({orders.filter(o => o.replacementRequested).length})
@@ -497,10 +497,11 @@ export const OrdersTab: React.FC = () => {
                         </button>
                         <button
                           onClick={() => setOrderToDelete({ id: order.id, orderNumber: order.orderNumber })}
-                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-rose-500 hover:text-rose-700 transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg border transition-colors cursor-pointer shadow-2xs hover:scale-105"
+                          style={{ color: '#DC2626', backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }}
                           title="Delete Order"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" style={{ color: '#DC2626', stroke: '#DC2626' }} />
                         </button>
                       </div>
                     </td>
@@ -534,10 +535,11 @@ export const OrdersTab: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setOrderToDelete({ id: selectedOrder.id, orderNumber: selectedOrder.orderNumber })}
-                  className="px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                  style={{ color: '#DC2626', backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }}
                   title="Delete Order"
                 >
-                  <Trash2 className="w-3.5 h-3.5" /> Delete
+                  <Trash2 className="w-3.5 h-3.5" style={{ color: '#DC2626', stroke: '#DC2626' }} /> Delete
                 </button>
                 <button onClick={() => setSelectedOrder(null)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 cursor-pointer">
                   <X className="w-5 h-5" />
@@ -1344,8 +1346,9 @@ export const OrdersTab: React.FC = () => {
             max-width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
-            background: #ffffff !important;
-            color: #0f172a !important;
+            background: #F7F4EB !important;
+            color: #1A1A18 !important;
+            font-family: 'Forum', serif !important;
             z-index: 999999 !important;
             box-shadow: none !important;
             border: none !important;

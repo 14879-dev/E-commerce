@@ -109,7 +109,7 @@ export const ReviewsTab: React.FC = () => {
                       )}
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="flex text-amber-400 font-bold">
+                      <div className="flex text-[#D4AF37] font-bold">
                         {'★'.repeat(rev.rating)}
                       </div>
                     </td>
@@ -164,10 +164,11 @@ export const ReviewsTab: React.FC = () => {
 
                       <button
                         onClick={() => handleDeleteReview(rev.productId, rev.id)}
-                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-rose-500 transition-colors"
+                        className="p-1.5 rounded-lg border transition-colors shadow-2xs hover:scale-105"
+                        style={{ color: '#DC2626', backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }}
                         title="Delete Review"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5" style={{ color: '#DC2626', stroke: '#DC2626' }} />
                       </button>
                     </td>
                   </tr>

@@ -198,10 +198,11 @@ export const CustomersTab: React.FC = () => {
 
                       <button
                         onClick={() => handleDeleteCustomer(cust.id, cust.name)}
-                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-rose-600 transition-colors"
+                        className="p-1.5 rounded-lg border transition-colors shadow-2xs hover:scale-105"
+                        style={{ color: '#DC2626', backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }}
                         title="Delete Customer"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" style={{ color: '#DC2626', stroke: '#DC2626' }} />
                       </button>
                     </td>
                   </tr>
@@ -243,8 +244,8 @@ export const CustomersTab: React.FC = () => {
                 <span className="font-serif font-bold text-lg text-blue-600">Rs. {selectedCustomer.totalSpend.toLocaleString()}</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                <span className="text-slate-500 uppercase block text-[10px]">Total Orders</span>
-                <span className="font-serif font-bold text-lg text-slate-900">{selectedCustomer.orderCount} Orders</span>
+                <span className="text-slate-500 uppercase block text-[10px]">Wishlist Items</span>
+                <span className="font-serif font-bold text-lg text-slate-900">{selectedCustomer.wishlistCount || 0} Items</span>
               </div>
             </div>
 

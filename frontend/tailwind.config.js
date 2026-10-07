@@ -7,53 +7,137 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Strict 3-Color Luxury Theme (Olive Drab, Warm Taupe, Bone)
+        olive: {
+          DEFAULT: '#565449',
+          light: '#6E6B5D',
+          dark: '#45433A',
+        },
+        taupe: {
+          DEFAULT: '#A0988A',
+          light: '#B5AEA1',
+          dark: '#8B8375',
+        },
+        bone: {
+          DEFAULT: '#F7F4EB',
+          light: '#FAF7F0',
+          dark: '#EDE7D9',
+        },
+
+        // Black and White removed: remapped to theme
+        black: '#1A1A18',
+        white: '#F7F4EB',
+
+        slate: {
+          50: '#F7F4EB',
+          100: '#F7F4EB',
+          200: 'rgba(86, 84, 73, 0.35)',
+          300: '#A0988A',
+          400: '#A0988A',
+          500: '#A0988A',
+          600: '#1A1A18',
+          700: '#1A1A18',
+          800: '#1A1A18',
+          900: '#1A1A18',
+          950: '#111110',
+        },
+        gray: {
+          50: '#F7F4EB',
+          100: '#F7F4EB',
+          200: 'rgba(86, 84, 73, 0.35)',
+          300: '#A0988A',
+          400: '#A0988A',
+          500: '#A0988A',
+          600: '#1A1A18',
+          700: '#1A1A18',
+          800: '#1A1A18',
+          900: '#1A1A18',
+          950: '#111110',
+        },
+        zinc: {
+          50: '#F7F4EB',
+          100: '#F7F4EB',
+          200: 'rgba(86, 84, 73, 0.35)',
+          300: '#A0988A',
+          400: '#A0988A',
+          500: '#A0988A',
+          600: '#1A1A18',
+          700: '#1A1A18',
+          800: '#1A1A18',
+          900: '#1A1A18',
+          950: '#111110',
+        },
+        neutral: {
+          50: '#F7F4EB',
+          100: '#F7F4EB',
+          200: 'rgba(86, 84, 73, 0.35)',
+          300: '#A0988A',
+          400: '#A0988A',
+          500: '#A0988A',
+          600: '#1A1A18',
+          700: '#1A1A18',
+          800: '#1A1A18',
+          900: '#1A1A18',
+          950: '#111110',
+        },
+
+
+        // Legacy theme tokens aligned strictly with the 3 colors
+        smoky: {
+          DEFAULT: '#1A1A18',
+          dark: '#111110',
+        },
+        floral: {
+          DEFAULT: '#F7F4EB',
+          dark: '#EDE7D9',
+        },
         espresso: {
-          900: '#F8FAFC', // Crisp light background container
-          800: '#FFFFFF', // Clean white base background
-          700: '#F1F5F9', // Subtle slate hover
+          900: '#565449',
+          800: '#F7F4EB',
+          700: '#A0988A',
         },
         sandstone: {
-          800: '#F8FAFC',
-          700: '#F1F5F9',
-          600: '#E2E8F0',
+          800: '#F7F4EB',
+          700: '#F7F4EB',
+          600: '#A0988A',
         },
         copper: {
-          DEFAULT: '#2563EB', // Premium Royal Blue
-          light: '#3B82F6',   // Bright Royal Blue
-          dark: '#1D4ED8',    // Deep Sapphire Blue
-          glow: 'rgba(37, 99, 235, 0.35)',
+          DEFAULT: '#565449',
+          light: '#6E6B5D',
+          dark: '#45433A',
+          glow: 'rgba(86, 84, 73, 0.25)',
         },
         brass: {
-          DEFAULT: '#1E40AF', // Deep Royal Blue
-          light: '#2563EB',
-          dark: '#1E3A8A',
+          DEFAULT: '#565449',
+          light: '#A0988A',
+          dark: '#45433A',
         },
         saddle: {
-          DEFAULT: '#2563EB',
-          light: '#3B82F6',
-          dark: '#1D4ED8',
+          DEFAULT: '#565449',
+          light: '#A0988A',
+          dark: '#45433A',
         },
         glass: {
-          surface: 'rgba(255, 255, 255, 0.85)',
-          surfaceHover: 'rgba(255, 255, 255, 0.98)',
-          border: 'rgba(226, 232, 240, 0.9)',
-          borderHover: 'rgba(37, 99, 235, 0.4)',
-          highlight: 'rgba(37, 99, 235, 0.1)',
+          surface: 'rgba(216, 207, 188, 0.85)',
+          surfaceHover: 'rgba(216, 207, 188, 0.95)',
+          border: 'rgba(160, 152, 138, 0.75)',
+          borderHover: 'rgba(86, 84, 73, 0.6)',
+          highlight: 'rgba(86, 84, 73, 0.12)',
         },
         text: {
-          primary: '#0F172A', // Sharp Black/Dark Slate for main text
-          muted: '#475569',   // Slate Gray for body/secondary text
-          dark: '#FFFFFF',   // White text for dark buttons
+          primary: '#1A1A18', // Smoky Black
+          muted: '#A0988A',   // Warm Taupe
+          dark: '#F7F4EB',    // Bone text on Olive Drab
         }
       },
       fontFamily: {
-        serif: ['"Playfair Display"', 'Fraunces', 'serif'],
-        sans: ['Inter', 'Manrope', 'sans-serif'],
+        serif: ['Forum', 'serif'],
+        sans: ['Forum', 'serif'],
       },
       boxShadow: {
-        'glass-warm': '0 8px 30px 0 rgba(15, 23, 42, 0.08)',
-        'copper-glow': '0 0 25px rgba(37, 99, 235, 0.35)',
-        'brass-glow': '0 0 20px rgba(30, 64, 175, 0.25)',
+        'glass-warm': '0 8px 30px 0 rgba(86, 84, 73, 0.08)',
+        'copper-glow': '0 0 25px rgba(86, 84, 73, 0.25)',
+        'brass-glow': '0 0 20px rgba(86, 84, 73, 0.25)',
       },
       backdropBlur: {
         'glass': '20px',

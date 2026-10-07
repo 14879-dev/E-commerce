@@ -517,15 +517,15 @@ export default function FootScanDemo({
   };
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-slate-700/70 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white shadow-2xl">
+    <div className="rounded-2xl overflow-hidden border border-[#A0988A]/40 bg-[#A0988A]/20 text-[#1A1A18] shadow-md">
       {/* Top Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-[#565449]/20 bg-[#F7F4EB]">
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#565449] animate-ping" />
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#1A1A18]">
             Interactive Scanning Guide
           </h3>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-mono border border-blue-500/30">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#A0988A]/30 text-[#1A1A18] font-mono border border-[#565449]/20">
             Drag to Rotate
           </span>
         </div>
@@ -533,7 +533,7 @@ export default function FootScanDemo({
         <div className="flex items-center gap-2">
           <button
             onClick={resetView}
-            className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 transition-colors border border-slate-700"
+            className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg bg-[#F7F4EB] hover:bg-[#A0988A]/30 text-[#1A1A18] transition-colors border border-[#565449]/20 font-bold"
             title="Reset Camera View"
           >
             <RotateCcw className="w-3 h-3" /> Reset View
@@ -541,10 +541,10 @@ export default function FootScanDemo({
 
           <button
             onClick={() => setAutoPlay(!autoPlay)}
-            className={`flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg transition-colors border ${
+            className={`flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg transition-colors border font-bold ${
               autoPlay
-                ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                : "bg-slate-800/90 hover:bg-slate-700 text-slate-300 border-slate-700"
+                ? "bg-[#565449] text-[#F7F4EB] border-[#565449]"
+                : "bg-[#F7F4EB] hover:bg-[#A0988A]/30 text-[#1A1A18] border-[#565449]/20"
             }`}
             title={autoPlay ? "Pause Auto-Step" : "Play Smooth Walkthrough"}
           >
@@ -555,7 +555,7 @@ export default function FootScanDemo({
           {onClose && (
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+              className="text-[#1A1A18] hover:bg-[#A0988A]/30 p-1 rounded-lg font-bold"
             >
               ✕
             </button>
@@ -565,30 +565,29 @@ export default function FootScanDemo({
 
       {/* 3D WebGL Canvas Viewport */}
       <div className="relative">
-        <div ref={mountRef} className="w-full h-[320px] bg-slate-950 cursor-grab active:cursor-grabbing" />
+        <div ref={mountRef} className="w-full h-[320px] bg-[#565449]/90 cursor-grab active:cursor-grabbing" />
 
         {/* 3D Overlay Badges */}
         <div className="absolute top-3 left-3 pointer-events-none flex flex-col gap-1.5">
-          <div className="bg-slate-900/85 backdrop-blur-md border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-200 flex items-center gap-2 shadow-lg">
+          <div className="bg-[#F7F4EB]/90 backdrop-blur-md border border-[#565449]/30 rounded-lg px-2.5 py-1 text-xs font-bold text-[#1A1A18] flex items-center gap-2 shadow-lg">
             <span
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: stepInfo.color }}
+              className="w-2 h-2 rounded-full bg-[#565449]"
             />
             <span>{stepInfo.badge}</span>
           </div>
 
-          <span className="text-[10px] text-slate-400 bg-slate-950/75 px-2 py-0.5 rounded-md backdrop-blur-sm border border-slate-800">
-            Click & drag anywhere to inspect angle
+          <span className="text-[10px] text-[#F7F4EB] bg-[#565449]/80 px-2 py-0.5 rounded-md backdrop-blur-sm border border-[#565449]">
+            Click &amp; drag anywhere to inspect angle
           </span>
         </div>
 
         {/* Live Step Overlay Callout */}
         <div className="absolute bottom-3 right-3 pointer-events-none">
-          <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-xl px-3 py-1.5 text-right shadow-xl">
-            <div className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">
+          <div className="bg-[#F7F4EB]/95 backdrop-blur-md border border-[#565449]/30 rounded-xl px-3 py-1.5 text-right shadow-xl">
+            <div className="text-[10px] font-mono text-[#1A1A18]/70 uppercase tracking-widest font-bold">
               Step {currentStep + 1} of 4
             </div>
-            <div className="text-xs font-bold text-white">
+            <div className="text-xs font-bold text-[#1A1A18]">
               {currentStep === 0 && "Flat Floor Setup"}
               {currentStep === 1 && "Barefoot Placement"}
               {currentStep === 2 && "90° Perpendicular Angle"}
@@ -599,20 +598,20 @@ export default function FootScanDemo({
       </div>
 
       {/* Step Tabs Navigation */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-b border-slate-800/80 bg-slate-950">
+      <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-b border-[#565449]/20 bg-[#F7F4EB]">
         {STEPS.map((s, idx) => {
           const isActive = idx === currentStep;
           return (
             <button
               key={s.id}
               onClick={() => setCurrentStep(idx)}
-              className={`py-2.5 px-3 text-left transition-all border-r border-slate-800/60 last:border-r-0 ${
+              className={`py-2.5 px-3 text-left transition-all border-r border-[#565449]/20 last:border-r-0 ${
                 isActive
-                  ? "bg-slate-900 text-white border-b-2 border-b-blue-500 shadow-sm"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/40"
+                  ? "bg-[#565449] text-[#F7F4EB] shadow-sm font-bold"
+                  : "text-[#1A1A18]/70 hover:text-[#1A1A18] hover:bg-[#A0988A]/20"
               }`}
             >
-              <div className="text-[10px] font-mono uppercase tracking-wider text-slate-500">
+              <div className={`text-[10px] font-mono uppercase tracking-wider ${isActive ? "text-[#F7F4EB]/80" : "text-[#1A1A18]/60"}`}>
                 Step 0{idx + 1}
               </div>
               <div className="text-xs font-bold truncate mt-0.5">{s.title.split("—")[0]}</div>
@@ -622,30 +621,29 @@ export default function FootScanDemo({
       </div>
 
       {/* Step Guidance Text & Controls */}
-      <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-900/40">
+      <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#F7F4EB]">
         <div className="space-y-1 max-w-xl">
           <div className="flex items-center gap-2">
             <span
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: stepInfo.color }}
+              className="w-2 h-2 rounded-full bg-[#565449]"
             />
-            <h4 className="font-bold text-sm text-slate-100">{stepInfo.title}</h4>
+            <h4 className="font-bold text-sm text-[#1A1A18]">{stepInfo.title}</h4>
           </div>
-          <p className="text-xs text-slate-300 leading-relaxed">{stepInfo.instruction}</p>
-          <p className="text-[11px] text-amber-300/90 font-medium italic mt-1">
+          <p className="text-xs text-[#1A1A18]/80 leading-relaxed">{stepInfo.instruction}</p>
+          <p className="text-[11px] text-[#1A1A18] font-bold italic mt-1">
             💡 {stepInfo.tip}
           </p>
         </div>
 
-        {/* Previous / Next Step Buttons (No Rushing!) */}
+        {/* Previous / Next Step Buttons */}
         <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
           <button
             onClick={() => setCurrentStep((prev) => (prev - 1 + STEPS.length) % STEPS.length)}
             disabled={currentStep === 0}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 border transition-all ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1 border transition-all ${
               currentStep === 0
-                ? "opacity-40 cursor-not-allowed border-slate-800 text-slate-600"
-                : "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700"
+                ? "opacity-40 cursor-not-allowed border-[#565449]/20 text-[#1A1A18]/50"
+                : "bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] border-[#565449]/20"
             }`}
           >
             <ChevronLeft className="w-3.5 h-3.5" /> Prev Step
@@ -653,7 +651,7 @@ export default function FootScanDemo({
 
           <button
             onClick={() => setCurrentStep((prev) => (prev + 1) % STEPS.length)}
-            className="px-4 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 transition-all"
+            className="px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] shadow-md transition-all cursor-pointer"
           >
             <span>{currentStep === STEPS.length - 1 ? "Replay Guide" : "Next Step"}</span>
             <ChevronRight className="w-3.5 h-3.5" />

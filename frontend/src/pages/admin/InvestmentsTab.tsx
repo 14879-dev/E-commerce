@@ -419,11 +419,11 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: 'Forum', serif;
       font-size: 11px;
       line-height: 1.45;
-      color: #1e293b;
-      background: #f8fafc;
+      color: #1A1A18;
+      background: #F7F4EB;
       padding: 24px;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
@@ -431,14 +431,14 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
     .sheet {
       max-width: 960px;
       margin: 0 auto;
-      background: #ffffff;
+      background: #F7F4EB;
       padding: 36px 40px;
       border-radius: 12px;
-      box-shadow: 0 4px 25px rgba(0,0,0,0.06);
-      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 25px rgba(86,84,73,0.06);
+      border: 1px solid #A0988A;
     }
     @media print {
-      body { background: #fff; padding: 0; }
+      body { background: #F7F4EB; padding: 0; }
       .sheet { max-width: 100%; margin: 0; padding: 0; border: none; box-shadow: none; }
       .no-print { display: none !important; }
       table { page-break-inside: auto; }
@@ -455,10 +455,10 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #0f172a;
+      background: #565449;
       padding: 14px 20px;
       border-radius: 10px;
-      color: #fff;
+      color: #F7F4EB;
     }
     .action-bar-title { font-size: 13px; font-weight: 700; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
     .action-btn-group { display: flex; gap: 10px; }
@@ -474,10 +474,10 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
       align-items: center;
       gap: 6px;
     }
-    .btn-primary { background: #2563eb; color: #fff; box-shadow: 0 2px 10px rgba(37,99,235,0.35); }
-    .btn-primary:hover { background: #1d4ed8; }
-    .btn-secondary { background: #334155; color: #e2e8f0; }
-    .btn-secondary:hover { background: #475569; }
+    .btn-primary { background: #565449; color: #F7F4EB; border: 1px solid #A0988A; }
+    .btn-primary:hover { background: #45433A; }
+    .btn-secondary { background: #A0988A; color: #1A1A18; }
+    .btn-secondary:hover { background: #565449; color: #F7F4EB; }
 
     /* Header Block */
     .header {
@@ -485,7 +485,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
       justify-content: space-between;
       align-items: flex-start;
       padding-bottom: 24px;
-      border-bottom: 2px solid #0f172a;
+      border-bottom: 2px solid #565449;
       margin-bottom: 24px;
     }
     .brand-box {
@@ -504,21 +504,21 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
       font-size: 20px;
       font-weight: 900;
       letter-spacing: 1px;
-      color: #0f172a;
+      color: #1A1A18;
       text-transform: uppercase;
       margin-bottom: 2px;
     }
     .brand-info .tagline {
       font-size: 10px;
       font-weight: 600;
-      color: #d97706;
+      color: #1A1A18;
       letter-spacing: 1.5px;
       text-transform: uppercase;
       margin-bottom: 6px;
     }
     .brand-meta {
       font-size: 9.5px;
-      color: #64748b;
+      color: #1A1A18;
       line-height: 1.35;
     }
     .statement-meta {
@@ -526,8 +526,8 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
     }
     .statement-badge {
       display: inline-block;
-      background: #0f172a;
-      color: #fbbf24;
+      background: #565449;
+      color: #F7F4EB;
       font-size: 9px;
       font-weight: 800;
       letter-spacing: 1.5px;
@@ -539,18 +539,18 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
     .statement-title {
       font-size: 18px;
       font-weight: 900;
-      color: #1e40af;
+      color: #1A1A18;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 4px;
     }
     .statement-grid {
       font-size: 10px;
-      color: #475569;
+      color: #1A1A18;
       line-height: 1.5;
     }
     .statement-grid strong {
-      color: #0f172a;
+      color: #1A1A18;
     }
 
     /* Executive KPI Matrix */
@@ -559,7 +559,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
       font-weight: 800;
       letter-spacing: 1.5px;
       text-transform: uppercase;
-      color: #64748b;
+      color: #1A1A18;
       margin-bottom: 10px;
       display: flex;
       align-items: center;
@@ -572,10 +572,10 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
       margin-bottom: 24px;
     }
     .kpi-card {
-      border: 1px solid #e2e8f0;
+      border: 1px solid #A0988A;
       border-radius: 8px;
       padding: 12px 14px;
-      background: #ffffff;
+      background: #F7F4EB;
       position: relative;
       overflow: hidden;
     }
@@ -587,41 +587,41 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
       right: 0;
       height: 3px;
     }
-    .kpi-card.primary::before { background: #2563eb; }
-    .kpi-card.emerald::before { background: #059669; }
-    .kpi-card.amber::before { background: #d97706; }
-    .kpi-card.purple::before { background: #7c3aed; }
-    .kpi-card.blue::before { background: #0284c7; }
-    .kpi-card.teal::before { background: #0d9488; }
+    .kpi-card.primary::before { background: #565449; }
+    .kpi-card.emerald::before { background: #565449; }
+    .kpi-card.amber::before { background: #A0988A; }
+    .kpi-card.purple::before { background: #565449; }
+    .kpi-card.blue::before { background: #565449; }
+    .kpi-card.teal::before { background: #A0988A; }
 
     .kpi-card.featured {
-      background: #0f172a;
-      color: #fff;
-      border-color: #1e293b;
+      background: #565449;
+      color: #F7F4EB;
+      border-color: #A0988A;
     }
-    .kpi-card.featured::before { background: #fbbf24; }
+    .kpi-card.featured::before { background: #F7F4EB; }
     .kpi-label {
       font-size: 9px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.8px;
-      color: #64748b;
+      color: #1A1A18;
       margin-bottom: 4px;
     }
-    .kpi-card.featured .kpi-label { color: #94a3b8; }
+    .kpi-card.featured .kpi-label { color: #F7F4EB; }
     .kpi-value {
       font-size: 17px;
       font-weight: 900;
-      color: #0f172a;
+      color: #1A1A18;
       letter-spacing: -0.3px;
       margin-bottom: 2px;
     }
-    .kpi-card.featured .kpi-value { color: #fbbf24; font-size: 19px; }
+    .kpi-card.featured .kpi-value { color: #F7F4EB; font-size: 19px; }
     .kpi-sub {
       font-size: 9.5px;
-      color: #64748b;
+      color: #1A1A18;
     }
-    .kpi-card.featured .kpi-sub { color: #94a3b8; }
+    .kpi-card.featured .kpi-sub { color: #F7F4EB; }
 
     /* Tables & Sections */
     .section {
@@ -631,8 +631,8 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #f1f5f9;
-      border-left: 4px solid #1e40af;
+      background: rgba(160, 152, 138, 0.2);
+      border-left: 4px solid #565449;
       padding: 8px 12px;
       border-radius: 0 6px 6px 0;
       margin-bottom: 10px;
@@ -642,14 +642,14 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 1px;
-      color: #0f172a;
+      color: #1A1A18;
       display: flex;
       align-items: center;
       gap: 8px;
     }
     .section-counter {
-      background: #1e40af;
-      color: #fff;
+      background: #565449;
+      color: #F7F4EB;
       font-size: 8.5px;
       padding: 2px 6px;
       border-radius: 12px;
@@ -658,20 +658,20 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
     .section-subtotal-badge {
       font-size: 10px;
       font-weight: 700;
-      color: #1e40af;
+      color: #1A1A18;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 10.5px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid #A0988A;
       border-radius: 6px;
       overflow: hidden;
     }
     thead {
-      background: #f8fafc;
-      border-bottom: 2px solid #cbd5e1;
+      background: rgba(160, 152, 138, 0.25);
+      border-bottom: 2px solid #A0988A;
     }
     th {
       padding: 8px 10px;
@@ -680,22 +680,22 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.6px;
-      color: #475569;
+      color: #1A1A18;
     }
     td {
       padding: 7px 10px;
-      border-bottom: 1px solid #e2e8f0;
-      color: #334155;
+      border-bottom: 1px solid #A0988A;
+      color: #1A1A18;
       vertical-align: middle;
     }
     tr:nth-child(even) td {
-      background: #f8fafc;
+      background: rgba(160, 152, 138, 0.1);
     }
     tfoot td {
-      background: #f1f5f9;
+      background: rgba(160, 152, 138, 0.25);
       font-weight: 800;
-      color: #0f172a;
-      border-top: 2px solid #cbd5e1;
+      color: #1A1A18;
+      border-top: 2px solid #A0988A;
       border-bottom: none;
       padding: 9px 10px;
     }
@@ -710,14 +710,14 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
       text-transform: uppercase;
       letter-spacing: 0.4px;
     }
-    .badge-green { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
-    .badge-red { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
-    .badge-blue { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
-    .badge-amber { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-    .badge-purple { background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; }
-    .badge-indigo { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
-    .badge-emerald { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-    .badge-slate { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+    .badge-green { background: #A0988A/30; color: #1A1A18; border: 1px solid #A0988A; }
+    .badge-red { background: #565449/20; color: #1A1A18; border: 1px solid #565449; }
+    .badge-blue { background: #A0988A/30; color: #1A1A18; border: 1px solid #A0988A; }
+    .badge-amber { background: #A0988A/30; color: #1A1A18; border: 1px solid #A0988A; }
+    .badge-purple { background: #565449/20; color: #1A1A18; border: 1px solid #565449; }
+    .badge-indigo { background: #A0988A/30; color: #1A1A18; border: 1px solid #A0988A; }
+    .badge-emerald { background: #565449/30; color: #1A1A18; border: 1px solid #565449; }
+    .badge-slate { background: #A0988A/30; color: #1A1A18; border: 1px solid #A0988A; }
 
     .sku-tag {
       display: inline-block;
@@ -743,9 +743,9 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
 
     /* Grand Summary Reconciliation Box */
     .summary-box {
-      border: 2px solid #0f172a;
+      border: 2px solid #565449;
       border-radius: 8px;
-      background: #ffffff;
+      background: #F7F4EB;
       padding: 18px 24px;
       margin-top: 24px;
       margin-bottom: 24px;
@@ -762,26 +762,26 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 1px;
-      color: #0f172a;
+      color: #1A1A18;
       margin-bottom: 6px;
     }
     .summary-item {
       display: flex;
       justify-content: space-between;
       font-size: 10.5px;
-      color: #475569;
+      color: #1A1A18;
       padding: 3px 0;
     }
     .summary-item.strong {
-      color: #0f172a;
+      color: #1A1A18;
       font-weight: 700;
-      border-top: 1px dashed #cbd5e1;
+      border-top: 1px dashed #A0988A;
       margin-top: 4px;
       padding-top: 6px;
     }
     .summary-right {
-      background: #0f172a;
-      color: #ffffff;
+      background: #565449;
+      color: #F7F4EB;
       padding: 16px 22px;
       border-radius: 8px;
       text-align: right;
@@ -1146,11 +1146,11 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
           {/* Download E-Statement */}
           <button
             onClick={handleDownloadEStatement}
-            className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-sm cursor-pointer"
+            className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-400 px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer"
             title="Download full investment e-statement as CSV"
           >
-            <FileText className="w-4 h-4" />
-            <span>E-Statement</span>
+            <FileText className="w-4 h-4 text-emerald-700" />
+            <span>Export CSV</span>
           </button>
 
           <button
@@ -1176,7 +1176,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         
         {/* Card 1: Combined Total Investment (Grand Capital) */}
-        <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-2xl p-5 shadow-md space-y-2 border border-slate-800 relative overflow-hidden">
+        <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-2xl p-5 shadow-md space-y-2 border-2 border-amber-500/70 relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400">Total Capital Investment</span>
             <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
@@ -1190,7 +1190,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
         </div>
 
         {/* Card 2: Supplier Product Buying Capital (Fixed, untouched by orders) */}
-        <div className="bg-white rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-white to-emerald-50/20 p-5 shadow-sm space-y-2">
+        <div className="bg-white rounded-2xl border-2 border-emerald-400/80 bg-gradient-to-br from-white to-emerald-50/20 p-5 shadow-sm space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-emerald-900">Supplier Product Buying</span>
             <div className="p-2 rounded-xl bg-emerald-100 text-emerald-700 border border-emerald-300">
@@ -1226,7 +1226,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
         </div>
 
         {/* Card 3: Packaging & Unboxing */}
-        <div className="bg-white rounded-2xl border border-amber-200/80 bg-gradient-to-br from-white to-amber-50/30 p-5 shadow-sm space-y-2">
+        <div className="bg-white rounded-2xl border-2 border-amber-300/90 bg-gradient-to-br from-white to-amber-50/30 p-5 shadow-sm space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-amber-900">Packaging & Boxes</span>
             <div className="p-2 rounded-xl bg-amber-100 text-amber-800 border border-amber-300">
@@ -1240,7 +1240,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
         </div>
 
         {/* Card 4: Monetization & Marketing */}
-        <div className="bg-white rounded-2xl border border-blue-200/80 bg-gradient-to-br from-white to-blue-50/30 p-5 shadow-sm space-y-2">
+        <div className="bg-white rounded-2xl border-2 border-blue-300/90 bg-gradient-to-br from-white to-blue-50/30 p-5 shadow-sm space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-blue-900">Monetization & Ads</span>
             <div className="p-2 rounded-xl bg-blue-100 text-blue-800 border border-blue-300">
@@ -1254,7 +1254,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
         </div>
 
         {/* Card 5: Logistics & Other Equipment */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-2">
+        <div className="bg-white rounded-2xl border-2 border-purple-300/90 p-5 shadow-sm space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Logistics & Gear</span>
             <div className="p-2 rounded-xl bg-purple-50 text-purple-700 border border-purple-200">
@@ -1388,17 +1388,19 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({ onNavigateTab })
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => handleOpenEditModal(item)}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                            className="p-1.5 rounded-lg border transition-colors shadow-2xs hover:scale-105"
+                            style={{ color: '#D97706', backgroundColor: '#FEF3C7', borderColor: '#FCD34D' }}
                             title="Edit Investment"
                           >
-                            <Edit3 className="w-3.5 h-3.5" />
+                            <Edit3 className="w-3.5 h-3.5" style={{ color: '#D97706', stroke: '#D97706' }} />
                           </button>
                           <button
                             onClick={() => setDeletingItem(item)}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            className="p-1.5 rounded-lg border transition-colors shadow-2xs hover:scale-105"
+                            style={{ color: '#DC2626', backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }}
                             title="Delete Record"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3.5 h-3.5" style={{ color: '#DC2626', stroke: '#DC2626' }} />
                           </button>
                         </div>
                       </td>

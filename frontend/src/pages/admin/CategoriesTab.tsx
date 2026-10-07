@@ -245,11 +245,7 @@ export const CategoriesTab: React.FC = () => {
                 );
                 setTimeout(() => setSuccessMsg(''), 4000);
               }}
-              className={`px-5 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all shadow-sm ${
-                settings.hideCategories
-                  ? 'bg-amber-600 hover:bg-amber-700 text-white'
-                  : 'bg-slate-900 hover:bg-slate-800 text-white'
-              }`}
+              className="px-5 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all shadow-sm bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB]"
             >
               {settings.hideCategories ? (
                 <>
@@ -489,17 +485,19 @@ export const CategoriesTab: React.FC = () => {
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => handleOpenEditModal(category)}
-                      className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-white border border-transparent hover:border-slate-200 transition-all cursor-pointer"
+                      className="p-1.5 rounded-lg border transition-all cursor-pointer shadow-2xs hover:scale-105"
+                      style={{ color: '#D97706', backgroundColor: '#FEF3C7', borderColor: '#FCD34D' }}
                       title="Edit Category"
                     >
-                      <Edit2 className="w-4 h-4" />
+                      <Edit2 className="w-4 h-4" style={{ color: '#D97706', stroke: '#D97706' }} />
                     </button>
                     <button
                       onClick={() => setDeletingCategory(category)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-white border border-transparent hover:border-slate-200 transition-all cursor-pointer"
+                      className="p-1.5 rounded-lg border transition-all cursor-pointer shadow-2xs hover:scale-105"
+                      style={{ color: '#DC2626', backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }}
                       title="Delete Category"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" style={{ color: '#DC2626', stroke: '#DC2626' }} />
                     </button>
                   </div>
                 </div>

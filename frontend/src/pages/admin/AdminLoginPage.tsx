@@ -19,7 +19,10 @@ export const AdminLoginPage: React.FC = () => {
   // If already authenticated, redirect to dashboard
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/admin', { replace: true });
+      try {
+        localStorage.setItem('psh_admin_active_tab', 'dashboard');
+      } catch {}
+      navigate('/admin?tab=dashboard', { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
@@ -48,7 +51,10 @@ export const AdminLoginPage: React.FC = () => {
     const result = await login(username.trim(), password);
 
     if (result.success) {
-      navigate('/admin', { replace: true });
+      try {
+        localStorage.setItem('psh_admin_active_tab', 'dashboard');
+      } catch {}
+      navigate('/admin?tab=dashboard', { replace: true });
     } else {
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
@@ -64,40 +70,34 @@ export const AdminLoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[#F7F4EB] flex items-center justify-center p-4 relative overflow-hidden text-[#1A1A18]">
       <SEOHelmet
         title="Admin Login — Peshawari Chappal"
         description="Secure admin login portal"
       />
 
-      {/* Subtle background pattern */}
-      <div className="absolute inset-0 opacity-[0.03]" style={{
-        backgroundImage: 'repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)',
-        backgroundSize: '20px 20px'
-      }} />
-
-      {/* Glowing orbs */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl" />
+      {/* Subtle ambient luxury orbs */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#A0988A]/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-[#565449]/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative w-full max-w-md">
 
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-blue-600/30">
-            <ShieldCheck className="w-8 h-8 text-white" />
+          <div className="w-16 h-16 rounded-2xl bg-[#565449] text-[#F7F4EB] flex items-center justify-center mx-auto mb-4 shadow-xl border border-[#A0988A]/40">
+            <ShieldCheck className="w-8 h-8 text-[#F7F4EB]" />
           </div>
-          <h1 className="font-serif text-2xl font-bold text-white mb-1">Admin Control Center</h1>
-          <p className="text-slate-400 text-sm">Peshawari Chappal Co. — Secure Access</p>
+          <h1 className="font-serif text-2xl font-bold text-[#1A1A18] mb-1">Admin Control Center</h1>
+          <p className="text-[#1A1A18]/80 text-sm">Peshawari Chappal Co. — Secure Access</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+        <div className="bg-[#F7F4EB] border border-[#565449]/20 rounded-3xl p-8 shadow-2xl">
 
           {/* Security Notice */}
-          <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-blue-600/10 border border-blue-500/20 mb-6">
-            <Lock className="w-4 h-4 text-blue-400 shrink-0" />
-            <p className="text-xs text-blue-300">
+          <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-[#565449]/10 border border-[#565449]/20 mb-6">
+            <Lock className="w-4 h-4 text-[#1A1A18] shrink-0" />
+            <p className="text-xs text-[#1A1A18] font-medium">
               This is a restricted area. All access is logged and monitored.
             </p>
           </div>
@@ -106,11 +106,11 @@ export const AdminLoginPage: React.FC = () => {
 
             {/* Username Field */}
             <div>
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400 block mb-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-[#1A1A18] block mb-2">
                 Username
               </label>
               <div className="relative">
-                <User className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                <User className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-[#1A1A18]/60" />
                 <input
                   type="text"
                   value={username}
@@ -118,18 +118,18 @@ export const AdminLoginPage: React.FC = () => {
                   placeholder="Enter admin username"
                   autoComplete="username"
                   disabled={isLocked}
-                  className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-blue-500 placeholder-slate-600 transition-all disabled:opacity-50"
+                  className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-[#F7F4EB] border border-[#565449]/30 text-[#1A1A18] text-sm focus:outline-none focus:border-[#565449] placeholder-[#565449]/50 transition-all disabled:opacity-50"
                 />
               </div>
             </div>
 
             {/* Password Field */}
             <div>
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400 block mb-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-[#1A1A18] block mb-2">
                 Password
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-[#1A1A18]/60" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
@@ -137,12 +137,12 @@ export const AdminLoginPage: React.FC = () => {
                   placeholder="Enter admin password"
                   autoComplete="current-password"
                   disabled={isLocked}
-                  className="w-full pl-11 pr-12 py-3.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-blue-500 placeholder-slate-600 transition-all disabled:opacity-50"
+                  className="w-full pl-11 pr-12 py-3.5 rounded-xl bg-[#F7F4EB] border border-[#565449]/30 text-[#1A1A18] text-sm focus:outline-none focus:border-[#565449] placeholder-[#565449]/50 transition-all disabled:opacity-50"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#1A1A18]/70 hover:text-[#1A1A18] transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -151,15 +151,15 @@ export const AdminLoginPage: React.FC = () => {
 
             {/* Error Message */}
             {error && (
-              <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-rose-600/10 border border-rose-500/30">
-                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                <p className="text-xs text-rose-300">{error}</p>
+              <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-[#565449]/15 border border-[#565449]/40">
+                <AlertCircle className="w-4 h-4 text-[#1A1A18] shrink-0 mt-0.5" />
+                <p className="text-xs text-[#1A1A18] font-bold">{error}</p>
               </div>
             )}
 
             {/* Attempt Counter */}
             {attempts > 0 && attempts < 5 && !isLocked && (
-              <p className="text-center text-xs text-amber-400">
+              <p className="text-center text-xs text-[#1A1A18] font-bold">
                 {5 - attempts} attempt{5 - attempts !== 1 ? 's' : ''} remaining before temporary lockout
               </p>
             )}
@@ -167,12 +167,12 @@ export const AdminLoginPage: React.FC = () => {
             {/* Lockout Countdown */}
             {isLocked && (
               <div className="text-center">
-                <p className="text-xs text-rose-400 font-bold">
+                <p className="text-xs text-[#1A1A18] font-bold">
                   Locked — try again in {lockCountdown}s
                 </p>
-                <div className="mt-2 h-1 bg-slate-800 rounded-full overflow-hidden">
+                <div className="mt-2 h-1 bg-[#A0988A]/30 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-rose-600 transition-all duration-1000"
+                    className="h-full bg-[#565449] transition-all duration-1000"
                     style={{ width: `${(lockCountdown / 30) * 100}%` }}
                   />
                 </div>
@@ -183,7 +183,7 @@ export const AdminLoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading || isLocked}
-              className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-all shadow-lg shadow-blue-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-xl bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold text-sm transition-all shadow-lg border border-[#565449] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer active:scale-98"
             >
               {isLoading ? (
                 <>
@@ -205,7 +205,7 @@ export const AdminLoginPage: React.FC = () => {
           </form>
 
           {/* Footer Note */}
-          <p className="text-center text-[11px] text-slate-600 mt-6">
+          <p className="text-center text-[11px] text-[#1A1A18]/70 mt-6">
             This panel is restricted to authorized personnel only.
             <br />Unauthorized access attempts are logged.
           </p>
@@ -215,7 +215,7 @@ export const AdminLoginPage: React.FC = () => {
         <div className="text-center mt-6">
           <a
             href="/"
-            className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            className="text-xs text-[#1A1A18] hover:underline font-bold transition-colors"
           >
             ← Return to storefront
           </a>

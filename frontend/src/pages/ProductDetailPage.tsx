@@ -97,8 +97,8 @@ export const ProductDetailPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="p-12 text-center text-slate-500 space-y-4">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
+      <div className="p-12 text-center text-[#1A1A18] space-y-4">
+        <div className="w-12 h-12 border-4 border-[#565449] border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-sm">Loading handcrafted product specifications...</p>
       </div>
     );
@@ -106,9 +106,9 @@ export const ProductDetailPage: React.FC = () => {
 
   if (!product) {
     return (
-      <div className="p-10 text-center space-y-4 bg-white rounded-2xl border border-slate-200 max-w-lg mx-auto my-8">
-        <h2 className="font-serif font-bold text-2xl text-slate-900">Product Not Found</h2>
-        <p className="text-slate-500 text-sm">The chappal model you requested could not be located.</p>
+      <div className="p-10 text-center space-y-4 bg-[#A0988A]/20 rounded-2xl border border-[#A0988A] max-w-lg mx-auto my-8">
+        <h2 className="font-serif font-bold text-2xl text-[#1A1A18]">Product Not Found</h2>
+        <p className="text-[#1A1A18]/80 text-sm">The chappal model you requested could not be located.</p>
         <Link to="/products" className="btn-copper text-xs py-2.5 px-6 inline-block">Return to Catalog</Link>
       </div>
     );
@@ -139,10 +139,10 @@ export const ProductDetailPage: React.FC = () => {
       {/* Main Product Showcase Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-start">
         
-        {/* Left Column: Clean Image Gallery (No Extra Container, No Text Clutter) */}
+        {/* Left Column: Clean Image Gallery */}
         <div className="lg:col-span-7 space-y-3">
           {/* Main Active Photo */}
-          <div className="h-72 sm:h-96 lg:h-[460px] w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-slate-50 border border-slate-100 flex items-center justify-center shadow-xs">
+          <div className="h-72 sm:h-96 lg:h-[460px] w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-[#A0988A]/20 border border-[#A0988A] flex items-center justify-center shadow-xs">
             <img
               src={activeImageUrl}
               alt={product.name}
@@ -150,7 +150,7 @@ export const ProductDetailPage: React.FC = () => {
             />
           </div>
 
-          {/* Clean Image Thumbnails (Only Images, No Text Labels) */}
+          {/* Clean Image Thumbnails */}
           {allImages.length > 1 && (
             <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto pb-1 scrollbar-hide">
               {allImages.map((url, idx) => (
@@ -158,10 +158,10 @@ export const ProductDetailPage: React.FC = () => {
                   key={`${url}-${idx}`}
                   type="button"
                   onClick={() => setSelectedImageUrl(url)}
-                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 border transition-all cursor-pointer bg-slate-50 ${
+                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 border transition-all cursor-pointer bg-[#A0988A]/20 ${
                     activeImageUrl === url
-                      ? 'ring-2 ring-blue-600 border-transparent shadow-xs'
-                      : 'border-slate-200 hover:border-slate-300 opacity-70 hover:opacity-100'
+                      ? 'ring-2 ring-[#565449] border-transparent shadow-xs'
+                      : 'border-[#A0988A] opacity-70 hover:opacity-100'
                   }`}
                   aria-label={`View photo ${idx + 1}`}
                 >
@@ -176,68 +176,66 @@ export const ProductDetailPage: React.FC = () => {
           )}
         </div>
 
-        {/* Right Column: Tightly Structured Product Details */}
+        {/* Right Column: Product Details */}
         <div className="lg:col-span-5 space-y-4 sm:space-y-5">
           <div className="space-y-1.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-bold uppercase tracking-wider">
+              <span className="px-2.5 py-0.5 rounded-full bg-[#A0988A]/30 border border-[#565449]/30 text-[#1A1A18] text-[11px] font-bold uppercase tracking-wider">
                 {product.category && product.category !== 'None' ? product.category : 'Handcrafted Edition'}
               </span>
-              <div className="flex items-center gap-1 text-amber-500">
-                <Star className="w-3.5 h-3.5 fill-current" />
-                <span className="text-xs font-bold text-slate-800">{product.averageRating}</span>
-                <span className="text-xs text-slate-400">({product.reviewCount} reviews)</span>
+              <div className="flex items-center gap-1 text-[#1A1A18]">
+                <Star className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
+                <span className="text-xs font-bold text-[#1A1A18]">{product.averageRating}</span>
+                <span className="text-xs text-[#1A1A18]/70">({product.reviewCount} reviews)</span>
               </div>
             </div>
 
-            <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight leading-tight">
+            <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1A1A18] tracking-tight leading-tight">
               {product.name}
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#1A1A18]/80 leading-relaxed">
               {product.subtitle}
             </p>
           </div>
 
-          {/* Pricing Box (Strict Boolean Check — Zero '0' Glitch) */}
-          <div className="flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-black text-slate-900 font-serif">
-                {formatPrice(product.price)}
-              </span>
-              {Boolean(product.originalPrice && product.originalPrice > product.price) && (
-                <span className="text-xs sm:text-sm text-slate-400 line-through">
-                  {formatPrice(product.originalPrice)}
-                </span>
-              )}
-            </div>
-            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-full">
-              In Stock &amp; Ready
+          {/* Pricing Stack */}
+          <div className="flex items-baseline gap-3 pb-3 border-b border-[#A0988A]/40">
+            <span className="font-serif font-bold text-3xl sm:text-4xl text-[#1A1A18]">
+              {formatPrice(product.price)}
             </span>
+            {Boolean(product.originalPrice && product.originalPrice > product.price) && (
+              <span className="text-sm sm:text-base text-[#A0988A] line-through">
+                {formatPrice(product.originalPrice)}
+              </span>
+            )}
           </div>
 
           {/* Color Selection */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold uppercase tracking-wider text-slate-700 text-[11px]">Leather Shade:</span>
-              <span className="text-blue-600 capitalize font-medium">{selectedColor.replace(/-/g, ' ')}</span>
-            </div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#1A1A18] block">
+              Leather Shade:
+            </span>
             <div className="flex flex-wrap gap-2">
-              {product.availableColors.map(color => {
-                const hex = COLOR_HEX_MAP[color];
+              {(Array.isArray(product.availableColors) && product.availableColors.length > 0
+                ? product.availableColors
+                : ['saddle-tan']
+              ).map(color => {
+                const hex = COLOR_HEX_MAP[color] || '#565449';
+                const isSelected = selectedColor === color;
                 return (
                   <button
                     key={color}
                     type="button"
-                    onClick={() => setSelectedColor(color)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold capitalize transition-all border cursor-pointer flex items-center gap-2 ${
-                      selectedColor === color
-                        ? 'border-blue-600 bg-blue-50 text-blue-800 shadow-xs ring-1 ring-blue-500'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    onClick={() => setSelectedColor(color as LeatherColor)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-all border cursor-pointer ${
+                      isSelected
+                        ? 'border-[#565449] bg-[#565449] text-[#F7F4EB] shadow-xs'
+                        : 'border-[#A0988A] bg-[#F7F4EB] text-[#1A1A18] hover:bg-[#A0988A]/20'
                     }`}
                   >
                     <span
-                      className="w-3 h-3 rounded-full border border-black/10 shrink-0"
-                      style={{ backgroundColor: hex || '#475569' }}
+                      className="w-3 h-3 rounded-full border border-black/20 shrink-0"
+                      style={{ backgroundColor: hex }}
                     />
                     {color.replace(/-/g, ' ')}
                   </button>
@@ -249,10 +247,10 @@ export const ProductDetailPage: React.FC = () => {
           {/* Size Selection */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#1A1A18]">
                 Select Size:
               </span>
-              <Link to="/size-finder" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
+              <Link to="/size-finder" className="text-xs font-bold text-[#1A1A18] hover:underline flex items-center gap-1">
                 <Ruler className="w-3.5 h-3.5" /> AI Size Finder
               </Link>
             </div>
@@ -267,8 +265,8 @@ export const ProductDetailPage: React.FC = () => {
                   onClick={() => setSelectedSize(size)}
                   className={`py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                     selectedSize === size
-                      ? 'border-blue-600 bg-blue-600 text-white shadow-xs'
-                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                      ? 'border-[#565449] bg-[#565449] text-[#F7F4EB] shadow-xs'
+                      : 'border-[#A0988A] bg-[#F7F4EB] text-[#1A1A18] hover:bg-[#A0988A]/20'
                   }`}
                 >
                   Size {size}
@@ -277,17 +275,17 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Action Buttons: Horizontal Add to Bag & Buy Now */}
+          {/* Action Buttons: Olive Drab buttons everywhere */}
           <div className="space-y-2.5 pt-1">
             <div className="flex items-center gap-2 sm:gap-3">
               {/* Add to Shopping Bag Button */}
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="flex-1 py-3 sm:py-3.5 px-3 sm:px-4 rounded-xl bg-slate-50 hover:bg-slate-100 border-2 border-slate-300 hover:border-slate-400 text-slate-800 font-bold text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                className="flex-1 py-3 sm:py-3.5 px-3 sm:px-4 rounded-xl bg-[#A0988A]/30 hover:bg-[#A0988A]/50 border-2 border-[#565449] text-[#1A1A18] font-bold text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                 title="Add product to shopping bag"
               >
-                <ShoppingBag className="w-4 h-4 text-slate-700" />
+                <ShoppingBag className="w-4 h-4 text-[#1A1A18]" />
                 <span>Add to Bag</span>
               </button>
 
@@ -295,52 +293,50 @@ export const ProductDetailPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleDirectBuy}
-                className="flex-1 py-3 sm:py-3.5 px-3 sm:px-4 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                className="flex-1 py-3 sm:py-3.5 px-3 sm:px-4 rounded-xl bg-[#565449] hover:bg-[#45433A] active:bg-[#3F3E36] text-[#F7F4EB] border border-[#565449] font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                 title="Buy now and proceed directly to checkout"
               >
                 <span>Buy Now</span>
               </button>
-
             </div>
 
             {addedNotice && (
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between gap-2 animate-in fade-in">
+              <div className="p-3 rounded-xl bg-[#A0988A]/30 border border-[#565449] text-[#1A1A18] text-xs font-bold flex items-center justify-between gap-2 animate-in fade-in">
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <CheckCircle className="w-4 h-4 text-[#1A1A18] shrink-0" />
                   <span>Added to shopping bag! (Size {selectedSize} • {selectedColor.replace(/-/g, ' ')})</span>
                 </div>
-                <Link to="/bag" className="text-blue-700 hover:underline font-black text-xs">
+                <Link to="/bag" className="text-[#1A1A18] underline font-black text-xs">
                   View Bag →
                 </Link>
               </div>
             )}
           </div>
-
         </div>
       </div>
 
-      {/* Description & Materials Specs */}
-      <section className="pt-6 sm:pt-8 border-t border-slate-200 space-y-4 sm:space-y-5">
-        <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900">
+      {/* Description & Materials Specs (Warm Taupe Cards Section) */}
+      <section className="pt-6 sm:pt-8 border-t border-[#A0988A]/40 space-y-4 sm:space-y-5">
+        <h2 className="font-serif text-xl sm:text-2xl font-bold text-[#1A1A18]">
           Craft &amp; Materials Specifications
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">Leather Grade</span>
-            <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base">Full-Grain Cowhide</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">{product.materials}</p>
+          <div className="p-4 sm:p-5 rounded-2xl bg-[#A0988A]/25 border border-[#A0988A] space-y-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#1A1A18]">Leather Grade</span>
+            <h3 className="font-serif font-bold text-[#1A1A18] text-sm sm:text-base">Full-Grain Cowhide</h3>
+            <p className="text-xs text-[#1A1A18]/80 leading-relaxed">{product.materials}</p>
           </div>
 
-          <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">Artisan Time</span>
-            <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base">{product.craftingTime}</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">Each stitch hand-punched with waxed linen thread for lifelong bond.</p>
+          <div className="p-4 sm:p-5 rounded-2xl bg-[#A0988A]/25 border border-[#A0988A] space-y-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#1A1A18]">Artisan Time</span>
+            <h3 className="font-serif font-bold text-[#1A1A18] text-sm sm:text-base">{product.craftingTime}</h3>
+            <p className="text-xs text-[#1A1A18]/80 leading-relaxed">Each stitch hand-punched with waxed linen thread for lifelong bond.</p>
           </div>
 
-          <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">Sole Architecture</span>
-            <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base">Dual Tire Grip</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">High-density all-weather rubber tread sourced from recycled tire compounds.</p>
+          <div className="p-4 sm:p-5 rounded-2xl bg-[#A0988A]/25 border border-[#A0988A] space-y-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#1A1A18]">Sole Architecture</span>
+            <h3 className="font-serif font-bold text-[#1A1A18] text-sm sm:text-base">Dual Tire Grip</h3>
+            <p className="text-xs text-[#1A1A18]/80 leading-relaxed">High-density all-weather rubber tread sourced from recycled tire compounds.</p>
           </div>
         </div>
       </section>
@@ -350,17 +346,17 @@ export const ProductDetailPage: React.FC = () => {
 
       {/* Recommended Products Collection */}
       {relatedProducts.length > 0 && (
-        <section className="space-y-4 sm:space-y-6 pt-6 sm:pt-8 border-t border-slate-200">
+        <section className="space-y-4 sm:space-y-6 pt-6 sm:pt-8 border-t border-[#A0988A]/40">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-1">
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-widest text-blue-600 block mb-0.5">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-[#1A1A18] block mb-0.5">
                 Handcrafted Recommendations
               </span>
-              <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900">
+              <h2 className="font-serif text-xl sm:text-2xl font-bold text-[#1A1A18]">
                 You May Also Like
               </h2>
             </div>
-            <Link to="/products" className="text-xs font-semibold text-blue-600 hover:text-blue-700">
+            <Link to="/products" className="text-xs font-semibold text-[#1A1A18] hover:underline">
               View All Collection →
             </Link>
           </div>

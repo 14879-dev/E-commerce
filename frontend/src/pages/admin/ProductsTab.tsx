@@ -567,16 +567,17 @@ export const ProductsTab: React.FC = () => {
           {/* Export CSV Button */}
           <button
             onClick={handleExportCSV}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 transition-all cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl border transition-all cursor-pointer shadow-xs hover:scale-102"
+            style={{ color: '#047857', backgroundColor: '#ECFDF5', borderColor: '#34D399' }}
             title="Download products as CSV"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-4 h-4" style={{ color: '#047857', stroke: '#047857' }} />
             Export CSV
           </button>
           {/* Add Product Button */}
           <button
             onClick={handleOpenAddModal}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-sm transition-all transform active:scale-98 cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] text-xs font-bold rounded-xl shadow-sm transition-all transform active:scale-98 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Add New Product
@@ -615,14 +616,14 @@ export const ProductsTab: React.FC = () => {
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
-          <div className="text-2xl font-black text-emerald-600">
+          <div className="text-2xl font-black" style={{ color: '#059669' }}>
             {products.filter(p => ((p as any).stockCount ?? 50) > 5).length}
           </div>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-400">In Stock</div>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
-          <div className="text-2xl font-black text-amber-600">
+          <div className="text-2xl font-black" style={{ color: '#DC2626' }}>
             {products.filter(p => {
               const count = (p as any).stockCount ?? 50;
               return count > 0 && count <= 5;
@@ -632,7 +633,7 @@ export const ProductsTab: React.FC = () => {
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
-          <div className="text-2xl font-black text-blue-600">{categories.length}</div>
+          <div className="text-2xl font-black" style={{ color: '#2563EB' }}>{categories.length}</div>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Active Categories</div>
         </div>
       </div>
@@ -791,18 +792,27 @@ export const ProductsTab: React.FC = () => {
                       {/* Inventory Status Badge */}
                       <td className="py-3 px-4">
                         {stock > 5 ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          <span
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border shadow-2xs"
+                            style={{ color: '#047857', backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#10B981' }} />
                             In Stock
                           </span>
                         ) : stock > 0 ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                            Low Stock
+                          <span
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border shadow-2xs"
+                            style={{ color: '#B91C1C', backgroundColor: '#FEF2F2', borderColor: '#FECACA' }}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#EF4444' }} />
+                            Low Stock (≤5)
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 text-red-700 text-[10px] font-bold border border-red-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                          <span
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border shadow-2xs"
+                            style={{ color: '#B91C1C', backgroundColor: '#FEF2F2', borderColor: '#FECACA' }}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#EF4444' }} />
                             Out of Stock
                           </span>
                         )}
@@ -810,20 +820,22 @@ export const ProductsTab: React.FC = () => {
 
                       {/* Actions */}
                       <td className="py-3 px-4 text-right">
-                        <div className="inline-flex items-center gap-1">
+                        <div className="inline-flex items-center gap-1.5">
                           <button
                             onClick={() => handleOpenEditModal(product)}
-                            className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-white border border-transparent hover:border-slate-200 transition-all cursor-pointer"
+                            className="p-1.5 rounded-lg border transition-all cursor-pointer shadow-2xs hover:scale-105"
+                            style={{ color: '#D97706', backgroundColor: '#FEF3C7', borderColor: '#FCD34D' }}
                             title="Edit Product"
                           >
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-4 h-4" style={{ color: '#D97706', stroke: '#D97706' }} />
                           </button>
                           <button
                             onClick={() => setDeletingProduct(product)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-white border border-transparent hover:border-slate-200 transition-all cursor-pointer"
+                            className="p-1.5 rounded-lg border transition-all cursor-pointer shadow-2xs hover:scale-105"
+                            style={{ color: '#DC2626', backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }}
                             title="Delete Product"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" style={{ color: '#DC2626', stroke: '#DC2626' }} />
                           </button>
                         </div>
                       </td>
@@ -1466,10 +1478,10 @@ export const ProductsTab: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => handleRemoveImageAt(idx)}
-                              className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all cursor-pointer"
+                              className="p-1 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 transition-all cursor-pointer"
                               title="Delete photo"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-3.5 h-3.5 text-red-600" />
                             </button>
                           </div>
                         </div>

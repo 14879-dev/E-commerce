@@ -104,29 +104,38 @@ export const CatalogPage: React.FC = () => {
   };
 
   const filteredProducts = useMemo(() => {
-    return products.filter(product => {
-      if (searchTerm && !product.name.toLowerCase().includes(searchTerm.toLowerCase()) && !product.description.toLowerCase().includes(searchTerm.toLowerCase())) {
-        return false;
-      }
-      if (selectedCategory !== 'All' && (product.category || '').toLowerCase() !== selectedCategory.toLowerCase()) {
-        return false;
-      }
-      if (selectedSize !== null && !product.availableSizes.includes(selectedSize)) {
-        return false;
-      }
-      if (selectedColor !== 'All' && !product.availableColors.includes(selectedColor)) {
-        return false;
-      }
-      if (product.price > maxPrice) {
-        return false;
-      }
-      return true;
-    }).sort((a, b) => {
-      if (sortBy === 'price-low') return a.price - b.price;
-      if (sortBy === 'price-high') return b.price - a.price;
-      if (sortBy === 'rating') return b.averageRating - a.averageRating;
-      return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
-    });
+    return products
+      .filter(product => {
+        if (!searchTerm) return true;
+        const q = searchTerm.toLowerCase();
+        return (
+          product.name.toLowerCase().includes(q) ||
+          product.subtitle.toLowerCase().includes(q) ||
+          (product.category && product.category.toLowerCase().includes(q)) ||
+          product.description.toLowerCase().includes(q)
+        );
+      })
+      .filter(product => {
+        if (selectedCategory === 'All') return true;
+        return (product.category || '').toLowerCase() === selectedCategory.toLowerCase();
+      })
+      .filter(product => {
+        if (!selectedSize) return true;
+        return Array.isArray(product.availableSizes) && product.availableSizes.includes(selectedSize);
+      })
+      .filter(product => {
+        if (selectedColor === 'All') return true;
+        return Array.isArray(product.availableColors) && product.availableColors.includes(selectedColor);
+      })
+      .filter(product => {
+        return product.price <= maxPrice;
+      })
+      .sort((a, b) => {
+        if (sortBy === 'price-low') return a.price - b.price;
+        if (sortBy === 'price-high') return b.price - a.price;
+        if (sortBy === 'rating') return b.averageRating - a.averageRating;
+        return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
+      });
   }, [products, searchTerm, selectedCategory, selectedSize, selectedColor, maxPrice, sortBy]);
 
   const resetFilters = () => {
@@ -149,15 +158,15 @@ export const CatalogPage: React.FC = () => {
       />
 
       {/* Header Banner - Open Layout with Divider Line */}
-      <div className="border-b border-slate-200 pb-6 space-y-4">
+      <div className="border-b border-[#A0988A]/50 pb-6 space-y-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-widest text-blue-600 block mb-1">
+          <span className="text-[11px] font-bold uppercase tracking-widest text-[#1A1A18] block mb-1">
             Handcrafted Heritage
           </span>
-          <h1 className="font-serif text-3xl sm:text-5xl font-bold text-slate-900">
+          <h1 className="font-serif text-3xl sm:text-5xl font-bold text-[#1A1A18]">
             Master Chappal Collection
           </h1>
-          <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm text-[#1A1A18]/80 mt-1 max-w-2xl">
             {settings.hideCategories
               ? 'Browse all authentic handcrafted models, filter by foot size (7–13), leather shade, or price range.'
               : 'Filter by iconic silhouette, foot size (7–13), organic leather shade, or price range.'}
@@ -166,31 +175,31 @@ export const CatalogPage: React.FC = () => {
 
         {/* Search Bar */}
         <div className="max-w-xl relative pt-1">
-          <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-[#1A1A18]/60" />
           <input
             type="text"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             placeholder="Search products by model, leather shade, brass buckle..."
-            className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:border-blue-600"
+            className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#565449]/35 text-[#1A1A18] placeholder:text-[#1A1A18]/60 text-sm focus:outline-none focus:border-[#565449]"
           />
         </div>
 
         {/* Category Horizontal Pills Bar - Hidden if hideCategories is enabled */}
         {!settings.hideCategories && (
           <div className="pt-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-2">
-              Categories & Silhouettes
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#1A1A18]/80 block mb-2">
+              Categories &amp; Silhouettes
             </span>
             <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
               {categoryNames.map(cat => (
                 <button
                   key={cat}
                   onClick={() => handleSelectCategory(cat)}
-                  className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
+                  className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
                     selectedCategory.toLowerCase() === cat.toLowerCase()
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                      ? 'bg-[#565449] text-[#F7F4EB] border-[#565449] shadow-xs'
+                      : 'bg-[#A0988A]/20 text-[#1A1A18] border-[#A0988A] hover:bg-[#A0988A]/40'
                   }`}
                 >
                   {cat} {cat === 'All' ? 'Collection' : 'Chappal'}
@@ -203,16 +212,16 @@ export const CatalogPage: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Filters Sidebar (Desktop) */}
+        {/* Filters Sidebar (Desktop) - Warm Taupe Panel */}
         <aside className="hidden lg:block lg:col-span-3 space-y-6">
-          <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-5 space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200">
-              <h3 className="font-serif font-bold text-lg text-slate-900 flex items-center gap-2">
-                <Filter className="w-4 h-4 text-blue-600" /> Filters
+          <div className="bg-[#A0988A]/20 border border-[#A0988A] rounded-2xl p-5 space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-[#A0988A]/40">
+              <h3 className="font-serif font-bold text-lg text-[#1A1A18] flex items-center gap-2">
+                <Filter className="w-4 h-4 text-[#1A1A18]" /> Filters
               </h3>
               <button
                 onClick={resetFilters}
-                className="text-xs text-slate-500 hover:text-blue-600 flex items-center gap-1 transition-colors"
+                className="text-xs text-[#1A1A18]/80 hover:text-[#1A1A18] flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" /> Reset
               </button>
@@ -221,7 +230,7 @@ export const CatalogPage: React.FC = () => {
             {/* Category Filter - Hidden if hideCategories is active */}
             {!settings.hideCategories && (
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#1A1A18]/80 mb-3">
                   Silhouette / Category
                 </label>
                 <div className="space-y-1.5">
@@ -229,10 +238,10 @@ export const CatalogPage: React.FC = () => {
                     <button
                       key={cat}
                       onClick={() => handleSelectCategory(cat)}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                      className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                         selectedCategory.toLowerCase() === cat.toLowerCase()
-                          ? 'bg-blue-600 text-white font-bold'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                          ? 'bg-[#565449] text-[#F7F4EB] font-bold'
+                          : 'text-[#1A1A18] hover:bg-[#A0988A]/30'
                       }`}
                     >
                       {cat} {cat === 'All' ? '' : 'Chappal'}
@@ -244,7 +253,7 @@ export const CatalogPage: React.FC = () => {
 
             {/* Size Filter */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#1A1A18]/80 mb-3">
                 Foot Size (7 to 13)
               </label>
               <div className="grid grid-cols-4 gap-2">
@@ -252,10 +261,10 @@ export const CatalogPage: React.FC = () => {
                   <button
                     key={size}
                     onClick={() => setSelectedSize(selectedSize === size ? null : size)}
-                    className={`py-2 rounded-xl text-xs font-bold transition-all border ${
+                    className={`py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                       selectedSize === size
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                        ? 'bg-[#565449] text-[#F7F4EB] border-[#565449]'
+                        : 'bg-[#F7F4EB] border-[#A0988A] text-[#1A1A18] hover:border-[#565449]'
                     }`}
                   >
                     Size {size}
@@ -266,7 +275,7 @@ export const CatalogPage: React.FC = () => {
 
             {/* Color Filter */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#1A1A18]/80 mb-3">
                 Leather Shade
               </label>
               <div className="space-y-1.5">
@@ -274,10 +283,10 @@ export const CatalogPage: React.FC = () => {
                   <button
                     key={col.value}
                     onClick={() => setSelectedColor(col.value)}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                    className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                       selectedColor === col.value
-                        ? 'bg-blue-50 text-blue-600 font-bold border border-blue-200'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                        ? 'bg-[#565449] text-[#F7F4EB] font-bold border border-[#565449]'
+                        : 'text-[#1A1A18] hover:bg-[#A0988A]/30'
                     }`}
                   >
                     {col.label}
@@ -289,10 +298,10 @@ export const CatalogPage: React.FC = () => {
             {/* Price Slider */}
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <label className="text-xs font-semibold uppercase tracking-wider text-[#1A1A18]/80">
                   Max Price
                 </label>
-                <span className="font-serif font-bold text-slate-900">{formatPrice(maxPrice)}</span>
+                <span className="font-serif font-bold text-[#1A1A18]">{formatPrice(maxPrice)}</span>
               </div>
               <input
                 type="range"
@@ -301,7 +310,7 @@ export const CatalogPage: React.FC = () => {
                 step="500"
                 value={maxPrice}
                 onChange={e => setMaxPrice(Number(e.target.value))}
-                className="w-full accent-blue-600 cursor-pointer"
+                className="w-full accent-[#565449] cursor-pointer"
               />
             </div>
           </div>
@@ -311,27 +320,27 @@ export const CatalogPage: React.FC = () => {
         <main className="lg:col-span-9 space-y-6">
           
           {/* Mobile Filter Toggle & Controls Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-slate-200">
-            <span className="text-xs sm:text-sm font-medium text-slate-600">
-              Showing <strong className="text-slate-900">{filteredProducts.length}</strong> handcrafted models
+          <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-[#A0988A]/40">
+            <span className="text-xs sm:text-sm font-medium text-[#1A1A18]/80">
+              Showing <strong className="text-[#1A1A18]">{filteredProducts.length}</strong> handcrafted models
             </span>
 
             <div className="flex items-center gap-3">
               {/* Mobile Filter Toggle Button */}
               <button
                 onClick={() => setShowMobileFilters(!showMobileFilters)}
-                className="lg:hidden px-3.5 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 flex items-center gap-1.5"
+                className="lg:hidden px-3.5 py-1.5 rounded-xl bg-[#A0988A]/25 border border-[#565449]/35 text-xs font-bold text-[#1A1A18] flex items-center gap-1.5 cursor-pointer"
               >
-                <Filter className="w-3.5 h-3.5 text-blue-600" /> More Filters
+                <Filter className="w-3.5 h-3.5 text-[#1A1A18]" /> More Filters
               </button>
 
-              <span className="text-xs text-slate-500 font-medium hidden sm:inline">Sort by:</span>
+              <span className="text-xs text-[#1A1A18]/80 font-medium hidden sm:inline">Sort by:</span>
               <select
                 value={sortBy}
                 onChange={e => setSortBy(e.target.value as any)}
-                className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                className="px-3 py-1.5 rounded-xl bg-[#F7F4EB] border border-[#A0988A] text-xs text-[#1A1A18] focus:outline-none focus:border-[#565449]"
               >
-                <option value="featured">Featured & Recommended</option>
+                <option value="featured">Featured &amp; Recommended</option>
                 <option value="price-low">Price: Low to High</option>
                 <option value="price-high">Price: High to Low</option>
                 <option value="rating">Highest Rated</option>
@@ -341,19 +350,19 @@ export const CatalogPage: React.FC = () => {
 
           {/* Mobile Collapsible Extended Filters Drawer */}
           {showMobileFilters && (
-            <div className="lg:hidden p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-5 animate-fadeIn">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-                <h4 className="font-serif font-bold text-sm text-slate-900 flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-blue-600" /> Extended Mobile Filters
+            <div className="lg:hidden p-5 rounded-2xl bg-[#A0988A]/20 border border-[#A0988A] space-y-5 animate-fadeIn">
+              <div className="flex items-center justify-between pb-3 border-b border-[#A0988A]/40">
+                <h4 className="font-serif font-bold text-sm text-[#1A1A18] flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-[#1A1A18]" /> Extended Mobile Filters
                 </h4>
-                <button onClick={resetFilters} className="text-xs text-blue-600 font-semibold">
+                <button onClick={resetFilters} className="text-xs text-[#1A1A18] font-semibold cursor-pointer">
                   Reset All
                 </button>
               </div>
 
               {/* Size Filter on Mobile */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#1A1A18]/80 mb-2">
                   Foot Size (7 to 13)
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -361,10 +370,10 @@ export const CatalogPage: React.FC = () => {
                     <button
                       key={size}
                       onClick={() => setSelectedSize(selectedSize === size ? null : size)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                         selectedSize === size
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white border-slate-200 text-slate-700'
+                          ? 'bg-[#565449] text-[#F7F4EB] border-[#565449]'
+                          : 'bg-[#F7F4EB] border-[#A0988A] text-[#1A1A18]'
                       }`}
                     >
                       Size {size}
@@ -375,7 +384,7 @@ export const CatalogPage: React.FC = () => {
 
               {/* Color Filter on Mobile */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#1A1A18]/80 mb-2">
                   Leather Shade
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -383,10 +392,10 @@ export const CatalogPage: React.FC = () => {
                     <button
                       key={col.value}
                       onClick={() => setSelectedColor(col.value)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                         selectedColor === col.value
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white border-slate-200 text-slate-700'
+                          ? 'bg-[#565449] text-[#F7F4EB] border-[#565449]'
+                          : 'bg-[#F7F4EB] border-[#A0988A] text-[#1A1A18]'
                       }`}
                     >
                       {col.label}
@@ -398,10 +407,10 @@ export const CatalogPage: React.FC = () => {
               {/* Price Slider on Mobile */}
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-[#1A1A18]/80">
                     Max Price
                   </label>
-                  <span className="font-serif font-bold text-slate-900">{formatPrice(maxPrice)}</span>
+                  <span className="font-serif font-bold text-[#1A1A18]">{formatPrice(maxPrice)}</span>
                 </div>
                 <input
                   type="range"
@@ -410,23 +419,23 @@ export const CatalogPage: React.FC = () => {
                   step="500"
                   value={maxPrice}
                   onChange={e => setMaxPrice(Number(e.target.value))}
-                  className="w-full accent-blue-600 cursor-pointer"
+                  className="w-full accent-[#565449] cursor-pointer"
                 />
               </div>
             </div>
           )}
 
-          {/* Product Cards Grid - 2 per row on Mobile & Tablet */}
+          {/* Product Cards Grid */}
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
               {[1, 2, 3, 4, 5, 6].map(i => (
-                <div key={i} className="bg-slate-100 h-72 rounded-2xl animate-pulse" />
+                <div key={i} className="bg-[#A0988A]/20 h-72 rounded-2xl animate-pulse" />
               ))}
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl text-center py-16 p-8">
-              <h3 className="font-serif font-bold text-xl text-slate-900">No chappals match your criteria</h3>
-              <p className="text-sm text-slate-500 mt-2">Try adjusting your size, category, or price range filters.</p>
+            <div className="bg-[#A0988A]/20 border border-[#A0988A] rounded-2xl text-center py-16 p-8">
+              <h3 className="font-serif font-bold text-xl text-[#1A1A18]">No chappals match your criteria</h3>
+              <p className="text-sm text-[#1A1A18]/80 mt-2">Try adjusting your size, category, or price range filters.</p>
               <button onClick={resetFilters} className="mt-6 btn-copper text-xs py-2.5 px-6">
                 Reset All Filters
               </button>

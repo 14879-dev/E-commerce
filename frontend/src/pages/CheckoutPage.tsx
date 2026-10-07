@@ -159,8 +159,8 @@ export const CheckoutPage: React.FC = () => {
   if (activeItems.length === 0) {
     return (
       <div className="py-16 text-center space-y-4 max-w-lg mx-auto">
-        <h2 className="font-serif font-bold text-2xl text-slate-900">No items to checkout</h2>
-        <p className="text-slate-500 text-sm">Please add items to your shopping bag before proceeding to checkout.</p>
+        <h2 className="font-serif font-bold text-2xl text-[#1A1A18]">No items to checkout</h2>
+        <p className="text-[#1A1A18]/80 text-sm">Please add items to your shopping bag before proceeding to checkout.</p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
           <button onClick={() => navigate('/products')} className="btn-copper text-xs py-2.5 px-6">
             View Catalog
@@ -180,11 +180,11 @@ export const CheckoutPage: React.FC = () => {
         description="Complete your order for handcrafted Peshawari Chappals with secure payment."
       />
 
-      <div className="border-b border-slate-200 pb-6">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-blue-600 block mb-1">
+      <div className="border-b border-[#A0988A]/40 pb-6">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-[#1A1A18] block mb-1">
           Finalize Purchase
         </span>
-        <h1 className="font-serif text-3xl sm:text-4xl font-bold text-slate-900">
+        <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[#1A1A18]">
           Artisan Order Checkout
         </h1>
       </div>
@@ -193,51 +193,51 @@ export const CheckoutPage: React.FC = () => {
         <div className="lg:col-span-8 space-y-8">
           
           {/* Shipping Address Section */}
-          <div className="space-y-4 pb-6 border-b border-slate-200">
-            <h2 className="font-serif font-bold text-xl text-slate-900">1. Delivery Address</h2>
+          <div className="space-y-4 pb-6 border-b border-[#A0988A]/40">
+            <h2 className="font-serif font-bold text-xl text-[#1A1A18]">1. Delivery Address</h2>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Full Name</label>
+                <label className="text-xs font-semibold text-[#1A1A18] block mb-1">Full Name</label>
                 <input
                   type="text" required value={address.fullName} onChange={e => setAddress({ ...address, fullName: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-blue-600"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#A0988A] text-sm text-[#1A1A18] focus:outline-none focus:border-[#565449]"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Email Address</label>
+                <label className="text-xs font-semibold text-[#1A1A18] block mb-1">Email Address</label>
                 <input
                   type="email" required value={address.email} onChange={e => setAddress({ ...address, email: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-blue-600"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#A0988A] text-sm text-[#1A1A18] focus:outline-none focus:border-[#565449]"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Phone Number</label>
+                <label className="text-xs font-semibold text-[#1A1A18] block mb-1">Phone Number</label>
                 <input
                   type="tel" required value={address.phone} onChange={e => setAddress({ ...address, phone: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-blue-600"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#A0988A] text-sm text-[#1A1A18] focus:outline-none focus:border-[#565449]"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">City</label>
+                <label className="text-xs font-semibold text-[#1A1A18] block mb-1">City</label>
                 <input
                   type="text" required value={address.city} onChange={e => setAddress({ ...address, city: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-blue-600"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#A0988A] text-sm text-[#1A1A18] focus:outline-none focus:border-[#565449]"
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Street Address</label>
+                <label className="text-xs font-semibold text-[#1A1A18] block mb-1">Street Address</label>
                 <input
                   type="text" required value={address.address} onChange={e => setAddress({ ...address, address: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-blue-600"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#A0988A] text-sm text-[#1A1A18] focus:outline-none focus:border-[#565449]"
                 />
               </div>
             </div>
           </div>
 
           {/* Shipping Method Section */}
-          <div className="space-y-4 pb-6 border-b border-slate-200">
-            <h2 className="font-serif font-bold text-xl text-slate-900">2. Shipping Method</h2>
+          <div className="space-y-4 pb-6 border-b border-[#A0988A]/40">
+            <h2 className="font-serif font-bold text-xl text-[#1A1A18]">2. Shipping Method</h2>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
@@ -258,19 +258,19 @@ export const CheckoutPage: React.FC = () => {
                   key={method.id}
                   type="button"
                   onClick={() => setShippingMethod(method.id as any)}
-                  className={`p-4 rounded-2xl border text-left transition-all ${
+                  className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
                     shippingMethod === method.id
-                      ? 'bg-blue-50 border-blue-600 text-blue-900 shadow-xs'
-                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                      ? 'bg-[#565449] border-[#565449] text-[#F7F4EB] shadow-xs'
+                      : 'bg-[#A0988A]/20 border-[#A0988A] text-[#1A1A18] hover:border-[#565449]'
                   }`}
                 >
                   <div className="flex items-center justify-between font-bold text-xs">
                     <span>{method.label}</span>
-                    <span className={method.price === 'FREE' ? 'text-emerald-600 font-extrabold' : 'text-blue-600'}>
+                    <span className={shippingMethod === method.id ? 'text-[#F7F4EB]' : 'text-[#1A1A18]'}>
                       {method.price}
                     </span>
                   </div>
-                  <span className="text-[11px] text-slate-500 block mt-1">{method.note}</span>
+                  <span className={`text-[11px] block mt-1 ${shippingMethod === method.id ? 'text-[#F7F4EB]/80' : 'text-[#1A1A18]/70'}`}>{method.note}</span>
                 </button>
               ))}
             </div>
@@ -278,7 +278,7 @@ export const CheckoutPage: React.FC = () => {
 
           {/* Payment Method Section */}
           <div className="space-y-4">
-            <h2 className="font-serif font-bold text-xl text-slate-900">3. Payment Gateway</h2>
+            <h2 className="font-serif font-bold text-xl text-[#1A1A18]">3. Payment Gateway</h2>
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
@@ -293,91 +293,82 @@ export const CheckoutPage: React.FC = () => {
                     key={pm.id}
                     type="button"
                     onClick={() => setPaymentMethod(pm.id as any)}
-                    className={`p-4 rounded-2xl border text-left transition-all ${
+                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-blue-50 border-blue-600 text-blue-900 shadow-xs'
-                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                        ? 'bg-[#565449] border-[#565449] text-[#F7F4EB] shadow-xs'
+                        : 'bg-[#A0988A]/20 border-[#A0988A] text-[#1A1A18] hover:border-[#565449]'
                     }`}
                   >
-                    <Icon className={`w-5 h-5 mb-2 ${isSelected ? 'text-blue-600' : 'text-slate-400'}`} />
+                    <Icon className={`w-5 h-5 mb-2 ${isSelected ? 'text-[#F7F4EB]' : 'text-[#1A1A18]'}`} />
                     <span className="font-bold text-xs block">{pm.label}</span>
-                    <span className="text-[11px] text-slate-500 block mt-0.5">{pm.note}</span>
+                    <span className={`text-[11px] block mt-0.5 ${isSelected ? 'text-[#F7F4EB]/80' : 'text-[#1A1A18]/70'}`}>{pm.note}</span>
                   </button>
                 );
               })}
             </div>
           </div>
-
         </div>
 
-        {/* Right Column: Order Summary Sidebar */}
-        <div className="lg:col-span-4 bg-slate-50 border border-slate-200 rounded-2xl p-6 space-y-5 sticky top-24 shadow-xs">
-          <h2 className="font-serif font-bold text-xl text-slate-900 pb-3 border-b border-slate-200">
-            Order Manifest
+        {/* Order Review Sidebar */}
+        <div className="lg:col-span-4 bg-[#A0988A]/25 border border-[#A0988A] rounded-2xl p-6 space-y-5 sticky top-24 shadow-xs">
+          <h2 className="font-serif font-bold text-xl text-[#1A1A18] pb-3 border-b border-[#A0988A]/40">
+            Order Summary
           </h2>
 
-          <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
-            {activeItems.map((item: CartItem) => {
-              if (!item || !item.product) return null;
-              const imgUrl = (item.product.images && (item.product.images.front || (Array.isArray(item.product.images.gallery) && item.product.images.gallery[0]))) || '';
-              const itemTotal = (Number(item.product.price) || 0) * (Number(item.quantity) || 1);
-              const colorDisplay = (item.selectedColor || 'saddle-tan').toString().replace(/-/g, ' ');
-
-              return (
-                <div key={item.id} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-3">
-                    <img src={imgUrl} alt={item.product.name} className="w-10 h-10 object-cover rounded-lg bg-white border" />
-                    <div>
-                      <h4 className="font-semibold text-slate-900 line-clamp-1">{item.product.name}</h4>
-                      <span className="text-slate-500">Qty: {item.quantity || 1} • Size {item.size} • <span className="capitalize">{colorDisplay}</span></span>
-                    </div>
-                  </div>
-                  <span className="font-serif font-bold text-slate-900">{formatPrice(itemTotal)}</span>
+          <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+            {activeItems.map(item => (
+              <div key={item.id} className="flex justify-between items-center text-xs">
+                <div>
+                  <h4 className="font-bold text-[#1A1A18] line-clamp-1">{item.product.name}</h4>
+                  <p className="text-[#1A1A18]/70">Size {item.size} • Qty {item.quantity}</p>
                 </div>
-              );
-            })}
+                <span className="font-semibold text-[#1A1A18]">
+                  {formatPrice(item.product.price * item.quantity)}
+                </span>
+              </div>
+            ))}
           </div>
 
           {/* Promo Code Entry in Checkout */}
-          <div className="pt-3 border-t border-slate-200 space-y-2">
-            <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider block">Promo Code</label>
+          <div className="pt-3 border-t border-[#A0988A]/40 space-y-2">
+            <label className="text-xs font-semibold text-[#1A1A18] uppercase tracking-wider block">Promo Code</label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={promoCodeInput}
                 onChange={e => setPromoCodeInput(e.target.value)}
                 placeholder="Enter promo code"
-                className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-slate-200 text-slate-900 uppercase font-semibold focus:outline-none focus:border-blue-600"
+                className="w-full px-3 py-2 text-xs rounded-xl bg-[#F7F4EB] border border-[#A0988A] text-[#1A1A18] uppercase font-semibold focus:outline-none focus:border-[#565449]"
               />
               <button
                 type="button"
                 onClick={handleApplyPromo}
-                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+                className="px-3.5 py-2 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] border border-[#565449] rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
               >
                 Apply
               </button>
             </div>
 
             {appliedPromo && (
-              <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium flex items-center justify-between">
+              <div className="p-2 rounded-xl bg-[#A0988A]/30 border border-[#565449]/30 text-[#1A1A18] text-xs font-medium flex items-center justify-between">
                 <span>Code <strong>{appliedPromo.code}</strong> applied!</span>
-                <button type="button" onClick={() => { setAppliedPromo(null); setPromoCodeInput(''); }} className="text-emerald-800 underline text-[10px]">Remove</button>
+                <button type="button" onClick={() => { setAppliedPromo(null); setPromoCodeInput(''); }} className="text-[#1A1A18] underline text-[10px] cursor-pointer">Remove</button>
               </div>
             )}
 
             {promoError && (
-              <p className="text-xs text-rose-500 font-medium">{promoError}</p>
+              <p className="text-xs text-[#1A1A18] font-medium">{promoError}</p>
             )}
           </div>
 
-          <div className="space-y-3 text-sm text-slate-500 border-t border-slate-200 pt-4">
+          <div className="space-y-3 text-sm text-[#1A1A18]/80 border-t border-[#A0988A]/40 pt-4">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span className="font-semibold text-slate-900">{formatPrice(currentSubtotal)}</span>
+              <span className="font-semibold text-[#1A1A18]">{formatPrice(currentSubtotal)}</span>
             </div>
 
             {appliedPromo && (
-              <div className="flex justify-between text-emerald-600 font-semibold">
+              <div className="flex justify-between text-[#1A1A18] font-semibold">
                 <span>Promo Discount ({appliedPromo.code})</span>
                 <span>-{formatPrice(discountAmount)}</span>
               </div>
@@ -385,32 +376,32 @@ export const CheckoutPage: React.FC = () => {
 
             <div className="flex justify-between">
               <span>Shipping Fee</span>
-              <span className="font-semibold text-slate-900">{shippingFee === 0 ? <strong className="text-emerald-600">FREE</strong> : formatPrice(shippingFee)}</span>
+              <span className="font-semibold text-[#1A1A18]">{shippingFee === 0 ? <strong className="text-[#1A1A18]">FREE</strong> : formatPrice(shippingFee)}</span>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-200 flex justify-between items-baseline">
-            <span className="font-serif font-bold text-lg text-slate-900">Total Payable</span>
-            <span className="font-serif font-bold text-3xl text-slate-900">{formatPrice(total)}</span>
+          <div className="pt-4 border-t border-[#A0988A]/40 flex justify-between items-baseline">
+            <span className="font-serif font-bold text-lg text-[#1A1A18]">Total Payable</span>
+            <span className="font-serif font-bold text-3xl text-[#1A1A18]">{formatPrice(total)}</span>
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 text-sm font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-md shadow-blue-600/20 disabled:opacity-50"
+            className="w-full bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] border border-[#565449] py-3.5 text-sm font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-50 cursor-pointer active:scale-98"
           >
             {isSubmitting ? (
               <span>Confirming Order...</span>
             ) : (
               <>
-                <CheckCircle className="w-5 h-5 text-white" />
+                <CheckCircle className="w-5 h-5 text-[#F7F4EB]" />
                 Place Order Now
               </>
             )}
           </button>
 
-          <div className="pt-1 text-center text-xs text-slate-500 flex items-center justify-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-blue-600" /> 100% Encrypted & Authenticated Order
+          <div className="pt-1 text-center text-xs text-[#1A1A18]/70 flex items-center justify-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-[#1A1A18]" /> 100% Encrypted &amp; Authenticated Order
           </div>
         </div>
       </form>

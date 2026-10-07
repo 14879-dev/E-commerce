@@ -1,33 +1,55 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Forum&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  *, *::before, *::after {
+    font-family: 'Forum', serif !important;
+  }
+
+  html, body {
+    font-family: 'Forum', serif !important;
+    background-color: #F7F4EB;
+    color: #1A1A18;
+  }
+
   body {
-    @apply bg-white text-text-primary font-sans antialiased selection:bg-copper selection:text-white min-h-screen overflow-x-hidden;
+    @apply bg-[#F7F4EB] text-[#1A1A18] antialiased min-h-screen overflow-x-hidden;
+    background-color: #F7F4EB !important;
     background-image: 
-      radial-gradient(circle at 15% 10%, rgba(37, 99, 235, 0.07) 0%, transparent 45%),
-      radial-gradient(circle at 85% 65%, rgba(30, 64, 175, 0.05) 0%, transparent 50%),
-      radial-gradient(circle at 50% 50%, rgba(248, 250, 252, 0.8) 0%, transparent 90%);
+      radial-gradient(circle at 15% 10%, rgba(86, 84, 73, 0.03) 0%, transparent 45%),
+      radial-gradient(circle at 85% 65%, rgba(160, 152, 138, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, rgba(247, 244, 235, 0.98) 0%, transparent 90%);
     background-attachment: fixed;
   }
 
+  ::selection {
+    background-color: #565449 !important;
+    color: #F7F4EB !important;
+  }
+
   h1, h2, h3, h4, h5, h6 {
-    @apply font-serif tracking-tight text-text-primary;
+    font-family: 'Forum', serif !important;
+    color: #1A1A18;
+    letter-spacing: -0.01em;
+  }
+
+  button, input, select, textarea, a, p, span, div, label {
+    font-family: 'Forum', serif !important;
   }
 }
 
 @layer components {
-  /* Premium Light Glass Panel Spec */
+  /* Warm Bone & Taupe Glass Panel */
   .glass-panel {
-    background: rgba(255, 255, 255, 0.88);
+    background: rgba(247, 244, 235, 0.92);
     backdrop-filter: blur(20px) saturate(160%);
     -webkit-backdrop-filter: blur(20px) saturate(160%);
-    border: 1px solid rgba(226, 232, 240, 0.9);
+    border: 1px solid rgba(160, 152, 138, 0.5);
     border-radius: 24px;
-    box-shadow: 0 10px 30px 0 rgba(15, 23, 42, 0.06);
+    box-shadow: 0 10px 30px 0 rgba(86, 84, 73, 0.06);
     position: relative;
     overflow: hidden;
   }
@@ -40,51 +62,44 @@
     left: 10%;
     right: 10%;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(86, 84, 73, 0.25), transparent);
     pointer-events: none;
   }
 
   .glass-panel-interactive {
-    @apply glass-panel transition-all duration-300 hover:border-copper/50 hover:bg-white hover:-translate-y-1 hover:shadow-copper-glow/20;
+    @apply glass-panel transition-all duration-300 hover:border-olive/70 hover:bg-[#F7F4EB] hover:-translate-y-1 hover:shadow-brass-glow;
   }
 
-  /* Floating Dock Glass Pill (Navy/Black glass with blue highlights) */
+  /* Floating Dock Glass Pill */
   .glass-dock {
-    background: rgba(15, 23, 42, 0.92);
+    background: rgba(86, 84, 73, 0.92);
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(247, 244, 235, 0.4);
     border-radius: 9999px;
-    box-shadow: 0 12px 40px 0 rgba(15, 23, 42, 0.25);
+    box-shadow: 0 12px 40px 0 rgba(86, 84, 73, 0.25);
   }
 
   /* ==========================================================================
-     Ultra-Refined Glassmorphism Navigation System
+     Transparent Modern Navigation System (Inspired by Image 3)
      ========================================================================== */
 
-  /* Main Navigation Outer Bar — Frosted Glass Pane */
+  /* Main Navigation Outer Bar — Transparent Float Header */
   .glass-header {
-    background: rgba(255, 255, 255, 0.75);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-    box-shadow: 
-      0 4px 30px 0 rgba(15, 23, 42, 0.04),
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.95);
+    background: transparent;
+    border-bottom: 1px solid rgba(86, 84, 73, 0.12);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
-  /* Inner Navigation Floating Capsule — Sculpted Frosted Glass Pill with Clear Difference from Outer Bar */
+  /* Inner Navigation Floating Capsule — Sculpted Pill */
   .glass-nav-capsule {
-    background: rgba(241, 245, 249, 0.72);
-    backdrop-filter: blur(20px) saturate(170%);
-    -webkit-backdrop-filter: blur(20px) saturate(170%);
-    border: 1px solid rgba(255, 255, 255, 0.95);
+    background: rgba(160, 152, 138, 0.20);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(86, 84, 73, 0.25);
     border-radius: 9999px;
-    box-shadow: 
-      0 8px 30px -4px rgba(15, 23, 42, 0.08),
-      0 2px 6px 0 rgba(15, 23, 42, 0.04),
-      inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95),
-      inset 0 -1.5px 2px 0 rgba(148, 163, 184, 0.22);
+    box-shadow: 0 4px 20px -2px rgba(86, 84, 73, 0.05);
     position: relative;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -101,9 +116,9 @@
     background: linear-gradient(
       90deg, 
       transparent 0%, 
-      rgba(255, 255, 255, 0.95) 30%, 
-      rgba(255, 255, 255, 1) 50%, 
-      rgba(255, 255, 255, 0.95) 70%, 
+      rgba(247, 244, 235, 0.8) 30%, 
+      rgba(247, 244, 235, 0.95) 50%, 
+      rgba(247, 244, 235, 0.8) 70%, 
       transparent 100%
     );
     pointer-events: none;
@@ -112,13 +127,11 @@
 
   /* Glass Capsule Pill - Active */
   .glass-pill-active {
-    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
-    color: #ffffff !important;
+    background: #565449;
+    color: #F7F4EB !important;
     font-weight: 600;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    box-shadow: 
-      0 4px 14px 0 rgba(37, 99, 235, 0.38),
-      inset 0 1px 1px 0 rgba(255, 255, 255, 0.5);
+    border: 1px solid #565449;
+    box-shadow: 0 4px 14px 0 rgba(86, 84, 73, 0.25);
     border-radius: 9999px;
     position: relative;
     z-index: 3;
@@ -127,7 +140,7 @@
 
   /* Glass Capsule Pill - Idle / Hover */
   .glass-pill-idle {
-    color: #334155;
+    color: #1A1A18;
     font-weight: 500;
     border-radius: 9999px;
     border: 1px solid transparent;
@@ -137,52 +150,54 @@
   }
 
   .glass-pill-idle:hover {
-    color: #1d4ed8;
-    background: rgba(255, 255, 255, 0.85);
-    border-color: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+    color: #1A1A18;
+    background: rgba(160, 152, 138, 0.35);
+    border-color: rgba(86, 84, 73, 0.3);
     backdrop-filter: blur(8px);
     transform: translateY(-0.5px);
   }
 
-  /* Primary Glass Blue Button */
+  /* Primary Button (Strict Olive Drab with Bone Text everywhere) */
   .btn-copper {
-    @apply relative inline-flex items-center justify-center px-6 py-3 rounded-full font-medium text-white transition-all duration-300 overflow-hidden cursor-pointer active:scale-95;
-    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
-    box-shadow: 0 4px 20px rgba(37, 99, 235, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    @apply relative inline-flex items-center justify-center px-6 py-3 rounded-full font-medium text-[#F7F4EB] transition-all duration-300 overflow-hidden cursor-pointer active:scale-95;
+    background: #565449;
+    box-shadow: 0 4px 16px rgba(86, 84, 73, 0.25);
+    border: 1px solid #565449;
   }
 
   .btn-copper:hover {
-    box-shadow: 0 6px 28px rgba(37, 99, 235, 0.5);
+    background: #45433A;
+    border-color: #45433A;
+    color: #EFEAE0;
+    box-shadow: 0 6px 20px rgba(86, 84, 73, 0.35);
     transform: translateY(-2px);
   }
 
   /* Secondary Glass Button */
   .btn-glass {
-    @apply relative inline-flex items-center justify-center px-6 py-3 rounded-full font-medium text-text-primary transition-all duration-300 cursor-pointer active:scale-95;
-    background: rgba(241, 245, 249, 0.9);
+    @apply relative inline-flex items-center justify-center px-6 py-3 rounded-full font-medium text-[#1A1A18] transition-all duration-300 cursor-pointer active:scale-95;
+    background: rgba(160, 152, 138, 0.25);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(226, 232, 240, 0.9);
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+    border: 1px solid #565449;
+    box-shadow: 0 4px 14px rgba(86, 84, 73, 0.06);
   }
 
   .btn-glass:hover {
-    background: #FFFFFF;
-    border-color: rgba(37, 99, 235, 0.4);
-    color: #2563EB;
+    background: #565449;
+    border-color: #565449;
+    color: #F7F4EB;
     transform: translateY(-2px);
   }
 
   /* Text Gradient Utilities */
   .gradient-gold {
-    background: linear-gradient(135deg, #0F172A 0%, #1E40AF 50%, #2563EB 100%);
+    background: linear-gradient(135deg, #565449 0%, #6E6B5D 60%, #A0988A 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
   .gradient-copper {
-    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 60%, #1E40AF 100%);
+    background: linear-gradient(135deg, #565449 0%, #6E6B5D 60%, #A0988A 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
@@ -210,19 +225,87 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #F8FAFC;
+  background: #F7F4EB;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: #A0988A;
   border-radius: 4px;
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border: 1px solid rgba(86, 84, 73, 0.4);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #2563EB;
+  background: #565449;
 }
 
 /* Hide scrollbar for horizontal swipe areas */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ==========================================================================
+   Admin Panel & System Elements: Light Cream with Olive Drab Outlining
+   ========================================================================== */
+
+/* All Form Input, Select, and Textarea Fields */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+select,
+textarea {
+  background-color: #F7F4EB !important;
+  border: 1px solid rgba(86, 84, 73, 0.4) !important;
+  color: #1A1A18 !important;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus,
+input[type="tel"]:focus,
+input[type="url"]:focus,
+select:focus,
+textarea:focus {
+  border-color: #565449 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(86, 84, 73, 0.25) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(26, 26, 24, 0.55) !important;
+}
+
+/* Ensure all admin panels, modals, and container cards adhere to light cream and olive drab */
+.admin-card,
+.admin-container {
+  background-color: #F7F4EB !important;
+  border: 1px solid rgba(86, 84, 73, 0.35) !important;
+}
+
+/* Explicit Action & Status Button Styling */
+.action-btn-edit {
+  color: #D97706 !important;
+  background-color: #FEF3C7 !important;
+  border: 1px solid #FCD34D !important;
+}
+.action-btn-edit svg {
+  stroke: #D97706 !important;
+  color: #D97706 !important;
+}
+
+.action-btn-delete {
+  color: #DC2626 !important;
+  background-color: #FEE2E2 !important;
+  border: 1px solid #FCA5A5 !important;
+}
+.action-btn-delete svg {
+  stroke: #DC2626 !important;
+  color: #DC2626 !important;
+}
+
+

@@ -5,9 +5,9 @@ import { SEOHelmet } from '../components/common/SEOHelmet';
 import { useStoreSettings } from '../context/StoreSettingsContext';
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <section className="space-y-3">
-    <h2 className="font-serif font-bold text-xl text-slate-900 border-b border-slate-200 pb-2">{title}</h2>
-    <div className="text-sm text-slate-600 leading-relaxed space-y-3">{children}</div>
+  <section className="space-y-3 bg-[#A0988A]/15 border border-[#A0988A]/35 rounded-2xl p-5">
+    <h2 className="font-serif font-bold text-xl text-[#1A1A18] border-b border-[#565449]/20 pb-2">{title}</h2>
+    <div className="text-sm text-[#1A1A18]/85 leading-relaxed space-y-3">{children}</div>
   </section>
 );
 
@@ -26,21 +26,21 @@ export const PrivacyPolicyPage: React.FC = () => {
 
       {/* Header */}
       <div className="space-y-3">
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <Link to="/" className="hover:text-blue-600 transition-colors">Home</Link>
-          <ChevronRight className="w-3 h-3" />
-          <span className="text-slate-900">Privacy Policy</span>
+        <div className="flex items-center gap-2 text-xs text-[#1A1A18]/70">
+          <Link to="/" className="hover:text-[#1A1A18] font-semibold transition-colors">Home</Link>
+          <ChevronRight className="w-3 h-3 text-[#1A1A18]/50" />
+          <span className="text-[#1A1A18] font-bold">Privacy Policy</span>
         </div>
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-blue-600/10 flex items-center justify-center shrink-0 mt-1">
-            <Shield className="w-6 h-6 text-blue-600" />
+          <div className="w-12 h-12 rounded-2xl bg-[#565449] text-[#F7F4EB] flex items-center justify-center shrink-0 mt-1 shadow-xs">
+            <Shield className="w-6 h-6 text-[#F7F4EB]" />
           </div>
           <div>
-            <h1 className="font-serif font-bold text-3xl text-slate-900">Privacy Policy</h1>
-            <p className="text-sm text-slate-500 mt-1">Peshawari Chappal Co. — Effective Date: August 1, 2026</p>
+            <h1 className="font-serif font-bold text-3xl text-[#1A1A18]">Privacy Policy</h1>
+            <p className="text-sm text-[#1A1A18]/70 mt-1">Peshawari Chappal Co. — Effective Date: August 1, 2026</p>
           </div>
         </div>
-        <p className="text-sm text-slate-600 leading-relaxed bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+        <p className="text-sm text-[#1A1A18]/90 leading-relaxed bg-[#A0988A]/25 border border-[#565449]/30 rounded-xl px-4 py-3">
           Your privacy is important to us. This policy explains what personal information we collect, how we use it, and your rights regarding that data.
         </p>
       </div>
@@ -90,7 +90,7 @@ export const PrivacyPolicyPage: React.FC = () => {
 
       <Section title="5. Order Tracking Privacy">
         <p>
-          When displaying order status on our tracking page, we partially mask sensitive details — email addresses and phone numbers are shown in a redacted format (e.g., <code className="bg-slate-100 px-1 rounded text-xs">h***@e***.com</code>) to protect your data in case someone else accesses the tracking URL.
+          When displaying order status on our tracking page, we partially mask sensitive details — email addresses and phone numbers are shown in a redacted format (e.g., <code className="bg-[#565449]/15 px-1 rounded text-xs text-[#1A1A18]">h***@e***.com</code>) to protect your data in case someone else accesses the tracking URL.
         </p>
         <p className="mt-2">Full details are only visible to you when logged into your account, or to our admin team through the secure admin panel.</p>
       </Section>
@@ -116,7 +116,7 @@ export const PrivacyPolicyPage: React.FC = () => {
           <li>Database encryption at rest (MongoDB Atlas)</li>
           <li>No plain-text storage of passwords</li>
         </ul>
-        <p className="mt-2">Despite our best efforts, no system is 100% secure. If you suspect a security issue, contact us immediately at <a href={`mailto:${supportEmail}`} className="text-blue-600 hover:underline">{supportEmail}</a>.</p>
+        <p className="mt-2">Despite our best efforts, no system is 100% secure. If you suspect a security issue, contact us immediately at <a href={`mailto:${supportEmail}`} className="text-[#1A1A18] font-bold underline">{supportEmail}</a>.</p>
       </Section>
 
       <Section title="8. Your Rights">
@@ -128,7 +128,7 @@ export const PrivacyPolicyPage: React.FC = () => {
           <li><strong>Objection</strong> — opt out of marketing communications at any time</li>
           <li><strong>Portability</strong> — receive your data in a machine-readable format</li>
         </ul>
-        <p className="mt-2">To exercise any of these rights, email us at <a href={`mailto:${supportEmail}`} className="text-blue-600 hover:underline">{supportEmail}</a>. We will respond within 30 days.</p>
+        <p className="mt-2">To exercise any of these rights, email us at <a href={`mailto:${supportEmail}`} className="text-[#1A1A18] font-bold underline">{supportEmail}</a>. We will respond within 30 days.</p>
       </Section>
 
       <Section title="9. Children's Privacy">
@@ -141,20 +141,20 @@ export const PrivacyPolicyPage: React.FC = () => {
 
       <Section title="11. Contact Us">
         <p>For any privacy-related questions, requests, or concerns:</p>
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-1 text-sm">
-          <p className="font-bold text-slate-900">{storeName}</p>
-          <p>Email: <a href={`mailto:${supportEmail}`} className="text-blue-600 hover:underline">{supportEmail}</a></p>
-          <p>Phone: <a href={`tel:${supportPhone.replace(/[^0-9+]/g, '')}`} className="text-blue-600 hover:underline">{supportPhone}</a></p>
+        <div className="bg-[#F7F4EB] border border-[#565449]/20 rounded-xl p-4 space-y-1 text-sm text-[#1A1A18]">
+          <p className="font-bold text-[#1A1A18]">{storeName}</p>
+          <p>Email: <a href={`mailto:${supportEmail}`} className="text-[#1A1A18] font-bold underline">{supportEmail}</a></p>
+          <p>Phone: <a href={`tel:${supportPhone.replace(/[^0-9+]/g, '')}`} className="text-[#1A1A18] font-bold underline">{supportPhone}</a></p>
           <p>Address: Qissa Khwani Bazaar, Peshawar, Khyber Pakhtunkhwa, Pakistan</p>
         </div>
       </Section>
 
       {/* Footer Navigation */}
-      <div className="pt-6 border-t border-slate-200 flex flex-wrap gap-4 text-xs text-slate-500">
-        <Link to="/contact" className="hover:text-blue-600 transition-colors">Contact Us</Link>
-        <Link to="/terms" className="hover:text-blue-600 transition-colors">Terms of Service</Link>
-        <Link to="/about" className="hover:text-blue-600 transition-colors">About Us</Link>
-        <Link to="/" className="hover:text-blue-600 transition-colors">← Back to Store</Link>
+      <div className="pt-6 border-t border-[#565449]/20 flex flex-wrap gap-4 text-xs text-[#1A1A18]/80">
+        <Link to="/contact" className="hover:text-[#1A1A18] font-bold transition-colors">Contact Us</Link>
+        <Link to="/terms" className="hover:text-[#1A1A18] font-bold transition-colors">Terms of Service</Link>
+        <Link to="/about" className="hover:text-[#1A1A18] font-bold transition-colors">About Us</Link>
+        <Link to="/" className="hover:text-[#1A1A18] font-bold transition-colors">← Back to Store</Link>
       </div>
     </div>
   );
