@@ -1,4 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
+import http from 'http';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose, { Schema, model, Document } from 'mongoose';
@@ -2173,11 +2174,27 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   res.status(500).json({ error: 'Internal server error', message: err.message });
 });
 
-const serverPort = Number(PORT) || 5000;
-app.listen(serverPort, '0.0.0.0', () => {
-  console.log(`🚀 Peshawari Chappal API Server running at http://0.0.0.0:${serverPort} (Port: ${serverPort})`);
-  console.log(`📊 Health check: http://localhost:${serverPort}/health`);
-  console.log(`🔑 Admin login: POST http://localhost:${serverPort}/api/admin/login`);
+const serverPort = Number(PORT) || 8080;
+const targetPorts = Array.from(new Set([serverPort, 8080, 5000, 3000]));
+
+targetPorts.forEach((port, idx) => {
+  try {
+    const server = http.createServer(app);
+    server.on('error', (err: any) => {
+      if (err.code !== 'EADDRINUSE') {
+        console.warn(`⚠️ Port ${port} notice:`, err.message);
+      }
+    });
+    server.listen(port, '0.0.0.0', () => {
+      console.log(`🚀 Peshawari Chappal Platform listening at http://0.0.0.0:${port} (Port: ${port})`);
+      if (idx === 0) {
+        console.log(`📊 Health check: http://localhost:${port}/health`);
+        console.log(`🔑 Admin login: POST http://localhost:${port}/api/admin/login`);
+      }
+    });
+  } catch (err: any) {
+    // Gracefully ignore secondary port bind errors
+  }
 });
 
 export default app;
