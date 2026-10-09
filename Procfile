@@ -1,1 +1,1 @@
-web: npm start
+web: node backend/dist/index.js

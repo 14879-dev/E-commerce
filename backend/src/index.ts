@@ -508,14 +508,20 @@ export async function syncMongoWithDisk() {
 
 // MongoDB connection + auto-sync
 async function connectMongo() {
-  if (!MONGO_URI) return;
+  if (!MONGO_URI) {
+    console.log('ℹ️ No MONGO_URI provided, using local store.');
+    return;
+  }
   try {
-    await mongoose.connect(MONGO_URI);
+    console.log('🔌 Connecting to MongoDB...');
+    await mongoose.connect(MONGO_URI, {
+      serverSelectionTimeoutMS: 5000,
+    });
     console.log('✅ Connected to MongoDB');
     useMongoDb = true;
     await syncMongoWithDisk();
   } catch (err: any) {
-    console.warn('⚠️  MongoDB not available, using in-memory store:', err.message);
+    console.warn('⚠️ MongoDB connection not available, using in-memory store:', err.message);
     useMongoDb = false;
   }
 }
@@ -2146,7 +2152,20 @@ if (frontendDist) {
     }
     res.sendFile(path.join(frontendDist, 'index.html'));
   });
+} else {
+  console.warn('⚠️ Frontend dist folder not found. Serving API only.');
+  app.get('/', (_req: Request, res: Response) => {
+    res.status(200).send('Peshawari Chappal Platform API is online. Frontend build compiling or served separately.');
+  });
 }
+
+// Global Process Safety Net
+process.on('uncaughtException', (err) => {
+  console.error('💥 Uncaught Exception caught safely:', err.message);
+});
+process.on('unhandledRejection', (reason: any) => {
+  console.warn('⚠️ Unhandled Rejection caught safely:', reason?.message || reason);
+});
 
 // Error Handler
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
@@ -2154,10 +2173,11 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   res.status(500).json({ error: 'Internal server error', message: err.message });
 });
 
-app.listen(Number(PORT), '0.0.0.0', () => {
-  console.log(`🚀 Peshawari Chappal API Server running at http://0.0.0.0:${PORT} (Accessible on local Wi-Fi)`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`🔑 Admin login: POST http://localhost:${PORT}/api/admin/login`);
+const serverPort = Number(PORT) || 5000;
+app.listen(serverPort, '0.0.0.0', () => {
+  console.log(`🚀 Peshawari Chappal API Server running at http://0.0.0.0:${serverPort} (Port: ${serverPort})`);
+  console.log(`📊 Health check: http://localhost:${serverPort}/health`);
+  console.log(`🔑 Admin login: POST http://localhost:${serverPort}/api/admin/login`);
 });
 
 export default app;
