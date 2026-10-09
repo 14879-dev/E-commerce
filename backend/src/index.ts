@@ -2126,6 +2126,28 @@ app.get('/health', (_req: Request, res: Response) => {
   });
 });
 
+// ============================================================
+// SERVE FRONTEND CLIENT (PRODUCTION MONOREPO / RAILWAY DEPLOYMENTS)
+// ============================================================
+const possibleFrontendDist = [
+  path.join(process.cwd(), 'frontend', 'dist'),
+  path.join(process.cwd(), '..', 'frontend', 'dist'),
+  path.join(__dirname, '..', '..', 'frontend', 'dist'),
+  path.join(__dirname, '..', 'frontend', 'dist'),
+];
+
+const frontendDist = possibleFrontendDist.find(p => fs.existsSync(p));
+if (frontendDist) {
+  console.log(`📦 Serving frontend client build from: ${frontendDist}`);
+  app.use(express.static(frontendDist));
+  app.get('*', (req: Request, res: Response, next: NextFunction) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/health')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
+
 // Error Handler
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Server error:', err.message);
