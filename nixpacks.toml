@@ -8,4 +8,4 @@ cmds = ["npm run install:all"]
 cmds = ["npm run build"]
 
 [start]
-cmd = "npm start"
+cmd = "node backend/dist/index.js"
