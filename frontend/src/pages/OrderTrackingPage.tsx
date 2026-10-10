@@ -279,6 +279,9 @@ export const OrderTrackingPage: React.FC = () => {
                 <p className="text-[#1A1A18]/80">Delivering to: <span className="font-semibold text-[#1A1A18]">{order.shippingAddress.city}, {order.shippingAddress.country}</span></p>
                 <p>Contact: <span className="font-mono text-[#1A1A18]">{maskEmail(order.shippingAddress.email)}</span></p>
                 <p>Phone: <span className="font-mono text-[#1A1A18]">{maskPhone(order.shippingAddress.phone)}</span></p>
+                {order.shippingAddress.whatsapp && (
+                  <p>WhatsApp: <span className="font-mono text-[#1A1A18]">{maskPhone(order.shippingAddress.whatsapp)}</span></p>
+                )}
               </div>
               {/* Privacy Notice */}
               <div className="mt-3 flex items-start gap-2 px-3 py-2 rounded-xl bg-[#A0988A]/25 border border-[#A0988A]">

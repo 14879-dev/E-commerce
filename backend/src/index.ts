@@ -397,7 +397,7 @@ export const OrderSchema = new Schema({
   date: String,
   items: [Schema.Types.Mixed],
   shippingAddress: {
-    fullName: String, email: String, phone: String,
+    fullName: String, email: String, phone: String, whatsapp: String,
     address: String, city: String, postalCode: String, country: String,
   },
   shippingMethod: String,

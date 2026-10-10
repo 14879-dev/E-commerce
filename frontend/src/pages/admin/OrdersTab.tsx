@@ -636,8 +636,20 @@ export const OrdersTab: React.FC = () => {
                 <p className="font-semibold text-slate-900">{selectedOrder.shippingAddress.fullName}</p>
                 <p className="text-slate-600">{selectedOrder.shippingAddress.address}</p>
                 <p className="text-slate-600">{selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.postalCode}</p>
-                <p className="text-slate-600">{selectedOrder.shippingAddress.country}</p>
                 <p className="text-blue-600 font-semibold pt-1">Phone: {selectedOrder.shippingAddress.phone}</p>
+                {selectedOrder.shippingAddress.whatsapp && (
+                  <p className="text-emerald-700 font-semibold flex items-center gap-1.5 pt-0.5">
+                    <span>WhatsApp: {selectedOrder.shippingAddress.whatsapp}</span>
+                    <a
+                      href={`https://wa.me/${selectedOrder.shippingAddress.whatsapp.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2 py-0.5 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[10px] font-bold inline-block"
+                    >
+                      Open Chat →
+                    </a>
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-200">
@@ -812,6 +824,12 @@ export const OrdersTab: React.FC = () => {
                             <span className="text-slate-500">Phone: </span>
                             <strong className="font-mono text-slate-950 whitespace-nowrap">{orderToPrint.shippingAddress.phone}</strong>
                           </div>
+                          {orderToPrint.shippingAddress.whatsapp && (
+                            <div className="whitespace-nowrap">
+                              <span className="text-slate-500">WhatsApp: </span>
+                              <strong className="font-mono text-emerald-800 whitespace-nowrap">{orderToPrint.shippingAddress.whatsapp}</strong>
+                            </div>
+                          )}
                           <div className="whitespace-nowrap">
                             <span className="text-slate-500">Email: </span>
                             <span className="font-mono text-slate-700 whitespace-nowrap">{orderToPrint.shippingAddress.email}</span>

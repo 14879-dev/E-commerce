@@ -80,6 +80,7 @@ export interface ShippingAddress {
   fullName: string;
   email: string;
   phone: string;
+  whatsapp?: string;
   address: string;
   city: string;
   postalCode: string;
