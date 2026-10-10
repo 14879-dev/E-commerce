@@ -5,13 +5,15 @@ echo "=========================================================="
 echo "🚀 Starting Peshawari Chappal E-Commerce Platform Services"
 echo "=========================================================="
 
-# Check if Python is installed to start the local AI computer vision microservice
+# Activate Python virtual environment if created during build
+if [ -d "/opt/venv" ]; then
+  echo "📦 Activating Python virtual environment at /opt/venv..."
+  . /opt/venv/bin/activate
+fi
+
+# Determine Python command
 PYTHON_BIN=""
-if [ -f "/opt/venv/bin/python" ]; then
-  PYTHON_BIN="/opt/venv/bin/python"
-elif [ -f "/opt/venv/bin/python3" ]; then
-  PYTHON_BIN="/opt/venv/bin/python3"
-elif command -v python3 &>/dev/null; then
+if command -v python3 &>/dev/null; then
   PYTHON_BIN="python3"
 elif command -v python &>/dev/null; then
   PYTHON_BIN="python"
