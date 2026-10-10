@@ -1932,14 +1932,76 @@ STRICT CONSTRAINT:
 
 
 // ============================================================
-// AI / Python Microservice Proxy Stubs
+// AI / Python Microservice Proxy (Foot Sizing & Outfit Matcher)
 // ============================================================
+const PYTHON_SERVICE_URL = (process.env.PYTHON_SERVICE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
+
+async function proxyToPythonService(req: Request, res: Response, targetPath: string) {
+  const targetUrl = `${PYTHON_SERVICE_URL}${targetPath}`;
+  const isBodyMethod = ['POST', 'PUT', 'PATCH'].includes(req.method);
+
+  const headers: Record<string, string> = {};
+  if (req.headers['content-type']) {
+    headers['content-type'] = req.headers['content-type'] as string;
+  } else if (isBodyMethod) {
+    headers['content-type'] = 'application/json';
+  }
+
+  const payload = isBodyMethod
+    ? (typeof req.body === 'object' ? JSON.stringify(req.body) : req.body)
+    : undefined;
+
+  let retries = 2;
+  while (retries >= 0) {
+    try {
+      const response = await fetch(targetUrl, {
+        method: req.method,
+        headers,
+        body: payload,
+        signal: AbortSignal.timeout(60000), // 60s timeout for image CV processing
+      });
+
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await response.json();
+        return res.status(response.status).json(data);
+      } else {
+        const text = await response.text();
+        return res.status(response.status).send(text);
+      }
+    } catch (err: any) {
+      const isConnError =
+        err.cause?.code === 'ECONNREFUSED' ||
+        err.message?.includes('fetch failed') ||
+        err.message?.includes('ECONNREFUSED');
+      if (retries > 0 && isConnError) {
+        retries--;
+        await new Promise((r) => setTimeout(r, 1200));
+        continue;
+      }
+      console.error(`Python proxy error (${targetPath}):`, err.message);
+      return res.status(503).json({
+        success: false,
+        error: 'AI Computer Vision microservice is currently starting up or offline. Please wait a moment and try again.',
+        details: err.message,
+      });
+    }
+  }
+}
+
+// Universal handler for /api/py/*
+app.use('/api/py', (req: Request, res: Response) => {
+  const targetPath = `/api/py${req.url}`;
+  return proxyToPythonService(req, res, targetPath);
+});
+
+// Backward compatibility aliases
 app.post('/api/ai/outfit-match', (req: Request, res: Response) => {
-  res.json({ message: 'Outfit matching requires Python microservice running on port 8000.' });
+  return proxyToPythonService(req, res, '/api/py/match-outfit');
 });
 
 app.post('/api/ai/size-calculate', (req: Request, res: Response) => {
-  res.json({ message: 'Foot size calculation requires Python microservice running on port 8000.' });
+  return proxyToPythonService(req, res, '/api/py/calculate-foot-size');
 });
 
 // ============================================================
@@ -2123,12 +2185,27 @@ app.put('/api/admin/store-settings', authenticateAdmin, (req: Request, res: Resp
 // ============================================================
 // HEALTH CHECK
 // ============================================================
-app.get('/health', (_req: Request, res: Response) => {
+app.get('/health', async (_req: Request, res: Response) => {
+  let pythonStatus: any = { online: false };
+  try {
+    const pyCheck = await fetch(`${PYTHON_SERVICE_URL}/health`, { signal: AbortSignal.timeout(2000) });
+    if (pyCheck.ok) {
+      const data = (await pyCheck.json()) as Record<string, any>;
+      pythonStatus = { online: true, ...data };
+    } else {
+      pythonStatus = { online: false, status: pyCheck.status };
+    }
+  } catch (err: any) {
+    pythonStatus = { online: false, error: err.message };
+  }
+
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     service: 'Peshawari Chappal API v2',
     mongoConnected: mongoose.connection.readyState === 1,
+    pythonServiceUrl: PYTHON_SERVICE_URL,
+    pythonMicroservice: pythonStatus,
     dataMode: useMongoDb ? 'mongodb' : 'in-memory',
   });
 });

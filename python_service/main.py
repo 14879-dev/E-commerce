@@ -56,8 +56,8 @@ except Exception as e:
     REMBG_SESSION = None
 
 class OutfitMatchRequest(BaseModel):
-    outfit_type: str
-    primary_color: str
+    outfit_type: Optional[str] = "shalwar_kameez"
+    primary_color: Optional[str] = "cream"
     image_base64: Optional[str] = None
 
 class SizeCalculationRequest(BaseModel):

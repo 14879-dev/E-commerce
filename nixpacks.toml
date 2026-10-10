@@ -1,11 +1,16 @@
+providers = ["node", "python"]
+
 [phases.setup]
-nixPkgs = ["nodejs_20"]
+nixPkgs = ["nodejs_20", "python3", "python3Packages.pip"]
 
 [phases.install]
-cmds = ["npm run install:all"]
+cmds = [
+  "npm run install:all",
+  "python3 -m pip install --no-cache-dir -r python_service/requirements.txt"
+]
 
 [phases.build]
 cmds = ["npm run build"]
 
 [start]
-cmd = "node backend/dist/index.js"
+cmd = "bash start.sh"
