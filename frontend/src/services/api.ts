@@ -336,7 +336,8 @@ export const apiService = {
     return true;
   },
   getAdminToken(): string {
-    return sessionStorage.getItem('psh_admin_token') || '';
+    if (typeof window === 'undefined') return '';
+    return sessionStorage.getItem('psh_admin_token') || localStorage.getItem('psh_admin_token') || '';
   },
   // --- CATEGORIES MANAGEMENT ---
   async getCategories(all: boolean = false): Promise<Category[]> {
@@ -672,6 +673,27 @@ export const apiService = {
     orders.unshift(createdOrder);
     saveStoredOrders(orders);
 
+    // Update local product stock count
+    const prods = getStoredProducts();
+    let stockChanged = false;
+    createdOrder.items?.forEach(it => {
+      const prodId = it.product?.id || (it as any).productId;
+      const prodSlug = it.product?.slug;
+      const qty = Number(it.quantity) || 1;
+      const pIdx = prods.findIndex(p => p.id === prodId || p.slug === prodSlug);
+      if (pIdx !== -1) {
+        const curStock = typeof prods[pIdx].stockCount === 'number' ? prods[pIdx].stockCount! : 100;
+        prods[pIdx].stockCount = Math.max(0, curStock - qty);
+        stockChanged = true;
+      }
+    });
+    if (stockChanged) {
+      saveStoredProducts(prods);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('psh:products-changed'));
+      }
+    }
+
     this.addNotification({
       type: 'order',
       title: 'New Order Received',
@@ -700,10 +722,32 @@ export const apiService = {
         const updated = await res.json();
         const orders = getStoredOrders();
         const idx = orders.findIndex(o => o.id === orderId || o.orderNumber === orderId);
+        const oldStatus = idx !== -1 ? orders[idx].status : null;
         if (idx !== -1) {
           orders[idx] = updated;
           saveStoredOrders(orders);
         }
+
+        // Adjust local products stock if cancelled or re-activated
+        if (oldStatus !== 'Cancelled' && status === 'Cancelled') {
+          const prods = getStoredProducts();
+          let changed = false;
+          updated.items?.forEach((it: any) => {
+            const pId = it.product?.id || it.productId;
+            const pSlug = it.product?.slug;
+            const qty = Number(it.quantity) || 1;
+            const pIdx = prods.findIndex(p => p.id === pId || p.slug === pSlug);
+            if (pIdx !== -1) {
+              prods[pIdx].stockCount = (Number(prods[pIdx].stockCount) || 100) + qty;
+              changed = true;
+            }
+          });
+          if (changed) {
+            saveStoredProducts(prods);
+            if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('psh:products-changed'));
+          }
+        }
+
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('psh:orders-changed'));
         }
@@ -716,6 +760,7 @@ export const apiService = {
     const orders = getStoredOrders();
     const idx = orders.findIndex(o => o.id === orderId || o.orderNumber === orderId);
     if (idx !== -1) {
+      const oldStatus = orders[idx].status;
       orders[idx].status = status;
       orders[idx].trackingSteps = (orders[idx].trackingSteps || []).map(step => {
         if (step.status === status) return { ...step, completed: true, date: 'Updated just now' };
@@ -724,6 +769,26 @@ export const apiService = {
         return step;
       });
       saveStoredOrders(orders);
+
+      if (oldStatus !== 'Cancelled' && status === 'Cancelled') {
+        const prods = getStoredProducts();
+        let changed = false;
+        orders[idx].items?.forEach(it => {
+          const pId = it.product?.id || (it as any).productId;
+          const pSlug = it.product?.slug;
+          const qty = Number(it.quantity) || 1;
+          const pIdx = prods.findIndex(p => p.id === pId || p.slug === pSlug);
+          if (pIdx !== -1) {
+            prods[pIdx].stockCount = (Number(prods[pIdx].stockCount) || 100) + qty;
+            changed = true;
+          }
+        });
+        if (changed) {
+          saveStoredProducts(prods);
+          if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('psh:products-changed'));
+        }
+      }
+
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('psh:orders-changed'));
       }

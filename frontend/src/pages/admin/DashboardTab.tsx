@@ -135,9 +135,10 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
     if (p.articleTag) productCostMap.set(p.articleTag.toLowerCase().trim(), cost);
   });
 
-  // 2. Total Pure Product Revenue (Gross sales strictly without COD / delivery / shipping fees)
-  const totalPureRevenue = orders
-    .filter(o => o.status !== 'Cancelled')
+  // 2. Total Pure Product Revenue (Delivered Orders Only — realized cash in hand)
+  const deliveredOrders = orders.filter(o => o.status === 'Delivered');
+
+  const totalPureRevenue = deliveredOrders
     .reduce((sum, o) => {
       if (Array.isArray(o.items) && o.items.length > 0) {
         const itemsRevenue = o.items.reduce((iSum, it) => {
@@ -152,9 +153,8 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
       return sum + Math.max(0, orderTotal - shippingFee);
     }, 0);
 
-  // 3. Cost of Sold Items (Supplier buying cost for sold units)
-  const totalCostOfSoldItems = orders
-    .filter(o => o.status !== 'Cancelled')
+  // 3. Cost of Sold Items (Supplier buying cost for delivered units)
+  const totalCostOfSoldItems = deliveredOrders
     .reduce((sum, o) => {
       const orderCost = (o.items || []).reduce((itemSum, it) => {
         const prodId = it.product?.id || (it as any).productId;
@@ -225,11 +225,11 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
 
   const hasOrderStatusData = orders.length > 0;
 
-  // Monthly revenue trajectory (All 12 Calendar Months)
+  // Monthly revenue trajectory (All 12 Calendar Months — Delivered orders realized only)
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const revenueChartData = monthNames.map((m, mIdx) => {
-    const monthOrders = orders.filter(o => {
-      if (!o.date || o.status === 'Cancelled') return false;
+    const monthOrders = deliveredOrders.filter(o => {
+      if (!o.date) return false;
       const str = String(o.date);
       if (str.includes(m)) return true;
       try {
@@ -310,7 +310,7 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
           </div>
           <div className="font-serif font-bold text-2xl text-emerald-900">Rs. {totalPureRevenue.toLocaleString()}</div>
           <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-medium">
-            Excludes COD delivery charges
+            Delivered orders only • Excludes COD delivery charges
           </div>
         </div>
 
@@ -319,7 +319,7 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
-              Net Profit
+              Realized Net Profit
             </span>
             <div className="p-2 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs">
               <TrendingUp className="w-4 h-4" />
@@ -327,7 +327,7 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
           </div>
           <div className="font-serif font-bold text-2xl text-emerald-900">Rs. {totalProfit.toLocaleString()}</div>
           <div className="flex items-center gap-1 text-[11px] text-emerald-800 font-medium">
-            <span className="font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">{profitMargin}% margin</span> • Selling price − Supplier cost
+            <span className="font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">{profitMargin}% margin</span> • Realized on delivered pairs
           </div>
         </div>
 

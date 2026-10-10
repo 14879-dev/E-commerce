@@ -162,22 +162,20 @@ export const FootSizeFinderPage: React.FC = () => {
   };
 
   return (
-    <>
+    <div className="w-full">
       <SEOHelmet
         title="Foot Size Scanner — Peshawari Chappal Co."
         description="Instant camera-based foot size measurement using A4 paper calibration."
       />
 
-      <div className="max-w-4xl mx-auto py-2">
-        <PageHero
-          badge="Computer Vision Calibration"
-          title="AI Foot Size Calibration"
-          subtitle="Millimeter-Accurate Fitting on Standard A4 Paper"
-          description="Eliminate sizing doubts. Our computer vision engine extracts your exact foot contours to match authentic Peshawari lasts."
-        />
-      </div>
+      <PageHero
+        badge="Computer Vision Calibration"
+        title="AI Foot Size Calibration"
+        subtitle="Millimeter-Accurate Fitting on Standard A4 Paper"
+        description="Eliminate sizing doubts. Our computer vision engine extracts your exact foot contours to match authentic Peshawari lasts."
+      />
 
-      <div className="max-w-2xl mx-auto py-4 sm:py-6 px-4">
+      <div className="max-w-2xl mx-auto py-6 sm:py-10 px-4">
         {/* Hidden capture elements */}
         <canvas ref={canvasRef} className="hidden" />
         <input
@@ -442,7 +440,7 @@ export const FootSizeFinderPage: React.FC = () => {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

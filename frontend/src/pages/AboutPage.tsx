@@ -12,7 +12,7 @@ export const AboutPage: React.FC = () => {
   const firstHeroImage = (Array.isArray(settings.heroSlides) && settings.heroSlides.length > 0 ? settings.heroSlides[0].url : '') || settings.heroMediaUrl || '/uploads/hero.webp';
 
   return (
-    <div className="space-y-12 max-w-5xl mx-auto py-2">
+    <div className="w-full">
       <SEOHelmet
         title="Heritage & Craftsmanship Story"
         description="Discover the authentic legacy of traditional Peshawar leather craftsmanship, master tanners, and modern bespoke footwear."
@@ -25,8 +25,9 @@ export const AboutPage: React.FC = () => {
         description="From the ancient cobbler alleys of Old Peshawar to international runways. We preserve authentic Pashtun leatherwork while empowering artisans."
       />
 
-      {/* Story Sections Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12">
+        {/* Story Sections Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
         <div className="space-y-4">
           <span className="text-xs font-semibold uppercase tracking-wider text-[#1A1A18]">Origins</span>
           <h2 className="font-serif font-bold text-2xl sm:text-3xl text-[#1A1A18]">
@@ -115,6 +116,7 @@ export const AboutPage: React.FC = () => {
             Contact Concierge <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
+      </div>
       </div>
     </div>
   );

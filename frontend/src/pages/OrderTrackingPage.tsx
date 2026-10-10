@@ -88,7 +88,7 @@ export const OrderTrackingPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto py-2">
+    <div className="w-full">
       <SEOHelmet
         title={isJustPlaced ? "Thank You For Your Order - Tracking" : "Live Order Tracking"}
         description="Track the handcrafted progress, quality check, and shipping status of your Peshawari Chappal order."
@@ -101,8 +101,9 @@ export const OrderTrackingPage: React.FC = () => {
         description="Follow every milestone of your Peshawari pair — from hand-lasting and sole stitching to courier transit."
       />
 
-      {/* Thank You & Order Confirmation Celebration Hero */}
-      {isJustPlaced && (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
+        {/* Thank You & Order Confirmation Celebration Hero */}
+        {isJustPlaced && (
         <div className="rounded-3xl p-6 sm:p-8 bg-[#A0988A]/25 border-2 border-[#565449]/40 shadow-xl space-y-5 animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#A0988A]/40">
             <div className="flex items-start sm:items-center gap-4">
@@ -341,6 +342,7 @@ export const OrderTrackingPage: React.FC = () => {
           )}
         </div>
       ) : null}
+      </div>
     </div>
   );
 };

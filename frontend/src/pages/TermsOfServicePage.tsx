@@ -6,9 +6,9 @@ import { useStoreSettings } from '../context/StoreSettingsContext';
 import { PageHero } from '../components/common/PageHero';
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <section className="space-y-3 bg-[#A0988A]/15 border border-[#A0988A]/35 rounded-2xl p-5">
-    <h2 className="font-serif font-bold text-xl text-[#1A1A18] border-b border-[#565449]/20 pb-2">{title}</h2>
-    <div className="text-sm text-[#1A1A18]/85 leading-relaxed space-y-3">{children}</div>
+  <section className="space-y-3 pt-6 pb-6 border-b border-[#565449]/20 last:border-b-0">
+    <h2 className="font-serif font-bold text-xl sm:text-2xl text-[#1A1A18]">{title}</h2>
+    <div className="text-sm sm:text-base text-[#1A1A18]/85 leading-relaxed space-y-3">{children}</div>
   </section>
 );
 
@@ -19,7 +19,7 @@ export const TermsOfServicePage: React.FC = () => {
   const storeName = settings.storeName || 'Peshawari Chappal Co.';
 
   return (
-    <div className="max-w-3xl mx-auto py-8 space-y-8">
+    <div className="w-full">
       <SEOHelmet
         title={`Terms of Service — ${storeName}`}
         description="Read our terms and conditions governing purchases, returns, deliveries, and use of the Peshawari Chappal website."
@@ -32,26 +32,27 @@ export const TermsOfServicePage: React.FC = () => {
         description="Guidelines and commitments governing orders, deliveries, returns, and digital services at Peshawari Chappal Co."
       />
 
-      {/* Header */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 text-xs text-[#1A1A18]/70">
-          <Link to="/" className="hover:text-[#1A1A18] font-bold transition-colors">Home</Link>
-          <ChevronRight className="w-3 h-3 text-[#1A1A18]/50" />
-          <span className="text-[#1A1A18] font-bold">Terms of Service</span>
-        </div>
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#565449] text-[#F7F4EB] flex items-center justify-center shrink-0 mt-1 shadow-xs">
-            <FileText className="w-6 h-6 text-[#F7F4EB]" />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-6">
+        {/* Header */}
+        <div className="space-y-4 pb-6 border-b border-[#565449]/20">
+          <div className="flex items-center gap-2 text-xs text-[#1A1A18]/70">
+            <Link to="/" className="hover:text-[#1A1A18] font-bold transition-colors">Home</Link>
+            <ChevronRight className="w-3 h-3 text-[#1A1A18]/50" />
+            <span className="text-[#1A1A18] font-bold">Terms of Service</span>
           </div>
-          <div>
-            <h1 className="font-serif font-bold text-3xl text-[#1A1A18]">Terms of Service</h1>
-            <p className="text-sm text-[#1A1A18]/70 mt-1">Peshawari Chappal Co. — Effective Date: August 1, 2026</p>
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#565449] text-[#F7F4EB] flex items-center justify-center shrink-0 mt-1 shadow-xs">
+              <FileText className="w-6 h-6 text-[#F7F4EB]" />
+            </div>
+            <div>
+              <h1 className="font-serif font-bold text-3xl sm:text-4xl text-[#1A1A18]">Terms of Service</h1>
+              <p className="text-xs sm:text-sm text-[#1A1A18]/70 mt-1">Peshawari Chappal Co. — Effective Date: August 1, 2026</p>
+            </div>
           </div>
+          <p className="text-sm sm:text-base text-[#1A1A18]/90 leading-relaxed pt-2">
+            By using our website or placing an order, you agree to these Terms of Service. Please read them carefully before making a purchase.
+          </p>
         </div>
-        <p className="text-sm text-[#1A1A18]/90 leading-relaxed bg-[#A0988A]/25 border border-[#565449]/30 rounded-xl px-4 py-3">
-          By using our website or placing an order, you agree to these Terms of Service. Please read them carefully before making a purchase.
-        </p>
-      </div>
 
       <Section title="1. About Us">
         <p>
@@ -185,6 +186,7 @@ export const TermsOfServicePage: React.FC = () => {
         <Link to="/privacy" className="hover:text-[#1A1A18] font-bold transition-colors">Privacy Policy</Link>
         <Link to="/about" className="hover:text-[#1A1A18] font-bold transition-colors">About Us</Link>
         <Link to="/" className="hover:text-[#1A1A18] font-bold transition-colors">← Back to Store</Link>
+      </div>
       </div>
     </div>
   );

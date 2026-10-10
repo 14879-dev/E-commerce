@@ -123,7 +123,7 @@ export const OutfitMatcherPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
+    <div className="w-full">
       <SEOHelmet
         title="AI Outfit Matcher — Peshawari Chappal Co."
         description="Upload a photo or describe your outfit to get AI-driven Peshawari Chappal recommendations."
@@ -136,8 +136,9 @@ export const OutfitMatcherPage: React.FC = () => {
         description="Our vision model analyzes fabric tones, patterns, and formal occasion levels to recommend the perfect Peshawari silhouette."
       />
 
-      {/* Page Header */}
-      <div className="border-b border-[#A0988A]/40 pb-5">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
+        {/* Page Header */}
+        <div className="border-b border-[#A0988A]/40 pb-5">
         <span className="text-[11px] font-bold uppercase tracking-widest text-[#1A1A18] block mb-1">
           AI Color &amp; Style Stylist
         </span>
@@ -351,6 +352,7 @@ export const OutfitMatcherPage: React.FC = () => {
           </div>
         </section>
       )}
+      </div>
     </div>
   );
 };

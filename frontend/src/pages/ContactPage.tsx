@@ -64,7 +64,7 @@ export const ContactPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-12 max-w-6xl mx-auto py-4">
+    <div className="w-full">
       <SEOHelmet
         title={`Contact Us | Customer Support & Artisan Concierge`}
         description={`Get in touch with ${settings.storeName || 'Peshawari Chappal Co.'}. Contact our concierge for camera foot sizing questions, custom bespoke orders, and order status.`}
@@ -77,22 +77,23 @@ export const ContactPage: React.FC = () => {
         description="Whether you need advice on foot sizing, shade matching for special events, or tracking an active order, our team is at your service."
       />
 
-      {/* Hero Header */}
-      <div className="text-center space-y-3 pb-8 border-b border-[#565449]/20">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#A0988A]/25 border border-[#565449]/30 text-[#1A1A18] text-xs font-bold uppercase tracking-wider">
-          <MessageSquare className="w-3.5 h-3.5 text-[#1A1A18]" />
-          <span>Customer Care &amp; Bespoke Concierge</span>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12">
+        {/* Hero Header */}
+        <div className="text-center space-y-3 pb-8 border-b border-[#565449]/20">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#A0988A]/25 border border-[#565449]/30 text-[#1A1A18] text-xs font-bold uppercase tracking-wider">
+            <MessageSquare className="w-3.5 h-3.5 text-[#1A1A18]" />
+            <span>Customer Care &amp; Bespoke Concierge</span>
+          </div>
+          <h1 className="font-serif text-3xl sm:text-5xl font-bold text-[#1A1A18]">
+            We&apos;re Here to Assist You
+          </h1>
+          <p className="text-sm sm:text-base text-[#1A1A18]/80 max-w-2xl mx-auto leading-relaxed">
+            Whether you need advice on foot sizing, shade matching for a wedding, or tracking an active order, our Peshawar artisan team is at your service.
+          </p>
         </div>
-        <h1 className="font-serif text-3xl sm:text-5xl font-bold text-[#1A1A18]">
-          We&apos;re Here to Assist You
-        </h1>
-        <p className="text-sm sm:text-base text-[#1A1A18]/80 max-w-2xl mx-auto leading-relaxed">
-          Whether you need advice on foot sizing, shade matching for a wedding, or tracking an active order, our Peshawar artisan team is at your service.
-        </p>
-      </div>
 
-      {/* Contact Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Contact Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Email Support Card */}
         <div className="p-6 rounded-2xl bg-[#A0988A]/20 border border-[#A0988A]/40 shadow-xs flex flex-col justify-between space-y-4 hover:border-[#565449]/60 transition-colors">
           <div className="space-y-3">
@@ -361,6 +362,7 @@ export const ContactPage: React.FC = () => {
             </p>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

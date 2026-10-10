@@ -152,7 +152,7 @@ export const CatalogPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="w-full">
       <SEOHelmet
         title="Handcrafted Peshawari Chappal Catalog"
         description="Browse our full collection of authentic Peshawari Chappals including Kaptaan, Zalmi, Norzi, and Quetta designs with interactive bespoke viewing."
@@ -165,8 +165,9 @@ export const CatalogPage: React.FC = () => {
         description="Every silhouette is hand-crafted with hand-selected full-grain leather, tyre sole craftsmanship, and durable brass finishing."
       />
 
-      {/* Header Banner - Open Layout with Divider Line */}
-      <div className="border-b border-[#A0988A]/50 pb-6 space-y-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
+        {/* Header Banner - Open Layout with Divider Line */}
+        <div className="border-b border-[#A0988A]/50 pb-6 space-y-4">
         <div>
           <span className="text-[11px] font-bold uppercase tracking-widest text-[#1A1A18] block mb-1">
             Handcrafted Heritage
@@ -456,6 +457,7 @@ export const CatalogPage: React.FC = () => {
             </div>
           )}
         </main>
+      </div>
       </div>
     </div>
   );

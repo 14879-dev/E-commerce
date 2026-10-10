@@ -1251,26 +1251,79 @@ app.patch('/api/reviews/:id/moderate', authenticateAdmin, async (req: Request, r
 });
 
 // ============================================================
-// ORDER ROUTES
+// ORDER ROUTES & STOCK MANAGEMENT
 // ============================================================
+
+async function adjustProductStock(items: any[], delta: number) {
+  if (!Array.isArray(items) || items.length === 0) return;
+  for (const it of items) {
+    const prodId = it.product?.id || it.productId || (it.product as any)?._id;
+    const prodSlug = it.product?.slug;
+    const prodName = it.product?.name;
+    const qty = Math.max(1, Number(it.quantity) || 1);
+    const change = delta < 0 ? -qty : qty;
+
+    try {
+      if (useMongoDb) {
+        const orList: any[] = [];
+        if (prodId) orList.push({ id: String(prodId) });
+        if (prodSlug) orList.push({ slug: String(prodSlug) });
+        if (prodId && mongoose.isValidObjectId(prodId)) orList.push({ _id: prodId });
+        if (prodName) orList.push({ name: String(prodName) });
+
+        if (orList.length > 0) {
+          const prod = await ProductModel.findOne({ $or: orList });
+          if (prod) {
+            const currentStock = typeof prod.stockCount === 'number' ? prod.stockCount : 100;
+            const nextStock = Math.max(0, currentStock + change);
+            prod.stockCount = nextStock;
+            prod.inStock = nextStock > 0;
+            await prod.save();
+          }
+        }
+      } else {
+        const idx = inMemoryProducts.findIndex(p => 
+          (prodId && (p.id === prodId || (p as any)._id === prodId)) || 
+          (prodSlug && p.slug === prodSlug) ||
+          (prodName && p.name === prodName)
+        );
+        if (idx !== -1) {
+          const currentStock = typeof inMemoryProducts[idx].stockCount === 'number' ? inMemoryProducts[idx].stockCount : 100;
+          const nextStock = Math.max(0, currentStock + change);
+          inMemoryProducts[idx].stockCount = nextStock;
+          inMemoryProducts[idx].inStock = nextStock > 0;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed adjusting product stock:', e);
+    }
+  }
+}
+
 app.get('/api/orders', async (req: Request, res: Response) => {
   if (useMongoDb) {
     const orders = await OrderModel.find().sort({ createdAt: -1 }).lean();
-    res.json(orders);
+    res.json(orders.map((o: any) => ({
+      ...o,
+      id: o.id || o._id?.toString(),
+    })));
   } else {
     res.json(inMemoryOrders);
   }
 });
 
 app.get('/api/orders/:id', async (req: Request, res: Response): Promise<void> => {
+  const targetId = req.params.id;
   if (useMongoDb) {
-    const order = await OrderModel.findOne({
-      $or: [{ id: req.params.id }, { orderNumber: req.params.id }]
-    }).lean();
+    const orList: any[] = [{ id: targetId }, { orderNumber: targetId }];
+    if (mongoose.isValidObjectId(targetId)) {
+      orList.push({ _id: targetId });
+    }
+    const order = await OrderModel.findOne({ $or: orList }).lean();
     if (!order) { res.status(404).json({ error: 'Order not found' }); return; }
-    res.json(order);
+    res.json({ ...order, id: (order as any).id || (order as any)._id?.toString() });
   } else {
-    const order = inMemoryOrders.find(o => o.id === req.params.id || o.orderNumber === req.params.id);
+    const order = inMemoryOrders.find(o => o.id === targetId || o.orderNumber === targetId);
     if (!order) { res.status(404).json({ error: 'Order not found' }); return; }
     res.json(order);
   }
@@ -1300,6 +1353,8 @@ app.post('/api/orders', async (req: Request, res: Response): Promise<void> => {
       return;
     }
     const doc = await OrderModel.create(newOrder);
+    // Decrement inventory stock for items ordered
+    await adjustProductStock(newOrder.items, -1);
     res.status(201).json(doc);
   } else {
     const existing = inMemoryOrders.find(o => o.id === newOrder.id || o.orderNumber === newOrder.orderNumber);
@@ -1308,23 +1363,50 @@ app.post('/api/orders', async (req: Request, res: Response): Promise<void> => {
       return;
     }
     inMemoryOrders.unshift(newOrder);
+    // Decrement inventory stock for items ordered
+    await adjustProductStock(newOrder.items, -1);
     res.status(201).json(newOrder);
   }
 });
 
 app.patch('/api/orders/:id/status', authenticateAdmin, async (req: Request, res: Response): Promise<void> => {
   const { status } = req.body;
+  const targetId = req.params.id;
+
   if (useMongoDb) {
-    const order = await OrderModel.findOneAndUpdate(
-      { $or: [{ id: req.params.id }, { orderNumber: req.params.id }] },
-      { status },
-      { new: true }
-    ).lean();
+    const orList: any[] = [{ id: targetId }, { orderNumber: targetId }];
+    if (mongoose.isValidObjectId(targetId)) {
+      orList.push({ _id: targetId });
+    }
+    const order = await OrderModel.findOne({ $or: orList });
     if (!order) { res.status(404).json({ error: 'Order not found' }); return; }
-    res.json(order);
+
+    const oldStatus = order.status;
+    order.status = status;
+    order.trackingSteps = (order.trackingSteps || []).map((step: any) => {
+      if (step.status === status) return { ...step, completed: true, date: 'Updated just now' };
+      if (status === 'Delivered') return { ...step, completed: true };
+      if (status === 'Shipped' && step.status === 'Placed') return { ...step, completed: true };
+      return step;
+    });
+
+    await order.save();
+
+    // Check inventory stock adjustments:
+    if (oldStatus !== 'Cancelled' && status === 'Cancelled') {
+      // Returned or cancelled: restore stock
+      await adjustProductStock(order.items, +1);
+    } else if (oldStatus === 'Cancelled' && status !== 'Cancelled') {
+      // Re-activated order: decrement stock
+      await adjustProductStock(order.items, -1);
+    }
+
+    const doc = order.toObject ? order.toObject() : order;
+    res.json({ ...doc, id: doc.id || doc._id?.toString() });
   } else {
-    const idx = inMemoryOrders.findIndex(o => o.id === req.params.id || o.orderNumber === req.params.id);
+    const idx = inMemoryOrders.findIndex(o => o.id === targetId || o.orderNumber === targetId);
     if (idx === -1) { res.status(404).json({ error: 'Order not found' }); return; }
+    const oldStatus = inMemoryOrders[idx].status;
     inMemoryOrders[idx].status = status;
     inMemoryOrders[idx].trackingSteps = (inMemoryOrders[idx].trackingSteps || []).map((step: any) => {
       if (step.status === status) return { ...step, completed: true, date: 'Updated just now' };
@@ -1332,21 +1414,31 @@ app.patch('/api/orders/:id/status', authenticateAdmin, async (req: Request, res:
       if (status === 'Shipped' && step.status === 'Placed') return { ...step, completed: true };
       return step;
     });
+
+    if (oldStatus !== 'Cancelled' && status === 'Cancelled') {
+      await adjustProductStock(inMemoryOrders[idx].items, +1);
+    } else if (oldStatus === 'Cancelled' && status !== 'Cancelled') {
+      await adjustProductStock(inMemoryOrders[idx].items, -1);
+    }
+
     res.json(inMemoryOrders[idx]);
   }
 });
 
 app.patch('/api/orders/:id/replacement', async (req: Request, res: Response): Promise<void> => {
+  const targetId = req.params.id;
   if (useMongoDb) {
+    const orList: any[] = [{ id: targetId }, { orderNumber: targetId }];
+    if (mongoose.isValidObjectId(targetId)) orList.push({ _id: targetId });
     const order = await OrderModel.findOneAndUpdate(
-      { $or: [{ id: req.params.id }, { orderNumber: req.params.id }] },
+      { $or: orList },
       { replacementRequested: true, replacementStatus: 'pending', replacementReason: req.body.reason },
       { new: true }
     ).lean();
     if (!order) { res.status(404).json({ error: 'Order not found' }); return; }
-    res.json(order);
+    res.json({ ...order, id: (order as any).id || (order as any)._id?.toString() });
   } else {
-    const idx = inMemoryOrders.findIndex(o => o.id === req.params.id || o.orderNumber === req.params.id);
+    const idx = inMemoryOrders.findIndex(o => o.id === targetId || o.orderNumber === targetId);
     if (idx === -1) { res.status(404).json({ error: 'Order not found' }); return; }
     inMemoryOrders[idx].replacementRequested = true;
     inMemoryOrders[idx].replacementStatus = 'pending';
@@ -1358,16 +1450,19 @@ app.patch('/api/orders/:id/replacement', async (req: Request, res: Response): Pr
 app.patch('/api/orders/:id/replacement/moderate', authenticateAdmin, async (req: Request, res: Response): Promise<void> => {
   const { approved } = req.body;
   const newStatus = approved ? 'approved' : 'rejected';
+  const targetId = req.params.id;
   if (useMongoDb) {
+    const orList: any[] = [{ id: targetId }, { orderNumber: targetId }];
+    if (mongoose.isValidObjectId(targetId)) orList.push({ _id: targetId });
     const order = await OrderModel.findOneAndUpdate(
-      { $or: [{ id: req.params.id }, { orderNumber: req.params.id }] },
+      { $or: orList },
       { replacementStatus: newStatus },
       { new: true }
     ).lean();
     if (!order) { res.status(404).json({ error: 'Order not found' }); return; }
-    res.json(order);
+    res.json({ ...order, id: (order as any).id || (order as any)._id?.toString() });
   } else {
-    const idx = inMemoryOrders.findIndex(o => o.id === req.params.id || o.orderNumber === req.params.id);
+    const idx = inMemoryOrders.findIndex(o => o.id === targetId || o.orderNumber === targetId);
     if (idx === -1) { res.status(404).json({ error: 'Order not found' }); return; }
     inMemoryOrders[idx].replacementStatus = newStatus;
     res.json(inMemoryOrders[idx]);
@@ -1377,12 +1472,16 @@ app.patch('/api/orders/:id/replacement/moderate', authenticateAdmin, async (req:
 app.delete('/api/orders/:id', authenticateAdmin, async (req: Request, res: Response): Promise<void> => {
   const targetId = req.params.id;
   if (useMongoDb) {
-    const deleted = await OrderModel.findOneAndDelete({
-      $or: [{ id: targetId }, { orderNumber: targetId }]
-    }).lean();
+    const orList: any[] = [{ id: targetId }, { orderNumber: targetId }];
+    if (mongoose.isValidObjectId(targetId)) orList.push({ _id: targetId });
+    const deleted = await OrderModel.findOneAndDelete({ $or: orList }).lean();
     if (!deleted) {
       res.status(404).json({ error: 'Order not found' });
       return;
+    }
+    // If deleted order was not cancelled, restore stock
+    if ((deleted as any).status !== 'Cancelled') {
+      await adjustProductStock((deleted as any).items, +1);
     }
     res.json({ success: true, message: 'Order deleted successfully' });
   } else {
@@ -1390,6 +1489,10 @@ app.delete('/api/orders/:id', authenticateAdmin, async (req: Request, res: Respo
     if (idx === -1) {
       res.status(404).json({ error: 'Order not found' });
       return;
+    }
+    const deleted = inMemoryOrders[idx];
+    if (deleted.status !== 'Cancelled') {
+      await adjustProductStock(deleted.items, +1);
     }
     inMemoryOrders.splice(idx, 1);
     res.json({ success: true, message: 'Order deleted successfully' });

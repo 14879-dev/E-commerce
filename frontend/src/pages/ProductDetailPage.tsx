@@ -128,7 +128,7 @@ export const ProductDetailPage: React.FC = () => {
   const activeImageUrl = selectedImageUrl || allImages[0] || product.images?.front || '';
 
   return (
-    <div className="space-y-8 sm:space-y-12">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 sm:space-y-12">
       <SEOHelmet
         title={product.name}
         description={product.description}

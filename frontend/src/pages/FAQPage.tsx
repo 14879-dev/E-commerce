@@ -98,7 +98,7 @@ export const FAQPage: React.FC = () => {
     : `https://wa.me/${cleanPhone}?text=Hi!%20I%20have%20a%20question%20regarding%20Peshawari%20Chappals.`;
 
   return (
-    <div className="space-y-12 max-w-4xl mx-auto py-4">
+    <div className="w-full">
       {/* Dynamic SEO Head with Google FAQPage Schema.org Injection */}
       <SEOHelmet
         title="Frequently Asked Questions (FAQ) | Sizing, Authentic Leather & Delivery"
@@ -114,7 +114,8 @@ export const FAQPage: React.FC = () => {
         description="Everything you need to know about our handcrafted Peshawari chappals, full-grain cowhide leather, and nationwide delivery."
       />
 
-      {/* Hero Header */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12">
+        {/* Hero Header */}
       <div className="text-center space-y-4 pt-4 pb-2">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#A0988A]/25 border border-[#565449]/30 text-[#1A1A18] text-xs font-bold tracking-wide shadow-xs">
           <HelpCircle className="w-3.5 h-3.5 text-[#1A1A18]" />
@@ -275,6 +276,7 @@ export const FAQPage: React.FC = () => {
             Connect directly with our master craftsmen for bespoke or custom inquiries.
           </p>
         </a>
+      </div>
       </div>
     </div>
   );

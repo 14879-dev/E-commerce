@@ -94,10 +94,14 @@ export const AnalyticsTab: React.FC = () => {
     });
   }, [orders, period]);
 
-  // Key KPI calculations
-  const totalSalesVolume = useMemo(() => {
-    return filteredOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+  const deliveredOrders = useMemo(() => {
+    return filteredOrders.filter(o => o.status === 'Delivered');
   }, [filteredOrders]);
+
+  // Key KPI calculations (Realized on Delivered Orders)
+  const totalSalesVolume = useMemo(() => {
+    return deliveredOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+  }, [deliveredOrders]);
 
   const customerRetentionRate = useMemo(() => {
     if (customers.length === 0) return '0.0%';
@@ -110,11 +114,11 @@ export const AnalyticsTab: React.FC = () => {
     return `${((aiMetrics.sizeSuccess / aiMetrics.sizeScans) * 100).toFixed(1)}%`;
   }, [aiMetrics]);
 
-  // Silhouette / Category Breakdown from real orders
+  // Silhouette / Category Breakdown from delivered orders
   const categorySalesData = useMemo(() => {
     const counts: Record<string, number> = {};
 
-    filteredOrders.forEach(o => {
+    deliveredOrders.forEach(o => {
       o.items?.forEach(item => {
         const cat = item.product?.category && item.product.category !== 'None'
           ? item.product.category
@@ -141,7 +145,7 @@ export const AnalyticsTab: React.FC = () => {
     }
 
     return entries;
-  }, [filteredOrders, products]);
+  }, [deliveredOrders, products]);
 
   // Pakistani Cities Geographical Demographics
   const regionalSalesData = useMemo(() => {
@@ -150,7 +154,7 @@ export const AnalyticsTab: React.FC = () => {
       cityMap[c] = 0;
     });
 
-    filteredOrders.forEach(o => {
+    deliveredOrders.forEach(o => {
       const orderCity = (o.shippingAddress?.city || '').trim();
       const matchedCity = DEFAULT_PAKISTAN_CITIES.find(
         c => c.toLowerCase() === orderCity.toLowerCase()
@@ -163,17 +167,18 @@ export const AnalyticsTab: React.FC = () => {
       .map(([region, revenue]) => ({ region, revenue }))
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 7);
-  }, [filteredOrders]);
+  }, [deliveredOrders]);
 
   // Product Intelligence (Top Trending, Most Liked, Buying Again & Again, Visits)
   const productIntelligence = useMemo(() => {
+    const deliveredAll = orders.filter(o => o.status === 'Delivered');
     return products.map(product => {
       let unitsSold = 0;
       let revenue = 0;
       let repeatOrdersCount = 0;
       const buyersSet = new Set<string>();
 
-      orders.forEach(o => {
+      deliveredAll.forEach(o => {
         const item = o.items?.find(i => i.product?.id === product.id || (i.product as any)?.slug === product.slug);
         if (item) {
           const qty = Number(item.quantity) || 1;

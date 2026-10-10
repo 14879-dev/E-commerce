@@ -174,7 +174,7 @@ export const CheckoutPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
       <SEOHelmet
         title="Checkout Order"
         description="Complete your order for handcrafted Peshawari Chappals with secure payment."

@@ -40,7 +40,6 @@ const ScrollToTop = () => {
 const AppContent: React.FC = () => {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
-  const isHomePage = location.pathname === '/';
 
   return (
     <div className="min-h-screen flex flex-col relative selection:bg-[#565449] selection:text-[#F7F4EB] bg-[#F7F4EB] text-[#1A1A18]">
@@ -48,7 +47,7 @@ const AppContent: React.FC = () => {
       {!isAdminRoute && <Header />}
 
       {/* Main Application Dedicated Page Routes */}
-      <main className={`flex-1 w-full ${isHomePage ? '' : isAdminRoute ? 'px-4 sm:px-6 lg:px-8 py-6 sm:py-8' : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 mx-auto'}`}>
+      <main className={`flex-1 w-full ${isAdminRoute ? 'px-4 sm:px-6 lg:px-8 py-6 sm:py-8' : ''}`}>
         <Routes>
           {/* Public Storefront Routes */}
           <Route path="/" element={<HomePage />} />

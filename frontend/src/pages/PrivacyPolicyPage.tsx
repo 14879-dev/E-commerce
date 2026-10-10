@@ -3,15 +3,14 @@ import { Link } from 'react-router-dom';
 import { Shield, ChevronRight } from 'lucide-react';
 import { SEOHelmet } from '../components/common/SEOHelmet';
 import { useStoreSettings } from '../context/StoreSettingsContext';
+import { PageHero } from '../components/common/PageHero';
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <section className="space-y-3 bg-[#A0988A]/15 border border-[#A0988A]/35 rounded-2xl p-5">
-    <h2 className="font-serif font-bold text-xl text-[#1A1A18] border-b border-[#565449]/20 pb-2">{title}</h2>
-    <div className="text-sm text-[#1A1A18]/85 leading-relaxed space-y-3">{children}</div>
+  <section className="space-y-3 pt-6 pb-6 border-b border-[#565449]/20 last:border-b-0">
+    <h2 className="font-serif font-bold text-xl sm:text-2xl text-[#1A1A18]">{title}</h2>
+    <div className="text-sm sm:text-base text-[#1A1A18]/85 leading-relaxed space-y-3">{children}</div>
   </section>
 );
-
-import { PageHero } from '../components/common/PageHero';
 
 export const PrivacyPolicyPage: React.FC = () => {
   const { settings } = useStoreSettings();
@@ -20,7 +19,7 @@ export const PrivacyPolicyPage: React.FC = () => {
   const storeName = settings.storeName || 'Peshawari Chappal Co.';
 
   return (
-    <div className="max-w-4xl mx-auto py-4 space-y-8">
+    <div className="w-full">
       <SEOHelmet
         title={`Privacy Policy — ${storeName}`}
         description="Our privacy policy explains how we collect, use, and protect your personal information when you shop with us."
@@ -33,26 +32,27 @@ export const PrivacyPolicyPage: React.FC = () => {
         description="We protect your identity and order details with enterprise encryption and zero data sharing."
       />
 
-      {/* Header */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 text-xs text-[#1A1A18]/70">
-          <Link to="/" className="hover:text-[#1A1A18] font-semibold transition-colors">Home</Link>
-          <ChevronRight className="w-3 h-3 text-[#1A1A18]/50" />
-          <span className="text-[#1A1A18] font-bold">Privacy Policy</span>
-        </div>
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#565449] text-[#F7F4EB] flex items-center justify-center shrink-0 mt-1 shadow-xs">
-            <Shield className="w-6 h-6 text-[#F7F4EB]" />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-6">
+        {/* Header */}
+        <div className="space-y-4 pb-6 border-b border-[#565449]/20">
+          <div className="flex items-center gap-2 text-xs text-[#1A1A18]/70">
+            <Link to="/" className="hover:text-[#1A1A18] font-semibold transition-colors">Home</Link>
+            <ChevronRight className="w-3 h-3 text-[#1A1A18]/50" />
+            <span className="text-[#1A1A18] font-bold">Privacy Policy</span>
           </div>
-          <div>
-            <h1 className="font-serif font-bold text-3xl text-[#1A1A18]">Privacy Policy</h1>
-            <p className="text-sm text-[#1A1A18]/70 mt-1">Peshawari Chappal Co. — Effective Date: August 1, 2026</p>
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#565449] text-[#F7F4EB] flex items-center justify-center shrink-0 mt-1 shadow-xs">
+              <Shield className="w-6 h-6 text-[#F7F4EB]" />
+            </div>
+            <div>
+              <h1 className="font-serif font-bold text-3xl sm:text-4xl text-[#1A1A18]">Privacy Policy</h1>
+              <p className="text-xs sm:text-sm text-[#1A1A18]/70 mt-1">Peshawari Chappal Co. — Effective Date: August 1, 2026</p>
+            </div>
           </div>
+          <p className="text-sm sm:text-base text-[#1A1A18]/90 leading-relaxed pt-2">
+            Your privacy is important to us. This policy explains what personal information we collect, how we use it, and your rights regarding that data.
+          </p>
         </div>
-        <p className="text-sm text-[#1A1A18]/90 leading-relaxed bg-[#A0988A]/25 border border-[#565449]/30 rounded-xl px-4 py-3">
-          Your privacy is important to us. This policy explains what personal information we collect, how we use it, and your rights regarding that data.
-        </p>
-      </div>
 
       <Section title="1. Information We Collect">
         <p>We collect information you provide directly when you:</p>
@@ -164,6 +164,7 @@ export const PrivacyPolicyPage: React.FC = () => {
         <Link to="/terms" className="hover:text-[#1A1A18] font-bold transition-colors">Terms of Service</Link>
         <Link to="/about" className="hover:text-[#1A1A18] font-bold transition-colors">About Us</Link>
         <Link to="/" className="hover:text-[#1A1A18] font-bold transition-colors">← Back to Store</Link>
+      </div>
       </div>
     </div>
   );
