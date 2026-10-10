@@ -107,6 +107,14 @@ def build_fit_note(length_mm: float, width_mm: float, eu: int) -> str:
     m = "Kaptaan Signature" if eu <= 41 else "Zalmi Royal" if eu <= 43 else "Quetta Sovereign"
     return f"Foot {round(length_mm)}mm x {round(width_mm)}mm | EU {eu} | {w.title()}-width. Recommended: {m}."
 
+@app.get("/")
+def root():
+    return {
+        "status": "online",
+        "service": "Peshawari Chappal Neural AI Foot Sizing Microservice v7.0",
+        "endpoints": ["/health", "/api/py/calculate-foot-size", "/api/py/match-outfit"]
+    }
+
 @app.get("/health")
 def health():
     return {
