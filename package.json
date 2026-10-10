@@ -8,7 +8,7 @@
     "build:frontend": "npm --prefix frontend install --include=dev && npm --prefix frontend run build",
     "build:backend": "npm --prefix backend install --include=dev && npm --prefix backend run build",
     "build": "npm run build:frontend && npm run build:backend",
-    "start": "bash start.sh || node backend/dist/index.js"
+    "start": "node backend/dist/index.js"
   },
   "engines": {
     "node": ">=20.0.0"

@@ -1,14 +1,11 @@
 [phases.setup]
-nixPkgs = ["nodejs_20", "python3"]
+nixPkgs = ["nodejs_20"]
 
 [phases.install]
-cmds = [
-  "npm run install:all",
-  "python3 -m venv /opt/venv && . /opt/venv/bin/activate && pip install --no-cache-dir -r requirements.txt"
-]
+cmds = ["npm run install:all"]
 
 [phases.build]
 cmds = ["npm run build"]
 
 [start]
-cmd = "bash start.sh"
+cmd = "node backend/dist/index.js"
