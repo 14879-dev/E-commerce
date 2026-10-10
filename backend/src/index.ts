@@ -1934,7 +1934,11 @@ STRICT CONSTRAINT:
 // ============================================================
 // AI / Python Microservice Proxy (Foot Sizing & Outfit Matcher)
 // ============================================================
-const PYTHON_SERVICE_URL = (process.env.PYTHON_SERVICE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
+let rawPyUrl = (process.env.PYTHON_SERVICE_URL || 'http://127.0.0.1:8000').trim().replace(/\/+$/, '');
+if (rawPyUrl && !rawPyUrl.startsWith('http://') && !rawPyUrl.startsWith('https://')) {
+  rawPyUrl = `https://${rawPyUrl}`;
+}
+const PYTHON_SERVICE_URL = rawPyUrl;
 
 async function proxyToPythonService(req: Request, res: Response, targetPath: string) {
   const targetUrl = `${PYTHON_SERVICE_URL}${targetPath}`;
