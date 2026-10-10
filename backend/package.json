@@ -8,7 +8,8 @@
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "seed": "ts-node src/data/seed.ts",
-    "sync-db": "ts-node src/scripts/syncMongo.ts"
+    "sync-db": "ts-node src/scripts/syncMongo.ts",
+    "setup-mongo": "ts-node src/scripts/setup_and_seed_mongo.ts"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
