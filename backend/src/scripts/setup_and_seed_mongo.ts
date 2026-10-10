@@ -184,6 +184,27 @@ async function main() {
   const clubCount = await HeritageMemberModel.countDocuments();
   console.log(`✅ 'heritage_club' table ready with ${clubCount} WhatsApp broadcast members!`);
 
+  // 5. Sync current 10 products from disk
+  console.log('\n👟 Synchronizing 10 current catalog products into `products` table...');
+  const fs = require('fs');
+  const productsPath = path.join(__dirname, '../data/products.json');
+  if (fs.existsSync(productsPath)) {
+    const diskProducts = JSON.parse(fs.readFileSync(productsPath, 'utf8'));
+    await mongoose.connection.db?.collection('products').deleteMany({});
+    await mongoose.connection.db?.collection('products').insertMany(diskProducts);
+    console.log(`✅ 'products' table refreshed with ${diskProducts.length} live products!`);
+  }
+
+  // 6. Sync categories from disk
+  console.log('\n📁 Synchronizing categories into `categories` table...');
+  const catsPath = path.join(__dirname, '../data/categories.json');
+  if (fs.existsSync(catsPath)) {
+    const diskCats = JSON.parse(fs.readFileSync(catsPath, 'utf8'));
+    await mongoose.connection.db?.collection('categories').deleteMany({});
+    await mongoose.connection.db?.collection('categories').insertMany(diskCats);
+    console.log(`✅ 'categories' table refreshed with ${diskCats.length} categories!`);
+  }
+
   // Final summary of collections in MongoDB Atlas
   console.log('\n=============================================');
   console.log('🎉 CURRENT COLLECTIONS NOW LIVE IN MONGODB ATLAS:');

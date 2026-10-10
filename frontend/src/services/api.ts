@@ -38,7 +38,7 @@ const INITIAL_PROMOS: PromoCode[] = [
 const INITIAL_NOTIFICATIONS: AdminNotification[] = [];
 
 // Automatic purge of obsolete cached demo data from previous sessions
-const DATA_CLEAN_VERSION = 'v9_dynamic_supplier_investments';
+const DATA_CLEAN_VERSION = 'v10_atlas_real_catalog';
 try {
   if (typeof localStorage !== 'undefined') {
     if (localStorage.getItem('psh_data_version') !== DATA_CLEAN_VERSION) {
