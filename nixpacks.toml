@@ -1,12 +1,10 @@
-providers = ["node", "python"]
-
 [phases.setup]
 nixPkgs = ["nodejs_20", "python3", "python3Packages.pip"]
 
 [phases.install]
 cmds = [
   "npm run install:all",
-  "python3 -m pip install --no-cache-dir -r python_service/requirements.txt"
+  "python3 -m pip install --no-cache-dir --break-system-packages -r requirements.txt || pip install --no-cache-dir -r requirements.txt"
 ]
 
 [phases.build]

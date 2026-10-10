@@ -7,7 +7,11 @@ echo "=========================================================="
 
 # Check if Python is installed to start the local AI computer vision microservice
 PYTHON_BIN=""
-if command -v python3 &>/dev/null; then
+if [ -f "/opt/venv/bin/python" ]; then
+  PYTHON_BIN="/opt/venv/bin/python"
+elif [ -f "/opt/venv/bin/python3" ]; then
+  PYTHON_BIN="/opt/venv/bin/python3"
+elif command -v python3 &>/dev/null; then
   PYTHON_BIN="python3"
 elif command -v python &>/dev/null; then
   PYTHON_BIN="python"
