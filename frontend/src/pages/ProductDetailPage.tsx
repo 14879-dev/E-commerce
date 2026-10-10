@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Ruler, Star, CheckCircle } from 'lucide-react';
+import { ShoppingBag, Ruler, Star, CheckCircle, Minus, Plus } from 'lucide-react';
 import { ProductReviews } from '../components/product/ProductReviews';
 import { ProductCard } from '../components/product/ProductCard';
 import { SEOHelmet } from '../components/common/SEOHelmet';
@@ -31,12 +31,14 @@ export const ProductDetailPage: React.FC = () => {
   // Selection States
   const [selectedSize, setSelectedSize] = useState<number>(9);
   const [selectedColor, setSelectedColor] = useState<LeatherColor>('saddle-tan');
+  const [quantity, setQuantity] = useState<number>(1);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
   const [addedNotice, setAddedNotice] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
     setLoading(true);
+    setQuantity(1);
     apiService.getProductBySlug(slug).then(data => {
       if (data) {
         setProduct(data);
@@ -115,13 +117,13 @@ export const ProductDetailPage: React.FC = () => {
   }
 
   const handleAddToCart = () => {
-    addToCart(product, selectedSize, selectedColor);
+    addToCart(product, selectedSize, selectedColor, quantity);
     setAddedNotice(true);
     setTimeout(() => setAddedNotice(false), 3500);
   };
 
   const handleDirectBuy = () => {
-    addToCart(product, selectedSize, selectedColor);
+    addToCart(product, selectedSize, selectedColor, quantity);
     navigate('/checkout');
   };
 
@@ -275,6 +277,44 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Quantity Selector */}
+          <div className="space-y-1.5 pt-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#1A1A18]">
+                Select Quantity:
+              </span>
+              <span className="text-xs text-[#1A1A18]/70">
+                Item Total: <strong className="text-[#1A1A18] font-bold">{formatPrice(product.price * quantity)}</strong>
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 bg-[#F7F4EB] border border-[#A0988A] rounded-xl p-1">
+                <button
+                  type="button"
+                  onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                  className="p-1.5 rounded-lg hover:bg-[#A0988A]/30 text-[#1A1A18] transition-colors cursor-pointer"
+                  title="Decrease quantity"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-sm font-bold min-w-[2rem] text-center text-[#1A1A18]">
+                  {quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity(prev => prev + 1)}
+                  className="p-1.5 rounded-lg hover:bg-[#A0988A]/30 text-[#1A1A18] transition-colors cursor-pointer"
+                  title="Increase quantity"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <span className="text-xs text-[#1A1A18]/70">
+                {product.stockCount ? `${product.stockCount} pairs available` : 'Artisan Handcrafted'}
+              </span>
+            </div>
+          </div>
+
           {/* Action Buttons: Olive Drab buttons everywhere */}
           <div className="space-y-2.5 pt-1">
             <div className="flex items-center gap-2 sm:gap-3">
@@ -304,7 +344,7 @@ export const ProductDetailPage: React.FC = () => {
               <div className="p-3 rounded-xl bg-[#A0988A]/30 border border-[#565449] text-[#1A1A18] text-xs font-bold flex items-center justify-between gap-2 animate-in fade-in">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-[#1A1A18] shrink-0" />
-                  <span>Added to shopping bag! (Size {selectedSize} • {selectedColor.replace(/-/g, ' ')})</span>
+                  <span>Added {quantity} pair{quantity > 1 ? 's' : ''} to shopping bag! (Size {selectedSize} • {selectedColor.replace(/-/g, ' ')})</span>
                 </div>
                 <Link to="/bag" className="text-[#1A1A18] underline font-black text-xs">
                   View Bag →

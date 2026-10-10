@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import confetti from 'canvas-confetti';
-import { ShieldCheck, Truck, Wallet, CheckCircle } from 'lucide-react';
+import { ShieldCheck, Truck, Wallet, CheckCircle, Minus, Plus, Trash2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useStoreSettings } from '../context/StoreSettingsContext';
 import { apiService } from '../services/api';
@@ -12,7 +12,7 @@ import { SEOHelmet } from '../components/common/SEOHelmet';
 export const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { items, clearCart } = useCart();
+  const { items, clearCart, updateQuantity, updateSize, removeFromCart } = useCart();
   const { formatPrice, settings } = useStoreSettings();
 
   const [address, setAddress] = useState<ShippingAddress>({
@@ -200,36 +200,56 @@ export const CheckoutPage: React.FC = () => {
               <div>
                 <label className="text-xs font-semibold text-[#1A1A18] block mb-1">Full Name</label>
                 <input
-                  type="text" required value={address.fullName} onChange={e => setAddress({ ...address, fullName: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#A0988A] text-sm text-[#1A1A18] focus:outline-none focus:border-[#565449]"
+                  type="text"
+                  required
+                  value={address.fullName}
+                  onChange={e => setAddress({ ...address, fullName: e.target.value })}
+                  placeholder="e.g. Muhammad Ali Khan"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#A0988A] text-sm text-[#1A1A18] placeholder-[#1A1A18]/45 focus:outline-none focus:border-[#565449]"
                 />
               </div>
               <div>
                 <label className="text-xs font-semibold text-[#1A1A18] block mb-1">Email Address</label>
                 <input
-                  type="email" required value={address.email} onChange={e => setAddress({ ...address, email: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#A0988A] text-sm text-[#1A1A18] focus:outline-none focus:border-[#565449]"
+                  type="email"
+                  required
+                  value={address.email}
+                  onChange={e => setAddress({ ...address, email: e.target.value })}
+                  placeholder="e.g. alikhan@gmail.com"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#A0988A] text-sm text-[#1A1A18] placeholder-[#1A1A18]/45 focus:outline-none focus:border-[#565449]"
                 />
               </div>
               <div>
                 <label className="text-xs font-semibold text-[#1A1A18] block mb-1">Phone Number</label>
                 <input
-                  type="tel" required value={address.phone} onChange={e => setAddress({ ...address, phone: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#A0988A] text-sm text-[#1A1A18] focus:outline-none focus:border-[#565449]"
+                  type="tel"
+                  required
+                  value={address.phone}
+                  onChange={e => setAddress({ ...address, phone: e.target.value })}
+                  placeholder="e.g. 0300-1234567"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#A0988A] text-sm text-[#1A1A18] placeholder-[#1A1A18]/45 focus:outline-none focus:border-[#565449]"
                 />
               </div>
               <div>
                 <label className="text-xs font-semibold text-[#1A1A18] block mb-1">City</label>
                 <input
-                  type="text" required value={address.city} onChange={e => setAddress({ ...address, city: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#A0988A] text-sm text-[#1A1A18] focus:outline-none focus:border-[#565449]"
+                  type="text"
+                  required
+                  value={address.city}
+                  onChange={e => setAddress({ ...address, city: e.target.value })}
+                  placeholder="e.g. Peshawar, Lahore, Islamabad, Karachi"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#A0988A] text-sm text-[#1A1A18] placeholder-[#1A1A18]/45 focus:outline-none focus:border-[#565449]"
                 />
               </div>
               <div className="sm:col-span-2">
                 <label className="text-xs font-semibold text-[#1A1A18] block mb-1">Street Address</label>
                 <input
-                  type="text" required value={address.address} onChange={e => setAddress({ ...address, address: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#A0988A] text-sm text-[#1A1A18] focus:outline-none focus:border-[#565449]"
+                  type="text"
+                  required
+                  value={address.address}
+                  onChange={e => setAddress({ ...address, address: e.target.value })}
+                  placeholder="e.g. House #14, Street 3, Sector F-7/2, Near Jamia Masjid"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#A0988A] text-sm text-[#1A1A18] placeholder-[#1A1A18]/45 focus:outline-none focus:border-[#565449]"
                 />
               </div>
             </div>
@@ -315,18 +335,78 @@ export const CheckoutPage: React.FC = () => {
             Order Summary
           </h2>
 
-          <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-            {activeItems.map(item => (
-              <div key={item.id} className="flex justify-between items-center text-xs">
-                <div>
-                  <h4 className="font-bold text-[#1A1A18] line-clamp-1">{item.product.name}</h4>
-                  <p className="text-[#1A1A18]/70">Size {item.size} • Qty {item.quantity}</p>
+          <div className="space-y-3 max-h-72 overflow-y-auto pr-1 divide-y divide-[#A0988A]/30">
+            {activeItems.map(item => {
+              const availableSizes = Array.isArray(item.product.availableSizes) && item.product.availableSizes.length > 0
+                ? item.product.availableSizes
+                : [7, 8, 9, 10, 11, 12, 13];
+              const itemTotal = (Number(item.product.price) || 0) * (Number(item.quantity) || 1);
+              const colorDisplay = (item.selectedColor || 'saddle-tan').toString().replace(/-/g, ' ');
+
+              return (
+                <div key={item.id} className="pt-2.5 first:pt-0 space-y-1.5 text-xs">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-bold text-[#1A1A18] truncate">{item.product.name}</h4>
+                      <p className="text-[#1A1A18]/70 text-[11px] capitalize">{colorDisplay}</p>
+                    </div>
+                    <span className="font-bold text-xs text-[#1A1A18] shrink-0">
+                      {formatPrice(itemTotal)}
+                    </span>
+                  </div>
+
+                  {/* Size Dropdown & Quantity Stepper */}
+                  <div className="flex items-center justify-between gap-2 pt-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] font-semibold text-[#1A1A18]">Size:</span>
+                      <select
+                        value={item.size}
+                        onChange={(e) => updateSize(item.id, Number(e.target.value))}
+                        className="px-2 py-0.5 bg-[#F7F4EB] border border-[#A0988A] rounded-lg text-xs font-bold text-[#1A1A18] focus:outline-none focus:border-[#565449] cursor-pointer"
+                        title="Change size"
+                      >
+                        {availableSizes.map(s => (
+                          <option key={s} value={s}>Size {s}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1 bg-[#F7F4EB] border border-[#A0988A] rounded-lg p-0.5">
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.id, -1)}
+                          className="p-1 rounded hover:bg-[#A0988A]/30 text-[#1A1A18] transition-colors cursor-pointer"
+                          title="Decrease quantity"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span className="text-xs font-bold min-w-[1.25rem] text-center text-[#1A1A18]">
+                          {item.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.id, 1)}
+                          className="p-1 rounded hover:bg-[#A0988A]/30 text-[#1A1A18] transition-colors cursor-pointer"
+                          title="Increase quantity"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => removeFromCart(item.id)}
+                        className="p-1 text-[#1A1A18]/60 hover:text-red-700 transition-colors cursor-pointer"
+                        title="Remove item"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <span className="font-semibold text-[#1A1A18]">
-                  {formatPrice(item.product.price * item.quantity)}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Promo Code Entry in Checkout */}

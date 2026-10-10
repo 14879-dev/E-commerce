@@ -3,9 +3,10 @@ import type { CartItem, Product, LeatherColor } from '../types';
 
 interface CartContextType {
   items: CartItem[];
-  addToCart: (product: Product, size: number, color: LeatherColor) => void;
+  addToCart: (product: Product, size: number, color: LeatherColor, quantity?: number) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, delta: number) => void;
+  updateSize: (itemId: string, newSize: number) => void;
   clearCart: () => void;
   itemCount: number;
   subtotal: number;
@@ -48,9 +49,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const addToCart = (product: Product, size: number, color: LeatherColor) => {
+  const addToCart = (product: Product, size: number, color: LeatherColor, quantity: number = 1) => {
     const safeColor = (color || 'saddle-tan').toString() as LeatherColor;
     const safeSize = Number(size) || 9;
+    const addQty = Math.max(1, Number(quantity) || 1);
 
     setItems(prev => {
       const existingIdx = prev.findIndex(item => 
@@ -63,7 +65,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const nextItems = [...prev];
         nextItems[existingIdx] = {
           ...nextItems[existingIdx],
-          quantity: (nextItems[existingIdx].quantity || 1) + 1,
+          quantity: (nextItems[existingIdx].quantity || 1) + addQty,
         };
         return nextItems;
       } else {
@@ -72,7 +74,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           product,
           size: safeSize,
           selectedColor: safeColor,
-          quantity: 1,
+          quantity: addQty,
         };
         return [...prev, newItem];
       }
@@ -84,13 +86,52 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateQuantity = (itemId: string, delta: number) => {
-    setItems(prev => prev.map(item => {
-      if (item.id === itemId) {
-        const newQty = (item.quantity || 1) + delta;
-        return newQty > 0 ? { ...item, quantity: newQty } : item;
+    setItems(prev => {
+      const target = prev.find(i => i.id === itemId);
+      if (!target) return prev;
+      const newQty = (target.quantity || 1) + delta;
+      if (newQty <= 0) {
+        return prev.filter(i => i.id !== itemId);
       }
-      return item;
-    }));
+      return prev.map(item => item.id === itemId ? { ...item, quantity: newQty } : item);
+    });
+  };
+
+  const updateSize = (itemId: string, newSize: number) => {
+    const safeSize = Number(newSize) || 9;
+    setItems(prev => {
+      const targetItem = prev.find(item => item.id === itemId);
+      if (!targetItem || Number(targetItem.size) === safeSize) return prev;
+
+      // Check if another item in cart already has the same product, color, and target size
+      const existingIdx = prev.findIndex(item =>
+        item.id !== itemId &&
+        item.product?.id === targetItem.product?.id &&
+        Number(item.size) === safeSize &&
+        item.selectedColor === targetItem.selectedColor
+      );
+
+      if (existingIdx !== -1) {
+        // Merge quantities and remove current duplicate entry
+        return prev
+          .filter(item => item.id !== itemId)
+          .map(item => {
+            if (
+              item.product?.id === targetItem.product?.id &&
+              Number(item.size) === safeSize &&
+              item.selectedColor === targetItem.selectedColor
+            ) {
+              return {
+                ...item,
+                quantity: (item.quantity || 1) + (targetItem.quantity || 1),
+              };
+            }
+            return item;
+          });
+      }
+
+      return prev.map(item => item.id === itemId ? { ...item, size: safeSize } : item);
+    });
   };
 
   const clearCart = () => {
@@ -109,7 +150,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, 0);
 
   return (
-    <CartContext.Provider value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, itemCount, subtotal }}>
+    <CartContext.Provider value={{ items, addToCart, removeFromCart, updateQuantity, updateSize, clearCart, itemCount, subtotal }}>
       {children}
     </CartContext.Provider>
   );

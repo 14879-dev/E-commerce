@@ -8,7 +8,7 @@ import { apiService } from '../services/api';
 import type { PromoCode } from '../types/admin';
 
 export const ShoppingBagPage: React.FC = () => {
-  const { items, removeFromCart, updateQuantity, subtotal, itemCount } = useCart();
+  const { items, removeFromCart, updateQuantity, updateSize, subtotal, itemCount } = useCart();
   const { settings, formatPrice } = useStoreSettings();
 
   const [promoCodeInput, setPromoCodeInput] = useState('');
@@ -132,8 +132,25 @@ export const ShoppingBagPage: React.FC = () => {
                         </h3>
                       </div>
 
-                      <div className="text-xs text-[#1A1A18]/80 mt-1 space-y-0.5">
-                        <p>Size: <strong className="text-[#1A1A18]">Size {item.size}</strong> • Color: <strong className="text-[#1A1A18] capitalize">{colorDisplay}</strong></p>
+                      <div className="flex items-center flex-wrap gap-x-3 gap-y-1.5 text-xs text-[#1A1A18]/80 mt-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-[#1A1A18]">Size:</span>
+                          <select
+                            value={item.size}
+                            onChange={(e) => updateSize(item.id, Number(e.target.value))}
+                            className="px-2.5 py-1 rounded-lg bg-[#F7F4EB] border border-[#A0988A] text-xs font-bold text-[#1A1A18] focus:outline-none focus:border-[#565449] cursor-pointer"
+                            title="Change shoe size"
+                          >
+                            {(Array.isArray(item.product.availableSizes) && item.product.availableSizes.length > 0
+                              ? item.product.availableSizes
+                              : [7, 8, 9, 10, 11, 12, 13]
+                            ).map(s => (
+                              <option key={s} value={s}>Size {s}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <span className="text-[#1A1A18]/40">•</span>
+                        <div>Color: <strong className="text-[#1A1A18] capitalize">{colorDisplay}</strong></div>
                       </div>
 
                       <span className="font-serif font-bold text-base text-[#1A1A18] block mt-1.5">
