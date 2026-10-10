@@ -18,23 +18,7 @@ const INITIAL_PRODUCTS: Product[] = [];
 const INITIAL_REVIEWS: Record<string, Review[]> = {};
 const INITIAL_ORDERS: Order[] = [];
 const INITIAL_CUSTOMERS: AdminCustomer[] = [];
-const INITIAL_PROMOS: PromoCode[] = [
-  {
-    id: 'promo-heritage10',
-    code: 'HERITAGE10',
-    discountType: 'percentage',
-    value: 10,
-    minOrderValue: 0,
-    usageLimit: 100000,
-    timesUsed: 0,
-    startDate: '2026-01-01',
-    expiryDate: '2030-12-31',
-    scope: 'store-wide',
-    active: true,
-    totalDiscountGiven: 0,
-    revenueGenerated: 0
-  }
-];
+const INITIAL_PROMOS: PromoCode[] = [];
 const INITIAL_NOTIFICATIONS: AdminNotification[] = [];
 
 // Automatic purge of obsolete cached demo data from previous sessions
@@ -1038,7 +1022,7 @@ export const apiService = {
     return true;
   },
 
-  // --- HERITAGE CLUB (WHATSAPP BROADCAST & PROMO) ---
+  // --- HERITAGE CLUB (WHATSAPP BROADCAST & UNIQUE PERSONAL PROMO) ---
   async joinHeritageClub(whatsapp: string, name?: string): Promise<{ success: boolean; promoCode: string; message: string }> {
     try {
       const res = await fetch(`${API_BASE}/api/heritage-club`, {
@@ -1047,15 +1031,27 @@ export const apiService = {
         body: JSON.stringify({ whatsapp, name }),
       });
       if (res.ok) {
-        return await res.json();
+        const data = await res.json();
+        if (data.promoCode) {
+          localStorage.setItem('psh_my_heritage_promo', data.promoCode);
+        }
+        // Notify admin panel to refresh customer/buyer directory immediately
+        window.dispatchEvent(new CustomEvent('psh:customers-changed'));
+        return data;
       }
     } catch {
-      // fallback
+      // offline fallback
     }
+
+    const clean = whatsapp.replace(/[^\d]/g, '').slice(-4) || 'VIP';
+    const fallbackCode = `HC-${clean}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    localStorage.setItem('psh_my_heritage_promo', fallbackCode);
+    window.dispatchEvent(new CustomEvent('psh:customers-changed'));
+
     return {
       success: true,
-      promoCode: 'HERITAGE10',
-      message: 'Welcome to the Heritage Club! Use code HERITAGE10 for 10% off your entire order.'
+      promoCode: fallbackCode,
+      message: `Welcome to Heritage Club! Your exclusive personal voucher is ${fallbackCode} (10% OFF).`,
     };
   },
 
@@ -1107,11 +1103,7 @@ export const apiService = {
   // --- PROMO CODES ---
   async getPromoCodes(): Promise<PromoCode[]> {
     const stored = localStorage.getItem('psh_promos');
-    const list: PromoCode[] = stored ? JSON.parse(stored) : INITIAL_PROMOS;
-    if (!list.some(p => p.code.toUpperCase() === 'HERITAGE10')) {
-      list.unshift(INITIAL_PROMOS[0]);
-    }
-    return list;
+    return stored ? JSON.parse(stored) : INITIAL_PROMOS;
   },
   async createPromoCode(promo: Omit<PromoCode, 'id' | 'timesUsed' | 'totalDiscountGiven' | 'revenueGenerated'>): Promise<PromoCode> {
     const promos = await this.getPromoCodes();
@@ -1139,26 +1131,63 @@ export const apiService = {
     return true;
   },
   async validatePromoCode(code: string, subtotal: number): Promise<{ valid: boolean; promoCode?: PromoCode; message?: string }> {
-    const promos = await this.getPromoCodes();
     const clean = code.trim().toUpperCase();
+
+    // 1. Check local/admin configured promo codes first
+    const promos = await this.getPromoCodes();
     const promo = promos.find(p => p.code.toUpperCase() === clean);
-    if (!promo) {
-      return { valid: false, message: 'Invalid or unrecognized promo code.' };
+    if (promo) {
+      if (!promo.active) {
+        return { valid: false, message: 'This promo code is currently inactive.' };
+      }
+      if (promo.minOrderValue && subtotal < promo.minOrderValue) {
+        return { valid: false, message: `Minimum order value for this code is Rs. ${promo.minOrderValue.toLocaleString()}.` };
+      }
+      const today = new Date().toISOString().split('T')[0];
+      if (promo.expiryDate && promo.expiryDate < today) {
+        return { valid: false, message: 'This promo code has expired.' };
+      }
+      if (promo.usageLimit && promo.timesUsed >= promo.usageLimit) {
+        return { valid: false, message: 'This promo code has reached its usage limit.' };
+      }
+      return { valid: true, promoCode: promo };
     }
-    if (!promo.active) {
-      return { valid: false, message: 'This promo code is currently inactive.' };
+
+    // 2. Validate against MongoDB Heritage Club personal voucher endpoint
+    try {
+      const res = await fetch(`${API_BASE}/api/promos/validate/${encodeURIComponent(clean)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.valid && data.promoCode) {
+          return { valid: true, promoCode: data.promoCode };
+        }
+      }
+    } catch {}
+
+    // 3. Check client session's personal voucher fallback
+    const myVoucher = localStorage.getItem('psh_my_heritage_promo');
+    if (myVoucher && myVoucher.toUpperCase() === clean) {
+      return {
+        valid: true,
+        promoCode: {
+          id: `promo-${clean}`,
+          code: clean,
+          discountType: 'percentage',
+          value: 10,
+          minOrderValue: 0,
+          usageLimit: 10,
+          timesUsed: 0,
+          startDate: '2026-01-01',
+          expiryDate: '2030-12-31',
+          scope: 'store-wide',
+          active: true,
+          totalDiscountGiven: 0,
+          revenueGenerated: 0
+        }
+      };
     }
-    if (promo.minOrderValue && subtotal < promo.minOrderValue) {
-      return { valid: false, message: `Minimum order value for this code is Rs. ${promo.minOrderValue.toLocaleString()}.` };
-    }
-    const today = new Date().toISOString().split('T')[0];
-    if (promo.expiryDate && promo.expiryDate < today) {
-      return { valid: false, message: 'This promo code has expired.' };
-    }
-    if (promo.usageLimit && promo.timesUsed >= promo.usageLimit) {
-      return { valid: false, message: 'This promo code has reached its usage limit.' };
-    }
-    return { valid: true, promoCode: promo };
+
+    return { valid: false, message: 'Invalid or unrecognized promo code. Join Heritage Club to receive an exclusive personal promo code.' };
   },
 
   // --- MESSAGES ---

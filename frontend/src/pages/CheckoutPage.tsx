@@ -70,23 +70,14 @@ export const CheckoutPage: React.FC = () => {
 
     setPromoError(null);
     try {
-      const promos = await apiService.getPromoCodes();
-      const match = promos.find(p => p.code.toUpperCase() === promoCodeInput.trim().toUpperCase() && p.active);
-
-      if (!match) {
-        setPromoError('Invalid or expired promo code.');
+      const res = await apiService.validatePromoCode(promoCodeInput.trim(), currentSubtotal);
+      if (res.valid && res.promoCode) {
+        setAppliedPromo(res.promoCode);
+        setPromoError(null);
+      } else {
+        setPromoError(res.message || 'Invalid or expired promo code.');
         setAppliedPromo(null);
-        return;
       }
-
-      if (currentSubtotal < match.minOrderValue) {
-        setPromoError(`Minimum order of ${formatPrice(match.minOrderValue)} required for this code.`);
-        setAppliedPromo(null);
-        return;
-      }
-
-      setAppliedPromo(match);
-      setPromoError(null);
     } catch {
       setPromoError('Failed to apply promo code.');
     }

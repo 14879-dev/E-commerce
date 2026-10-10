@@ -1756,10 +1756,10 @@ app.delete('/api/customers/:id', async (req: Request, res: Response): Promise<vo
 });
 
 // ============================================================
-// HERITAGE CLUB (WHATSAPP BROADCAST LIST & PROMO CODES)
+// HERITAGE CLUB (WHATSAPP BROADCAST LIST, BUYER REGISTRATION & PERSONAL PROMOS)
 // ============================================================
 app.post('/api/heritage-club', async (req: Request, res: Response): Promise<void> => {
-  const { whatsapp } = req.body;
+  const { whatsapp, name } = req.body;
   if (!whatsapp || !whatsapp.trim()) {
     res.status(400).json({ error: 'WhatsApp number is required to join Heritage Club' });
     return;
@@ -1771,19 +1771,83 @@ app.post('/api/heritage-club', async (req: Request, res: Response): Promise<void
     return;
   }
 
-  const promoCode = 'HERITAGE10';
+  // Generate a unique personal promo code for this specific WhatsApp subscriber
+  const suffix = cleanWhatsApp.replace(/[^\d]/g, '').slice(-4) || 'VIP';
+  const randomSalt = Math.random().toString(36).substring(2, 6).toUpperCase();
+  let promoCode = `HC-${suffix}-${randomSalt}`;
 
   if (useMongoDb) {
-    let member = await HeritageMemberModel.findOne({ whatsapp: cleanWhatsApp });
-    if (!member) {
+    let existingMember = await HeritageMemberModel.findOne({ whatsapp: cleanWhatsApp });
+    if (existingMember && existingMember.promoCode) {
+      promoCode = existingMember.promoCode;
+    } else {
       await HeritageMemberModel.create({
         id: `hc-${Date.now()}`,
         whatsapp: cleanWhatsApp,
+        name: (name && name.trim()) ? name.trim() : `VIP Patron (${suffix})`,
         promoCode,
         broadcastList: true,
         joinedAt: new Date().toISOString(),
         status: 'active',
       });
+    }
+
+    // Automatically add/update this subscriber in the Customers (Buyer Directory) table
+    const existingCust = await CustomerModel.findOne({
+      $or: [{ whatsapp: cleanWhatsApp }, { phone: cleanWhatsApp }]
+    });
+
+    if (existingCust) {
+      await CustomerModel.updateOne(
+        { _id: (existingCust as any)._id },
+        {
+          $set: {
+            customerType: existingCust.customerType || 'Heritage Club VIP',
+            notes: existingCust.notes
+              ? `${existingCust.notes} | Heritage Club Member. Unique Promo: ${promoCode}`
+              : `Heritage Club Member. Unique Promo: ${promoCode}`,
+          }
+        }
+      );
+    } else {
+      const newCustomer = {
+        id: `cust-hc-${Date.now()}`,
+        name: (name && name.trim()) ? name.trim() : `Heritage VIP (${suffix})`,
+        whatsapp: cleanWhatsApp,
+        phone: cleanWhatsApp,
+        email: `${cleanWhatsApp.replace(/[^\d]/g, '')}@heritageclub.pk`,
+        customerType: 'Heritage Club VIP',
+        notes: `Joined Heritage Club via WhatsApp. Issued personal 10% promo: ${promoCode}`,
+        status: 'active',
+        totalOrders: 0,
+        totalSpend: 0,
+        savedAddresses: [],
+        joinDate: new Date().toISOString().split('T')[0],
+      };
+      await CustomerModel.create(newCustomer);
+      inMemoryCustomers.unshift(newCustomer);
+      saveCustomersToDisk();
+    }
+  } else {
+    // In-memory fallback
+    const existingCust = inMemoryCustomers.find(c => c.whatsapp === cleanWhatsApp || c.phone === cleanWhatsApp);
+    if (!existingCust) {
+      const newCustomer = {
+        id: `cust-hc-${Date.now()}`,
+        name: (name && name.trim()) ? name.trim() : `Heritage VIP (${suffix})`,
+        whatsapp: cleanWhatsApp,
+        phone: cleanWhatsApp,
+        email: `${cleanWhatsApp.replace(/[^\d]/g, '')}@heritageclub.pk`,
+        customerType: 'Heritage Club VIP',
+        notes: `Joined Heritage Club via WhatsApp. Issued personal 10% promo: ${promoCode}`,
+        status: 'active',
+        totalOrders: 0,
+        totalSpend: 0,
+        savedAddresses: [],
+        joinDate: new Date().toISOString().split('T')[0],
+      };
+      inMemoryCustomers.unshift(newCustomer);
+      saveCustomersToDisk();
     }
   }
 
@@ -1791,7 +1855,7 @@ app.post('/api/heritage-club', async (req: Request, res: Response): Promise<void
     success: true,
     promoCode,
     discount: '10% OFF',
-    message: `Welcome to Heritage Club! Use code ${promoCode} for 10% off your purchase. You're now on our VIP WhatsApp broadcast list.`,
+    message: `Welcome to Heritage Club! Your exclusive personal voucher is ${promoCode} (10% OFF). Saved to VIP Buyer Directory.`,
   });
 });
 
@@ -1802,6 +1866,42 @@ app.get('/api/admin/heritage-club', authenticateAdmin, async (_req: Request, res
   } else {
     res.json([]);
   }
+});
+
+// GET /api/promos/validate/:code — Validates unique Heritage Club vouchers & store promos
+app.get('/api/promos/validate/:code', async (req: Request, res: Response): Promise<void> => {
+  const code = (req.params.code || '').trim().toUpperCase();
+  if (!code) {
+    res.status(400).json({ valid: false, message: 'Promo code is required.' });
+    return;
+  }
+
+  if (useMongoDb) {
+    const member = await HeritageMemberModel.findOne({ promoCode: code }).lean();
+    if (member) {
+      res.json({
+        valid: true,
+        promoCode: {
+          id: `promo-hc-${code}`,
+          code: member.promoCode,
+          discountType: 'percentage',
+          value: 10,
+          minOrderValue: 0,
+          usageLimit: 100,
+          timesUsed: 0,
+          startDate: '2026-01-01',
+          expiryDate: '2030-12-31',
+          scope: 'store-wide',
+          active: true,
+          totalDiscountGiven: 0,
+          revenueGenerated: 0
+        }
+      });
+      return;
+    }
+  }
+
+  res.status(404).json({ valid: false, message: 'Invalid or unrecognized promo code. Join Heritage Club to receive an exclusive personal promo code.' });
 });
 
 // ============================================================
