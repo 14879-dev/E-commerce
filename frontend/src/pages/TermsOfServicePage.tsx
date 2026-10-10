@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FileText, ChevronRight } from 'lucide-react';
 import { SEOHelmet } from '../components/common/SEOHelmet';
 import { useStoreSettings } from '../context/StoreSettingsContext';
+import { PageHero } from '../components/common/PageHero';
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <section className="space-y-3 bg-[#A0988A]/15 border border-[#A0988A]/35 rounded-2xl p-5">
@@ -22,6 +23,13 @@ export const TermsOfServicePage: React.FC = () => {
       <SEOHelmet
         title={`Terms of Service — ${storeName}`}
         description="Read our terms and conditions governing purchases, returns, deliveries, and use of the Peshawari Chappal website."
+      />
+
+      <PageHero
+        badge="Legal & Transparency"
+        title="Terms of Service"
+        subtitle="Fair Craftsmanship & Service Agreement"
+        description="Guidelines and commitments governing orders, deliveries, returns, and digital services at Peshawari Chappal Co."
       />
 
       {/* Header */}

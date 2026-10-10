@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { SEOHelmet } from '../components/common/SEOHelmet';
 import { useStoreSettings } from '../context/StoreSettingsContext';
 import { apiService } from '../services/api';
+import { PageHero } from '../components/common/PageHero';
 
 export const ContactPage: React.FC = () => {
   const { settings } = useStoreSettings();
@@ -67,6 +68,13 @@ export const ContactPage: React.FC = () => {
       <SEOHelmet
         title={`Contact Us | Customer Support & Artisan Concierge`}
         description={`Get in touch with ${settings.storeName || 'Peshawari Chappal Co.'}. Contact our concierge for camera foot sizing questions, custom bespoke orders, and order status.`}
+      />
+
+      <PageHero
+        badge="Customer Care & Bespoke Concierge"
+        title="We're Here to Assist You"
+        subtitle="Heritage Craftsmanship & Dedicated Support"
+        description="Whether you need advice on foot sizing, shade matching for special events, or tracking an active order, our team is at your service."
       />
 
       {/* Hero Header */}

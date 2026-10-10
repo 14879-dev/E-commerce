@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Camera, Upload, RotateCcw, AlertTriangle, ArrowRight, Check, Sparkles } from 'lucide-react';
 import { SEOHelmet } from '../components/common/SEOHelmet';
+import { PageHero } from '../components/common/PageHero';
 
 export interface SizeResult {
   success?: boolean;
@@ -167,7 +168,16 @@ export const FootSizeFinderPage: React.FC = () => {
         description="Instant camera-based foot size measurement using A4 paper calibration."
       />
 
-      <div className="max-w-2xl mx-auto py-6 sm:py-10 px-4">
+      <div className="max-w-4xl mx-auto py-2">
+        <PageHero
+          badge="Computer Vision Calibration"
+          title="AI Foot Size Calibration"
+          subtitle="Millimeter-Accurate Fitting on Standard A4 Paper"
+          description="Eliminate sizing doubts. Our computer vision engine extracts your exact foot contours to match authentic Peshawari lasts."
+        />
+      </div>
+
+      <div className="max-w-2xl mx-auto py-4 sm:py-6 px-4">
         {/* Hidden capture elements */}
         <canvas ref={canvasRef} className="hidden" />
         <input

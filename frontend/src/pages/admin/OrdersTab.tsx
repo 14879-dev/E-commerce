@@ -459,16 +459,24 @@ export const OrdersTab: React.FC = () => {
                       {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
                     </td>
                     <td className="py-3 px-4">
-                      <select
-                        value={order.status}
-                        onChange={e => handleUpdateStatus(order.id, e.target.value as any)}
-                        className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
-                      >
-                        <option value="Placed">Placed</option>
-                        <option value="Shipped">Shipped</option>
-                        <option value="Delivered">Delivered</option>
-                        <option value="Cancelled">Cancelled</option>
-                      </select>
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                          order.status === 'Delivered' ? 'bg-emerald-600' :
+                          order.status === 'Shipped' ? 'bg-blue-600' :
+                          order.status === 'Cancelled' ? 'bg-red-600' :
+                          'bg-amber-500'
+                        }`} />
+                        <select
+                          value={order.status}
+                          onChange={e => handleUpdateStatus(order.id, e.target.value as any)}
+                          className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
+                        >
+                          <option value="Placed">Placed</option>
+                          <option value="Shipped">Shipped</option>
+                          <option value="Delivered">Delivered</option>
+                          <option value="Cancelled">Cancelled</option>
+                        </select>
+                      </div>
 
                       {order.replacementRequested && (
                         <div className="mt-1 flex items-center gap-1 text-[10px] text-amber-600 font-bold">
@@ -521,7 +529,26 @@ export const OrdersTab: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <div>
                 <span className="text-[11px] uppercase font-bold text-blue-600 block">Order Specification</span>
-                <h3 className="font-serif font-bold text-2xl text-slate-900">{selectedOrder.orderNumber}</h3>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <h3 className="font-serif font-bold text-2xl text-slate-900">{selectedOrder.orderNumber}</h3>
+                  <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-0.5 rounded-full border ${
+                    selectedOrder.status === 'Delivered'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                      : selectedOrder.status === 'Shipped'
+                      ? 'bg-blue-50 text-blue-800 border-blue-300'
+                      : selectedOrder.status === 'Cancelled'
+                      ? 'bg-rose-50 text-rose-800 border-rose-300'
+                      : 'bg-amber-50 text-amber-800 border-amber-300'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${
+                      selectedOrder.status === 'Delivered' ? 'bg-emerald-600' :
+                      selectedOrder.status === 'Shipped' ? 'bg-blue-600' :
+                      selectedOrder.status === 'Cancelled' ? 'bg-rose-600' :
+                      'bg-amber-500'
+                    }`} />
+                    {selectedOrder.status}
+                  </span>
+                </div>
                 <span className="text-xs text-slate-500">Placed on {selectedOrder.date}</span>
               </div>
 

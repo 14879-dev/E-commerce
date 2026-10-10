@@ -5,6 +5,7 @@ import { apiService } from '../services/api';
 import type { Order } from '../types';
 import { useStoreSettings } from '../context/StoreSettingsContext';
 import { SEOHelmet } from '../components/common/SEOHelmet';
+import { PageHero } from '../components/common/PageHero';
 
 export const OrderTrackingPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -91,6 +92,13 @@ export const OrderTrackingPage: React.FC = () => {
       <SEOHelmet
         title={isJustPlaced ? "Thank You For Your Order - Tracking" : "Live Order Tracking"}
         description="Track the handcrafted progress, quality check, and shipping status of your Peshawari Chappal order."
+      />
+
+      <PageHero
+        badge="Real-Time Verification"
+        title="Live Order Tracking"
+        subtitle="Artisan Craft to Doorstep Delivery"
+        description="Follow every milestone of your Peshawari pair — from hand-lasting and sole stitching to courier transit."
       />
 
       {/* Thank You & Order Confirmation Celebration Hero */}

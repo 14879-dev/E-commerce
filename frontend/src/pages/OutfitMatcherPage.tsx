@@ -5,6 +5,7 @@ import { apiService } from '../services/api';
 import { useStoreSettings } from '../context/StoreSettingsContext';
 import type { Product } from '../types';
 import { SEOHelmet } from '../components/common/SEOHelmet';
+import { PageHero } from '../components/common/PageHero';
 
 interface MatchedResult {
   product: Product;
@@ -126,6 +127,13 @@ export const OutfitMatcherPage: React.FC = () => {
       <SEOHelmet
         title="AI Outfit Matcher — Peshawari Chappal Co."
         description="Upload a photo or describe your outfit to get AI-driven Peshawari Chappal recommendations."
+      />
+
+      <PageHero
+        badge="AI Multimodal Styling"
+        title="Traditional Outfit Matcher"
+        subtitle="Pair Your Kurta & Shalwar Kameez With Authentic Leather"
+        description="Our vision model analyzes fabric tones, patterns, and formal occasion levels to recommend the perfect Peshawari silhouette."
       />
 
       {/* Page Header */}

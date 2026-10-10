@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Search, Filter, RotateCcw } from 'lucide-react';
 import { ProductCard } from '../components/product/ProductCard';
 import { SEOHelmet } from '../components/common/SEOHelmet';
+import { PageHero } from '../components/common/PageHero';
 import { apiService } from '../services/api';
 import type { Product, LeatherColor, Category } from '../types';
 
@@ -155,6 +156,13 @@ export const CatalogPage: React.FC = () => {
       <SEOHelmet
         title="Handcrafted Peshawari Chappal Catalog"
         description="Browse our full collection of authentic Peshawari Chappals including Kaptaan, Zalmi, Norzi, and Quetta designs with interactive bespoke viewing."
+      />
+
+      <PageHero
+        badge="Artisan Footwear Collection"
+        title="The Peshawari Collection"
+        subtitle="Kaptaan, Zalmi, Norzi & Quetta Cuts"
+        description="Every silhouette is hand-crafted with hand-selected full-grain leather, tyre sole craftsmanship, and durable brass finishing."
       />
 
       {/* Header Banner - Open Layout with Divider Line */}

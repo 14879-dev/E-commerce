@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import { SEOHelmet } from '../components/common/SEOHelmet';
 import { useStoreSettings } from '../context/StoreSettingsContext';
 import { normalizeAssetUrl } from '../utils/assetUrl';
+import { PageHero } from '../components/common/PageHero';
 
 export const AboutPage: React.FC = () => {
   const { settings } = useStoreSettings();
@@ -11,25 +12,18 @@ export const AboutPage: React.FC = () => {
   const firstHeroImage = (Array.isArray(settings.heroSlides) && settings.heroSlides.length > 0 ? settings.heroSlides[0].url : '') || settings.heroMediaUrl || '/uploads/hero.webp';
 
   return (
-    <div className="space-y-16 max-w-5xl mx-auto py-2">
+    <div className="space-y-12 max-w-5xl mx-auto py-2">
       <SEOHelmet
         title="Heritage & Craftsmanship Story"
         description="Discover the authentic legacy of traditional Peshawar leather craftsmanship, master tanners, and modern bespoke footwear."
       />
 
-      {/* Hero Header */}
-      <div className="border-b border-[#A0988A]/40 pb-10 text-center space-y-4">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-[#1A1A18] block">
-          Bazaar-e-Kissa Khwani Legacy
-        </span>
-        <h1 className="font-serif text-4xl sm:text-6xl font-bold text-[#1A1A18] leading-tight">
-          Centuries of Masterful <br />
-          <span className="text-[#1A1A18]">Heritage Leathercraft</span>
-        </h1>
-        <p className="text-sm sm:text-base text-[#1A1A18]/80 max-w-2xl mx-auto leading-relaxed">
-          From the ancient cobbler alleys of Old Peshawar to international runways. We preserve authentic Pashtun leatherwork while empowering artisans through digital bespoke craftsmanship.
-        </p>
-      </div>
+      <PageHero
+        badge="Bazaar-e-Kissa Khwani Legacy"
+        title="Centuries of Masterful Leathercraft"
+        subtitle="Heritage Re-imagined For Royalty."
+        description="From the ancient cobbler alleys of Old Peshawar to international runways. We preserve authentic Pashtun leatherwork while empowering artisans."
+      />
 
       {/* Story Sections Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">

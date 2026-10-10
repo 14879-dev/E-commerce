@@ -11,6 +11,8 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
   </section>
 );
 
+import { PageHero } from '../components/common/PageHero';
+
 export const PrivacyPolicyPage: React.FC = () => {
   const { settings } = useStoreSettings();
   const supportEmail = settings.supportEmail || 'concierge@peshawarichappal.com';
@@ -18,10 +20,17 @@ export const PrivacyPolicyPage: React.FC = () => {
   const storeName = settings.storeName || 'Peshawari Chappal Co.';
 
   return (
-    <div className="max-w-3xl mx-auto py-8 space-y-8">
+    <div className="max-w-4xl mx-auto py-4 space-y-8">
       <SEOHelmet
         title={`Privacy Policy — ${storeName}`}
         description="Our privacy policy explains how we collect, use, and protect your personal information when you shop with us."
+      />
+
+      <PageHero
+        badge="Legal & Transparency"
+        title="Privacy & Data Protection"
+        subtitle="Your trust is our highest heritage."
+        description="We protect your identity and order details with enterprise encryption and zero data sharing."
       />
 
       {/* Header */}

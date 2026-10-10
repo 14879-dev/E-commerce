@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronDown, Search, HelpCircle, ShieldCheck, Ruler, Truck, Sparkles, MessageSquare } from 'lucide-react';
 import { SEOHelmet } from '../components/common/SEOHelmet';
 import { useStoreSettings } from '../context/StoreSettingsContext';
+import { PageHero } from '../components/common/PageHero';
 
 export interface FAQCategoryItem {
   id: string;
@@ -104,6 +105,13 @@ export const FAQPage: React.FC = () => {
         description="Find answers to common questions about authentic handcrafted Peshawari chappals, size guide, genuine full-grain leather, COD delivery across Pakistan, and care tips."
         keywords="Peshawari chappal FAQ, chappal size guide, genuine leather chappal care, COD pakistan footwear, kaptaan chappal vs zalmi chappal"
         faqItems={CHAPPAL_FAQS.map(f => ({ question: f.question, answer: f.answer }))}
+      />
+
+      <PageHero
+        badge="Knowledge Base & Support"
+        title="Frequently Asked Questions"
+        subtitle="Artisan Craft, Sizing, Delivery & Care"
+        description="Everything you need to know about our handcrafted Peshawari chappals, full-grain cowhide leather, and nationwide delivery."
       />
 
       {/* Hero Header */}

@@ -520,7 +520,7 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
           </div>
 
           <div className="h-52 w-full relative flex items-center justify-center">
-            {hasOrderStatusData ? (
+            {hasOrderStatusData && orderStatusData.some(d => d.value > 0) ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -532,8 +532,8 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
                     paddingAngle={4}
                     dataKey="value"
                   >
-                    {orderStatusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    {orderStatusData.filter(d => d.value > 0).map((entry) => (
+                      <Cell key={`cell-${entry.name}`} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip
