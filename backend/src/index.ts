@@ -2595,6 +2595,19 @@ app.post('/api/admin/brand-asset', authenticateAdmin, requireSuperAdmin, brandUp
   }
   const assetType = (req.body?.assetType || req.query?.assetType || '').toString().toLowerCase();
   const url = `/uploads/${req.file.filename}`;
+
+  // Mirror uploaded asset to both src/data/uploads and dist/data/uploads
+  try {
+    const srcUploads = path.join(process.cwd(), 'src', 'data', 'uploads');
+    if (!fs.existsSync(srcUploads)) fs.mkdirSync(srcUploads, { recursive: true });
+    const targetSrcFile = path.join(srcUploads, req.file.filename);
+    if (req.file.path !== targetSrcFile) {
+      fs.copyFileSync(req.file.path, targetSrcFile);
+    }
+  } catch (err: any) {
+    console.warn('Could not mirror uploaded brand asset to src directory:', err.message);
+  }
+
   if (assetType === 'logo') {
     inMemorySettings.logoUrl = url;
     saveSettingsToDisk();
