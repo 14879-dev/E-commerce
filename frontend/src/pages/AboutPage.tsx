@@ -3,15 +3,18 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { SEOHelmet } from '../components/common/SEOHelmet';
 import { useStoreSettings } from '../context/StoreSettingsContext';
+import { normalizeAssetUrl } from '../utils/assetUrl';
 
 export const AboutPage: React.FC = () => {
   const { settings } = useStoreSettings();
   const supportEmail = settings.supportEmail || 'concierge@peshawarichappal.com';
+  const firstHeroImage = (Array.isArray(settings.heroSlides) && settings.heroSlides.length > 0 ? settings.heroSlides[0].url : '') || settings.heroMediaUrl || '/uploads/hero.webp';
+
   return (
     <div className="space-y-16 max-w-5xl mx-auto py-2">
       <SEOHelmet
         title="Heritage & Craftsmanship Story"
-        description="Discover the 75-year legacy of traditional Peshawar leather craftsmanship, master tanners, and modern digital innovation."
+        description="Discover the authentic legacy of traditional Peshawar leather craftsmanship, master tanners, and modern bespoke footwear."
       />
 
       {/* Hero Header */}
@@ -20,8 +23,8 @@ export const AboutPage: React.FC = () => {
           Bazaar-e-Kissa Khwani Legacy
         </span>
         <h1 className="font-serif text-4xl sm:text-6xl font-bold text-[#1A1A18] leading-tight">
-          Seventy-Five Years of <br />
-          <span className="text-[#1A1A18]">Master Leathercraft</span>
+          Centuries of Masterful <br />
+          <span className="text-[#1A1A18]">Heritage Leathercraft</span>
         </h1>
         <p className="text-sm sm:text-base text-[#1A1A18]/80 max-w-2xl mx-auto leading-relaxed">
           From the ancient cobbler alleys of Old Peshawar to international runways. We preserve authentic Pashtun leatherwork while empowering artisans through digital bespoke craftsmanship.
@@ -40,11 +43,17 @@ export const AboutPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="aspect-video rounded-3xl overflow-hidden border border-[#A0988A] shadow-sm">
+        <div className="aspect-video rounded-3xl overflow-hidden border border-[#A0988A] shadow-sm bg-[#565449]/10">
           <img
-            src="https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&q=80&w=800"
-            alt="Peshawar Leather Workshop"
+            src={normalizeAssetUrl(firstHeroImage) || '/uploads/hero.webp'}
+            alt="Peshawar Leather Workshop Heritage"
             className="w-full h-full object-cover"
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (!target.src.endsWith('/uploads/hero.webp')) {
+                target.src = '/uploads/hero.webp';
+              }
+            }}
           />
         </div>
       </div>

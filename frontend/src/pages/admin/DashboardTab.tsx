@@ -7,12 +7,33 @@ import type { InvestmentItem } from '../../types/admin';
 
 export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> = ({ onNavigateTab }) => {
   const [timeRange, setTimeRange] = useState<'day' | 'week' | 'month' | 'year'>('month');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>(() => {
+    try {
+      const cached = localStorage.getItem('psh_products');
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [orders, setOrders] = useState<Order[]>(() => {
+    try {
+      const cached = localStorage.getItem('psh_orders');
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
   const [reviews, setReviews] = useState<(Review & { productName?: string })[]>([]);
-  const [investments, setInvestments] = useState<InvestmentItem[]>([]);
+  const [investments, setInvestments] = useState<InvestmentItem[]>(() => {
+    try {
+      const cached = localStorage.getItem('psh_investments');
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
   const [supplierBudget, setSupplierBudget] = useState<number>(1500);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    try {
+      const p = localStorage.getItem('psh_products');
+      const o = localStorage.getItem('psh_orders');
+      return !(p && o && JSON.parse(p).length > 0);
+    } catch { return true; }
+  });
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -45,23 +66,31 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
   }, []);
 
   const loadData = async () => {
-    setLoading(true);
-    const [p, o, r, inv, budgetData] = await Promise.all([
-      apiService.getProducts(true),
-      apiService.getOrders(),
-      apiService.getAllReviews(),
-      apiService.getInvestments(),
-      apiService.getSupplierBudget()
-    ]);
-    setProducts(p);
-    setOrders(o);
-    setReviews(r);
-    setInvestments(inv);
-    if (typeof budgetData.budget === 'number') {
-      setSupplierBudget(budgetData.budget);
+    if (products.length === 0 && orders.length === 0) {
+      setLoading(true);
+    } else {
+      setIsRefreshing(true);
     }
-    setLastRefresh(new Date());
-    setLoading(false);
+    try {
+      const [p, o, r, inv, budgetData] = await Promise.all([
+        apiService.getProducts(true),
+        apiService.getOrders(),
+        apiService.getAllReviews(),
+        apiService.getInvestments(),
+        apiService.getSupplierBudget()
+      ]);
+      setProducts(p);
+      setOrders(o);
+      setReviews(r);
+      setInvestments(inv);
+      if (typeof budgetData?.budget === 'number') {
+        setSupplierBudget(budgetData.budget);
+      }
+      setLastRefresh(new Date());
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
   };
 
   // Silent refresh — no loading spinner, just update data in-place
@@ -186,19 +215,29 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
     return acc;
   }, {});
 
+  // Order status distribution with distinct high-contrast semantic colors
   const orderStatusData = [
-    { name: 'Placed', value: statusMap['Placed'] || 0, color: '#565449' },
-    { name: 'Shipped', value: statusMap['Shipped'] || 0, color: '#A0988A' },
-    { name: 'Delivered', value: statusMap['Delivered'] || 0, color: '#45433A' },
-    { name: 'Cancelled', value: statusMap['Cancelled'] || 0, color: '#F7F4EB' },
+    { name: 'Placed', value: statusMap['Placed'] || 0, color: '#D97706' },      // Warm Amber Gold
+    { name: 'Shipped', value: statusMap['Shipped'] || 0, color: '#2563EB' },    // Electric Blue / In Transit
+    { name: 'Delivered', value: statusMap['Delivered'] || 0, color: '#059669' },// Emerald Green / Completed
+    { name: 'Cancelled', value: statusMap['Cancelled'] || 0, color: '#DC2626' },// Vibrant Crimson / Cancelled
   ];
 
   const hasOrderStatusData = orders.length > 0;
 
-  // Monthly revenue trajectory (pure product sales without shipping fees)
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
-  const revenueChartData = monthNames.map(m => {
-    const monthOrders = orders.filter(o => o.date && o.date.includes(m) && o.status !== 'Cancelled');
+  // Monthly revenue trajectory (All 12 Calendar Months)
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const revenueChartData = monthNames.map((m, mIdx) => {
+    const monthOrders = orders.filter(o => {
+      if (!o.date || o.status === 'Cancelled') return false;
+      const str = String(o.date);
+      if (str.includes(m)) return true;
+      try {
+        const d = new Date(str);
+        if (!isNaN(d.getTime()) && d.getMonth() === mIdx) return true;
+      } catch {}
+      return false;
+    });
     const rev = monthOrders.reduce((sum, o) => {
       const shipping = Number(o.shippingFee) || 0;
       return sum + Math.max(0, (Number(o.total) || 0) - shipping);

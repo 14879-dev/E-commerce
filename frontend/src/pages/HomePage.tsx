@@ -80,12 +80,12 @@ export const HomePage: React.FC = () => {
   }, []);
 
   const slides: HeroSlide[] = useMemo(() => {
+    let rawList: HeroSlide[] = [];
     if (Array.isArray(settings.heroSlides) && settings.heroSlides.length > 0) {
       const active = settings.heroSlides.filter(s => s.active !== false);
-      if (active.length > 0) return active;
-    }
-    if (heroMediaUrl) {
-      return [{
+      if (active.length > 0) rawList = active;
+    } else if (heroMediaUrl) {
+      rawList = [{
         id: 'custom-single',
         url: heroMediaUrl,
         type: heroMediaType || 'image',
@@ -97,9 +97,8 @@ export const HomePage: React.FC = () => {
         linkUrl: '/products',
         active: true
       }];
-    }
-    return [
-      {
+    } else {
+      rawList = [{
         id: 'slide-1',
         url: '/uploads/hero.webp',
         type: 'image',
@@ -110,32 +109,11 @@ export const HomePage: React.FC = () => {
         linkText: 'Shop Now',
         linkUrl: '/products',
         active: true
-      },
-      {
-        id: 'slide-2',
-        url: '/images/ai-foot-scanner-demo.jpg',
-        type: 'image',
-        badge: 'Camera Size Calibration',
-        title: 'AI Foot Size Finder',
-        subtitle: 'True-to-Size Peshawari Fit.',
-        description: 'Place your foot on standard A4 paper. Millimeter-accurate size recommendation with zero guesswork.',
-        linkText: 'Find Your Size',
-        linkUrl: '/size-finder',
-        active: true
-      },
-      {
-        id: 'slide-3',
-        url: '/images/ai-outfit-matcher-demo.jpg',
-        type: 'image',
-        badge: 'Color Harmony & Tone AI',
-        title: 'AI Traditional Outfit Matcher',
-        subtitle: 'Color & Tone Pairing.',
-        description: 'Upload a photo of your Shalwar Kameez or Kurta. Match with the ideal leather shade and silhouette.',
-        linkText: 'Match Your Outfit',
-        linkUrl: '/outfit-match',
-        active: true
-      }
-    ];
+      }];
+    }
+
+    // Single static hero slide only (first slider)
+    return rawList.slice(0, 1);
   }, [settings.heroSlides, heroMediaUrl, heroMediaType]);
 
   // Auto-play slide timer

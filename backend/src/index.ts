@@ -2232,7 +2232,38 @@ if (frontendDist) {
     if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/health')) {
       return next();
     }
-    res.sendFile(path.join(frontendDist, 'index.html'));
+    const htmlPath = path.join(frontendDist, 'index.html');
+    if (!fs.existsSync(htmlPath)) {
+      return res.status(404).send('Not found');
+    }
+    try {
+      let rawHtml = fs.readFileSync(htmlPath, 'utf-8');
+      const host = req.get('host') || 'localhost';
+      const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+      const protocol = isHttps ? 'https' : 'http';
+      const origin = `${protocol}://${host}`;
+
+      const heroImg = (inMemorySettings.heroSlides?.[0]?.url) || inMemorySettings.heroMediaUrl || '/uploads/hero.webp';
+      const absoluteHeroUrl = heroImg.startsWith('http')
+        ? heroImg
+        : `${origin}${heroImg.startsWith('/') ? '' : '/'}${heroImg}`;
+
+      const siteTitle = `${inMemorySettings.storeName || 'Peshawari Chappal Co.'} | Authentic Handcrafted Leather Chappals`;
+      const siteDesc = 'Authentic handcrafted full-grain cowhide leather Kaptaan, Zalmi, and Norzi chappals. Traditional Khyber craftsmanship with precision AI camera foot sizing and nationwide delivery.';
+
+      rawHtml = rawHtml
+        .replace(/<meta property="og:image" content="[^"]*"/g, `<meta property="og:image" content="${absoluteHeroUrl}"`)
+        .replace(/<meta name="twitter:image" content="[^"]*"/g, `<meta name="twitter:image" content="${absoluteHeroUrl}"`)
+        .replace(/<meta property="og:title" content="[^"]*"/g, `<meta property="og:title" content="${siteTitle}"`)
+        .replace(/<meta name="twitter:title" content="[^"]*"/g, `<meta name="twitter:title" content="${siteTitle}"`)
+        .replace(/<meta property="og:description" content="[^"]*"/g, `<meta property="og:description" content="${siteDesc}"`)
+        .replace(/<meta name="twitter:description" content="[^"]*"/g, `<meta name="twitter:description" content="${siteDesc}"`);
+
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.status(200).send(rawHtml);
+    } catch (_) {
+      return res.sendFile(htmlPath);
+    }
   });
 } else {
   console.warn('⚠️ Frontend dist folder not found. Serving API only.');

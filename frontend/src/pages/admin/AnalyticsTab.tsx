@@ -26,8 +26,12 @@ const PALETTE_COLORS = ['#565449', '#A0988A', '#F7F4EB', '#565449', '#A0988A', '
 
 export const AnalyticsTab: React.FC = () => {
   const [period, setPeriod] = useState<'30days' | '90days' | '1year'>('30days');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>(() => {
+    try { const c = localStorage.getItem('psh_products'); return c ? JSON.parse(c) : []; } catch { return []; }
+  });
+  const [orders, setOrders] = useState<Order[]>(() => {
+    try { const c = localStorage.getItem('psh_orders'); return c ? JSON.parse(c) : []; } catch { return []; }
+  });
   const [customers, setCustomers] = useState<AdminCustomer[]>([]);
   const [searchTerms, setSearchTerms] = useState<{ term: string; searches: number }[]>([]);
   const [visitsMap, setVisitsMap] = useState<Record<string, number>>({});
@@ -41,7 +45,9 @@ export const AnalyticsTab: React.FC = () => {
   }>({ sizeScans: 0, sizeSuccess: 0, outfitScans: 0, outfitAdds: 0, expressCouriers: 0 });
   const [websiteVisitors, setWebsiteVisitors] = useState(0);
   const [productFilter, setProductFilter] = useState<'high-performing' | 'all'>('high-performing');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    try { return !localStorage.getItem('psh_products'); } catch { return true; }
+  });
 
   useEffect(() => {
     loadAnalyticsData();
