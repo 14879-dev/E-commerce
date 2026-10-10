@@ -458,31 +458,49 @@ export const CategoryModel = model('Category', CategorySchema);
 
 let useMongoDb = false;
 
-// Synchronize all products and categories from local disk into MongoDB Atlas
+// Synchronize all products and categories between MongoDB Atlas and local disk safely
 export async function syncMongoWithDisk() {
   try {
-    const diskProducts = inMemoryProducts;
-    console.log(`📦 Synchronizing ${diskProducts.length} products into MongoDB Atlas...`);
-    for (const p of diskProducts) {
-      const sanitized = {
-        ...p,
-        availableSizes: Array.isArray(p.availableSizes)
-          ? p.availableSizes.map(Number).filter((s: number) => s >= 7 && s <= 13)
-          : [7, 8, 9, 10, 11, 12, 13],
-      };
-      await ProductModel.findOneAndUpdate(
-        { $or: [{ id: p.id }, { slug: p.slug }] },
-        { $set: sanitized },
-        { upsert: true, new: true }
-      );
+    const productCount = await ProductModel.countDocuments();
+    if (productCount === 0 && inMemoryProducts.length > 0) {
+      console.log(`📦 MongoDB is empty. Seeding initial ${inMemoryProducts.length} products into MongoDB Atlas...`);
+      for (const p of inMemoryProducts) {
+        const sanitized = {
+          ...p,
+          availableSizes: Array.isArray(p.availableSizes)
+            ? p.availableSizes.map(Number).filter((s: number) => s >= 7 && s <= 13)
+            : [7, 8, 9, 10, 11, 12, 13],
+        };
+        await ProductModel.findOneAndUpdate(
+          { $or: [{ id: p.id }, { slug: p.slug }] },
+          { $set: sanitized },
+          { upsert: true, new: true }
+        );
+      }
+      console.log(`✅ Seeded initial products to MongoDB Atlas.`);
+    } else if (productCount > 0) {
+      // MongoDB Atlas is the source of truth! Keep in-memory store and disk in sync with live MongoDB
+      const liveProducts = await ProductModel.find().lean();
+      inMemoryProducts.length = 0;
+      inMemoryProducts.push(...liveProducts);
+      saveProductsToDisk();
+      console.log(`✅ Preserved ${liveProducts.length} live products from MongoDB Atlas (source of truth).`);
     }
 
-    for (const cat of inMemoryCategories) {
-      await CategoryModel.findOneAndUpdate(
-        { $or: [{ id: cat.id }, { slug: cat.slug }] },
-        { $set: cat },
-        { upsert: true, new: true }
-      );
+    const categoryCount = await CategoryModel.countDocuments();
+    if (categoryCount === 0 && inMemoryCategories.length > 0) {
+      for (const cat of inMemoryCategories) {
+        await CategoryModel.findOneAndUpdate(
+          { $or: [{ id: cat.id }, { slug: cat.slug }] },
+          { $set: cat },
+          { upsert: true, new: true }
+        );
+      }
+    } else if (categoryCount > 0) {
+      const liveCategories = await CategoryModel.find().lean();
+      inMemoryCategories.length = 0;
+      inMemoryCategories.push(...liveCategories);
+      saveCategoriesToDisk();
     }
 
     const orderCount = await OrderModel.countDocuments();
@@ -501,7 +519,7 @@ export async function syncMongoWithDisk() {
       await MessageModel.insertMany(inMemoryMessages);
     }
 
-    console.log(`✅ All ${diskProducts.length} products & catalog records successfully uploaded and synced to MongoDB Atlas!`);
+    console.log(`✅ All ${inMemoryProducts.length} products & catalog records successfully uploaded and synced to MongoDB Atlas!`);
   } catch (syncErr: any) {
     console.warn('⚠️ MongoDB synchronization warning:', syncErr.message);
   }
@@ -1145,6 +1163,16 @@ app.put('/api/products/:id', authenticateAdmin, async (req: Request, res: Respon
       { $set: updateData }, { new: true }
     ).lean();
     if (!product) { res.status(404).json({ error: 'Product not found' }); return; }
+    
+    // Also keep local disk and memory in sync
+    const idx = inMemoryProducts.findIndex(p => p.id === product.id || p.slug === product.slug);
+    if (idx !== -1) {
+      inMemoryProducts[idx] = { ...inMemoryProducts[idx], ...product };
+    } else {
+      inMemoryProducts.push(product);
+    }
+    saveProductsToDisk();
+
     res.json(product);
   } else {
     const idx = inMemoryProducts.findIndex(p => p.id === req.params.id || p.slug === req.params.id);
