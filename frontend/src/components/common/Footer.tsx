@@ -1,11 +1,43 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, Truck, RefreshCw, Award } from 'lucide-react';
+import { ShieldCheck, Truck, RefreshCw, Award, Copy, Check, Sparkles } from 'lucide-react';
 import { useStoreSettings } from '../../context/StoreSettingsContext';
 import { normalizeAssetUrl } from '../../utils/assetUrl';
+import { apiService } from '../../services/api';
 
 export const Footer: React.FC = () => {
   const { settings } = useStoreSettings();
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [promoCode, setPromoCode] = useState<string | null>(null);
+  const [isCopied, setIsCopied] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const handleJoinHeritageClub = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanNumber = whatsappNumber.trim().replace(/[^0-9+]/g, '');
+    if (!cleanNumber || cleanNumber.length < 8) {
+      setErrorMsg('Please enter a valid WhatsApp number.');
+      return;
+    }
+    setErrorMsg(null);
+    setIsSubmitting(true);
+    try {
+      const res = await apiService.joinHeritageClub(cleanNumber);
+      setPromoCode(res.promoCode || 'HERITAGE10');
+    } catch {
+      setPromoCode('HERITAGE10');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCopyCode = () => {
+    if (!promoCode) return;
+    navigator.clipboard.writeText(promoCode);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 3000);
+  };
 
   return (
     <footer className="mt-20 pb-12 pt-16 bg-[#565449] text-[#F7F4EB] border-t border-[#45433A] relative overflow-hidden">
@@ -204,21 +236,82 @@ export const Footer: React.FC = () => {
           </div>
 
           <div>
-            <h4 className="font-serif font-semibold text-[#F7F4EB] text-base mb-4 uppercase tracking-wider text-xs">Newsletter</h4>
-            <p className="text-sm text-[#F7F4EB]/90 mb-4">Subscribe for exclusive limited heirloom release drops.</p>
-            <form onSubmit={e => e.preventDefault()} className="space-y-3">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/25 border border-[#F7F4EB]/40 text-[#F7F4EB] placeholder:text-[#F7F4EB]/60 text-sm focus:outline-none focus:border-[#F7F4EB] shadow-sm"
-              />
-              <button
-                type="submit"
-                className="w-full bg-[#F7F4EB] hover:bg-[#EFEAE0] text-[#1A1A18] font-bold text-sm py-2.5 rounded-full border border-[#F7F4EB] transition-all cursor-pointer shadow-sm active:scale-98"
-              >
-                Join Heritage Club
-              </button>
-            </form>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Sparkles className="w-4 h-4 text-[#F7F4EB]" />
+              <h4 className="font-serif font-semibold text-[#F7F4EB] text-base uppercase tracking-wider text-xs">Heritage Club</h4>
+            </div>
+            <p className="text-sm text-[#F7F4EB]/90 mb-3">
+              Join via WhatsApp for exclusive artisan drops, private broadcasts &amp; an instant discount promo.
+            </p>
+
+            {promoCode ? (
+              <div className="p-4 rounded-2xl bg-[#45433A]/90 border border-[#F7F4EB]/40 shadow-inner space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-[#F7F4EB]/80 uppercase tracking-wider">Your Welcome Promo</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                    Active
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#565449] border border-[#F7F4EB]/30">
+                  <code className="font-mono font-black text-lg text-[#F7F4EB] tracking-wider">{promoCode}</code>
+                  <button
+                    type="button"
+                    onClick={handleCopyCode}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F7F4EB] text-[#1A1A18] text-xs font-bold hover:bg-[#EFEAE0] transition-colors cursor-pointer shadow-sm active:scale-95"
+                  >
+                    {isCopied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-[11px] text-[#F7F4EB]/75 leading-tight">
+                  Use this promo code at checkout for 10% off! You will also receive our exclusive VIP broadcast updates on WhatsApp.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleJoinHeritageClub} className="space-y-3">
+                <div>
+                  <div className="relative">
+                    <input
+                      type="tel"
+                      value={whatsappNumber}
+                      onChange={e => {
+                        setWhatsappNumber(e.target.value);
+                        if (errorMsg) setErrorMsg(null);
+                      }}
+                      placeholder="WhatsApp No (e.g. 0300 1234567)"
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/25 border border-[#F7F4EB]/40 text-[#F7F4EB] placeholder:text-[#F7F4EB]/60 text-sm focus:outline-none focus:border-[#F7F4EB] shadow-sm"
+                    />
+                  </div>
+                  {errorMsg && <p className="text-[11px] text-rose-300 mt-1 font-medium">{errorMsg}</p>}
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-[#F7F4EB] hover:bg-[#EFEAE0] text-[#1A1A18] font-bold text-sm py-2.5 rounded-full border border-[#F7F4EB] transition-all cursor-pointer shadow-sm active:scale-98 disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <span>Joining...</span>
+                  ) : (
+                    <>
+                      <span>Join via WhatsApp</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-[#565449] text-[#F7F4EB] font-mono">10% OFF</span>
+                    </>
+                  )}
+                </button>
+                <p className="text-[10px] text-[#F7F4EB]/70 text-center">
+                  Instant promo code + VIP WhatsApp notifications
+                </p>
+              </form>
+            )}
           </div>
         </div>
 

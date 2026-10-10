@@ -22,10 +22,11 @@ export const ManagersModal: React.FC<ManagersModalProps> = ({ isOpen, onClose })
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // New manager form state
+  // New user form state
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [role, setRole] = useState<'manager' | 'director' | 'admin'>('manager');
 
   useEffect(() => {
     if (isOpen) {
@@ -67,30 +68,32 @@ export const ManagersModal: React.FC<ManagersModalProps> = ({ isOpen, onClose })
       username: username.trim(),
       password: password.trim(),
       name: name.trim() || undefined,
+      role: role,
     });
 
     setCreating(false);
     if (result.success) {
-      setSuccess(`Manager account "${username.trim()}" created successfully!`);
+      setSuccess(`${role.toUpperCase()} account "${username.trim()}" created successfully!`);
       setUsername('');
       setPassword('');
       setName('');
+      setRole('manager');
       loadManagers();
     } else {
-      setError(result.error || 'Failed to create manager account.');
+      setError(result.error || 'Failed to create user account.');
     }
   };
 
   const handleDeleteManager = async (id: string, uname: string) => {
-    if (!window.confirm(`Are you sure you want to remove manager account "${uname}"?`)) return;
+    if (!window.confirm(`Are you sure you want to remove user account "${uname}"?`)) return;
     setError(null);
     setSuccess(null);
     const result = await apiService.deleteManager(id);
     if (result.success) {
-      setSuccess(`Manager account "${uname}" removed.`);
+      setSuccess(`Account "${uname}" removed.`);
       loadManagers();
     } else {
-      setError(result.error || 'Failed to remove manager.');
+      setError(result.error || 'Failed to remove account.');
     }
   };
 
@@ -106,9 +109,9 @@ export const ManagersModal: React.FC<ManagersModalProps> = ({ isOpen, onClose })
               <Shield className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">Manage Team Managers</h3>
+              <h3 className="text-base font-bold text-slate-900">Team Roles & Staff Access</h3>
               <p className="text-[11px] text-slate-500">
-                Managers have restricted access to: Dashboard, Products, Orders, Reviews, and Customers only.
+                Create &amp; manage credentials for Managers, Directors, and Administrators in MongoDB.
               </p>
             </div>
           </div>
@@ -136,15 +139,15 @@ export const ManagersModal: React.FC<ManagersModalProps> = ({ isOpen, onClose })
             </div>
           )}
 
-          {/* Add New Manager Form */}
+          {/* Add New Manager / Director Form */}
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
             <h4 className="font-bold text-xs text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
               <UserPlus className="w-4 h-4 text-blue-600" />
-              Add New Manager
+              Add New User / Staff Account
             </h4>
 
             <form onSubmit={handleCreateManager} className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-600 mb-1">
                     Display Name
@@ -179,11 +182,26 @@ export const ManagersModal: React.FC<ManagersModalProps> = ({ isOpen, onClose })
                   <input
                     type="password"
                     required
-                    placeholder="Min 4 characters"
+                    placeholder="Min 4 chars"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    Role *
+                  </label>
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value as any)}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 font-semibold"
+                  >
+                    <option value="manager">Manager</option>
+                    <option value="director">Director</option>
+                    <option value="admin">Administrator</option>
+                  </select>
                 </div>
               </div>
 
@@ -194,7 +212,7 @@ export const ManagersModal: React.FC<ManagersModalProps> = ({ isOpen, onClose })
                   className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {creating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Create Manager</span>
+                  <span>Save Account</span>
                 </button>
               </div>
             </form>
@@ -203,21 +221,27 @@ export const ManagersModal: React.FC<ManagersModalProps> = ({ isOpen, onClose })
           {/* Active Managers List */}
           <div className="space-y-2">
             <h4 className="font-bold text-xs text-slate-800 uppercase tracking-wider">
-              Current Managers ({managers.length})
+              Active Team Accounts ({managers.length})
             </h4>
 
             {loading ? (
-              <div className="p-8 text-center text-xs text-slate-400">Loading managers...</div>
+              <div className="p-8 text-center text-xs text-slate-400">Loading team accounts...</div>
             ) : managers.length === 0 ? (
               <div className="p-6 rounded-2xl border border-dashed border-slate-200 text-center text-xs text-slate-400">
-                No extra manager accounts created yet. You can create one above.
+                No extra manager or director accounts created yet. You can create one above.
               </div>
             ) : (
               <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden bg-white">
                 {managers.map((m) => (
                   <div key={m.id} className="p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/50">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs uppercase">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs uppercase ${
+                        m.role === 'director'
+                          ? 'bg-amber-100 text-amber-700'
+                          : m.role === 'admin'
+                          ? 'bg-purple-100 text-purple-700'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
                         {m.username.slice(0, 2)}
                       </div>
                       <div>
@@ -227,14 +251,20 @@ export const ManagersModal: React.FC<ManagersModalProps> = ({ isOpen, onClose })
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200 uppercase">
-                        Manager
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase ${
+                        m.role === 'director'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : m.role === 'admin'
+                          ? 'bg-purple-50 text-purple-700 border-purple-200'
+                          : 'bg-blue-50 text-blue-700 border-blue-200'
+                      }`}>
+                        {m.role || 'manager'}
                       </span>
                       <button
                         onClick={() => handleDeleteManager(m.id, m.username)}
                         className="p-1.5 rounded-lg border transition-all cursor-pointer shadow-2xs hover:scale-105"
                         style={{ color: '#DC2626', backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }}
-                        title="Remove manager"
+                        title="Remove account"
                       >
                         <Trash2 className="w-4 h-4" style={{ color: '#DC2626', stroke: '#DC2626' }} />
                       </button>

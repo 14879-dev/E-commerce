@@ -450,11 +450,51 @@ export const CategorySchema = new Schema({
   disabled: { type: Boolean, default: false },
 }, { timestamps: true });
 
+// Admin / Staff User Schema (Superadmin, Manager, Director)
+export const AdminUserSchema = new Schema({
+  id: { type: String, unique: true },
+  username: { type: String, unique: true, required: true },
+  passwordHash: { type: String, required: true },
+  role: { type: String, default: 'manager' }, // 'superadmin' | 'manager' | 'director' | 'admin'
+  name: String,
+  createdAt: { type: String, default: () => new Date().toISOString() }
+}, { timestamps: true });
+
+// Permanent Buyer & Director Customer Schema
+export const CustomerSchema = new Schema({
+  id: { type: String, unique: true },
+  name: { type: String, required: true },
+  whatsapp: { type: String, default: '' },
+  phone: { type: String, default: '' },
+  email: { type: String, default: '' },
+  customerType: { type: String, default: 'Permanent Buyer' }, // 'Director' | 'Permanent Buyer' | 'VIP Patron' | 'Standard'
+  status: { type: String, default: 'active' }, // 'active' | 'vip' | 'flagged' | 'blocked'
+  totalOrders: { type: Number, default: 0 },
+  totalSpend: { type: Number, default: 0 },
+  lastOrderDate: { type: String, default: 'Never' },
+  notes: { type: String, default: '' },
+  savedAddresses: [String],
+  joinDate: { type: String, default: () => new Date().toISOString().split('T')[0] }
+}, { timestamps: true });
+
+// Heritage Club WhatsApp Broadcast Members Schema
+export const HeritageMemberSchema = new Schema({
+  id: { type: String, unique: true },
+  whatsapp: { type: String, unique: true, required: true },
+  promoCode: { type: String, default: 'HERITAGE10' },
+  broadcastList: { type: Boolean, default: true },
+  joinedAt: { type: String, default: () => new Date().toISOString() },
+  status: { type: String, default: 'active' }
+}, { timestamps: true });
+
 export const ProductModel = model('Product', ProductSchema);
 export const OrderModel = model('Order', OrderSchema);
 export const ReviewModel = model('Review', ReviewSchema);
 export const MessageModel = model('Message', MessageSchema);
 export const CategoryModel = model('Category', CategorySchema);
+export const AdminUserModel = model('AdminUser', AdminUserSchema);
+export const CustomerModel = model('Customer', CustomerSchema);
+export const HeritageMemberModel = model('HeritageMember', HeritageMemberSchema);
 
 let useMongoDb = false;
 
@@ -514,9 +554,43 @@ export async function syncMongoWithDisk() {
       await ReviewModel.insertMany(allReviews);
     }
 
-    const messageCount = await MessageModel.countDocuments();
-    if (messageCount === 0 && inMemoryMessages.length > 0) {
-      await MessageModel.insertMany(inMemoryMessages);
+    // Sync Admins & Managers
+    const adminCount = await AdminUserModel.countDocuments();
+    if (adminCount === 0) {
+      const defaultSuperAdmin = {
+        id: 'admin-super-1',
+        username: (process.env.ADMIN_USERNAME || 'peshawari').toLowerCase(),
+        passwordHash: process.env.ADMIN_PASSWORD || 'Admin@123',
+        role: 'superadmin',
+        name: 'Super Administrator',
+        createdAt: new Date().toISOString()
+      };
+      await AdminUserModel.create(defaultSuperAdmin);
+      if (inMemoryAdmins.length > 0) {
+        for (const a of inMemoryAdmins) {
+          if (a.username.toLowerCase() !== defaultSuperAdmin.username) {
+            await AdminUserModel.findOneAndUpdate({ username: a.username.toLowerCase() }, { $set: a }, { upsert: true });
+          }
+        }
+      }
+    } else {
+      const liveAdmins = await AdminUserModel.find().lean();
+      inMemoryAdmins.length = 0;
+      inMemoryAdmins.push(...(liveAdmins as any));
+      saveAdminsToDisk();
+    }
+
+    // Sync Customers (Permanent Buyers / Directors)
+    const customerCount = await CustomerModel.countDocuments();
+    if (customerCount === 0 && inMemoryCustomers.length > 0) {
+      for (const c of inMemoryCustomers) {
+        await CustomerModel.findOneAndUpdate({ id: c.id }, { $set: c }, { upsert: true });
+      }
+    } else if (customerCount > 0) {
+      const liveCustomers = await CustomerModel.find().lean();
+      inMemoryCustomers.length = 0;
+      inMemoryCustomers.push(...(liveCustomers as any));
+      saveCustomersToDisk();
     }
 
     console.log(`✅ All ${inMemoryProducts.length} products & catalog records successfully uploaded and synced to MongoDB Atlas!`);
@@ -633,8 +707,17 @@ app.post('/api/admin/login', async (req: Request, res: Response): Promise<void> 
 
   const normalizedUser = username.trim().toLowerCase();
 
-  // Look up account in inMemoryAdmins
+  // Look up account in inMemoryAdmins or MongoDB AdminUserModel
   let adminUser = inMemoryAdmins.find(a => a.username.toLowerCase() === normalizedUser);
+  if (!adminUser && useMongoDb) {
+    const mongoAdmin = await AdminUserModel.findOne({ username: normalizedUser }).lean();
+    if (mongoAdmin) {
+      adminUser = mongoAdmin as any;
+      if (!inMemoryAdmins.some(a => a.username.toLowerCase() === normalizedUser)) {
+        inMemoryAdmins.push(adminUser as any);
+      }
+    }
+  }
 
   // Fallback for default environment admin credentials
   if (!adminUser && (normalizedUser === (process.env.ADMIN_USERNAME || 'peshawari').toLowerCase() || normalizedUser === 'admin')) {
@@ -734,6 +817,14 @@ app.put('/api/admin/credentials', authenticateAdmin, async (req: Request, res: R
     userRecord.passwordHash = newPassword.trim();
   }
 
+  if (useMongoDb) {
+    await AdminUserModel.findOneAndUpdate(
+      { $or: [{ id: userRecord.id }, { username: userRecord.username }] },
+      { $set: userRecord },
+      { upsert: true }
+    );
+  }
+
   saveAdminsToDisk();
 
   const newToken = jwt.sign(
@@ -754,22 +845,28 @@ app.put('/api/admin/credentials', authenticateAdmin, async (req: Request, res: R
 // ============================================================
 // MANAGER MANAGEMENT ROUTES (SUPER ADMIN ONLY)
 // ============================================================
-app.get('/api/admin/managers', authenticateAdmin, requireSuperAdmin, (_req: Request, res: Response) => {
-  const managers = inMemoryAdmins
-    .filter(a => a.role === 'manager')
-    .map(({ passwordHash, ...m }) => m);
-  res.json(managers);
+app.get('/api/admin/managers', authenticateAdmin, requireSuperAdmin, async (_req: Request, res: Response) => {
+  if (useMongoDb) {
+    const list = await AdminUserModel.find({ role: { $in: ['manager', 'director', 'admin'] } }, { passwordHash: 0 }).lean();
+    res.json(list);
+  } else {
+    const managers = inMemoryAdmins
+      .filter(a => a.role !== 'superadmin')
+      .map(({ passwordHash, ...m }) => m);
+    res.json(managers);
+  }
 });
 
 app.post('/api/admin/managers', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response): Promise<void> => {
-  const { username, password, name } = req.body;
+  const { username, password, name, role } = req.body;
   if (!username || !password) {
-    res.status(400).json({ error: 'Username and password are required for the new manager' });
+    res.status(400).json({ error: 'Username and password are required' });
     return;
   }
 
   const normalizedUser = username.trim().toLowerCase();
-  if (inMemoryAdmins.some(a => a.username.toLowerCase() === normalizedUser)) {
+  const existsInMem = inMemoryAdmins.some(a => a.username.toLowerCase() === normalizedUser);
+  if (existsInMem || (useMongoDb && await AdminUserModel.findOne({ username: normalizedUser }))) {
     res.status(400).json({ error: 'An account with this username already exists' });
     return;
   }
@@ -780,13 +877,17 @@ app.post('/api/admin/managers', authenticateAdmin, requireSuperAdmin, async (req
   }
 
   const newManager: AdminUserRecord = {
-    id: `manager-${Date.now()}`,
+    id: `staff-${Date.now()}`,
     username: normalizedUser,
     passwordHash: password.trim(),
-    role: 'manager',
-    name: name?.trim() || `Manager (${normalizedUser})`,
+    role: (role === 'director' ? 'director' : 'manager') as any,
+    name: name?.trim() || `${role || 'Manager'} (${normalizedUser})`,
     createdAt: new Date().toISOString(),
   };
+
+  if (useMongoDb) {
+    await AdminUserModel.create(newManager);
+  }
 
   inMemoryAdmins.push(newManager);
   saveAdminsToDisk();
@@ -795,22 +896,23 @@ app.post('/api/admin/managers', authenticateAdmin, requireSuperAdmin, async (req
   res.status(201).json(safeManager);
 });
 
-app.delete('/api/admin/managers/:id', authenticateAdmin, requireSuperAdmin, (req: Request, res: Response): void => {
+app.delete('/api/admin/managers/:id', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   const idx = inMemoryAdmins.findIndex(a => a.id === id || a.username.toLowerCase() === id.toLowerCase());
-  if (idx === -1) {
-    res.status(404).json({ error: 'Manager account not found' });
-    return;
-  }
-
-  if (inMemoryAdmins[idx].role === 'superadmin') {
+  if (idx !== -1 && inMemoryAdmins[idx].role === 'superadmin') {
     res.status(403).json({ error: 'Cannot delete the Super Admin account' });
     return;
   }
 
-  inMemoryAdmins.splice(idx, 1);
-  saveAdminsToDisk();
-  res.json({ success: true, message: 'Manager account removed successfully' });
+  if (useMongoDb) {
+    await AdminUserModel.deleteOne({ $or: [{ id }, { username: id.toLowerCase() }] });
+  }
+
+  if (idx !== -1) {
+    inMemoryAdmins.splice(idx, 1);
+    saveAdminsToDisk();
+  }
+  res.json({ success: true, message: 'Account removed successfully' });
 });
 
 // ============================================================
@@ -1571,61 +1673,169 @@ app.patch('/api/messages/:id/read', authenticateAdmin, async (req: Request, res:
 });
 
 // ============================================================
-// CUSTOMER ROUTES
+// CUSTOMER ROUTES (PERMANENT BUYERS, DIRECTORS & PATRONS)
 // ============================================================
 app.get('/api/customers', async (_req: Request, res: Response) => {
-  res.json(inMemoryCustomers);
+  if (useMongoDb) {
+    const list = await CustomerModel.find().sort({ createdAt: -1 }).lean();
+    res.json(list);
+  } else {
+    res.json(inMemoryCustomers);
+  }
 });
 
 app.post('/api/customers', async (req: Request, res: Response): Promise<void> => {
   const body = req.body;
-  if (!body.name || !body.email) {
-    res.status(400).json({ error: 'Name and email are required' });
+  if (!body.name) {
+    res.status(400).json({ error: 'Customer Name is required' });
     return;
   }
-  const existing = inMemoryCustomers.find(c => c.email.toLowerCase() === body.email.toLowerCase());
-  if (existing) {
-    res.status(409).json({ error: 'A customer with this email already exists' });
-    return;
-  }
+
   const newCustomer = {
     id: body.id || `cust-${Date.now()}`,
     name: body.name.trim(),
-    email: body.email.trim(),
+    whatsapp: body.whatsapp ? body.whatsapp.trim() : (body.phone ? body.phone.trim() : ''),
     phone: body.phone ? body.phone.trim() : '',
+    email: body.email ? body.email.trim() : '',
+    customerType: body.customerType || 'Permanent Buyer', // 'Director', 'Permanent Buyer', 'VIP Patron'
     joinDate: body.joinDate || new Date().toISOString().split('T')[0],
-    totalOrders: body.totalOrders || 0,
-    totalSpend: body.totalSpend || 0,
+    totalOrders: Number(body.totalOrders) || 0,
+    totalSpend: Number(body.totalSpend) || 0,
     lastOrderDate: body.lastOrderDate || 'Never',
     status: body.status || 'active',
+    notes: body.notes || '',
     savedAddresses: Array.isArray(body.savedAddresses) ? body.savedAddresses : (body.address ? [body.address] : []),
-    wishlistCount: body.wishlistCount || 0,
   };
+
+  if (useMongoDb) {
+    await CustomerModel.create(newCustomer);
+  }
+
   inMemoryCustomers.unshift(newCustomer);
   saveCustomersToDisk();
   res.status(201).json(newCustomer);
 });
 
 app.patch('/api/customers/:id/status', async (req: Request, res: Response): Promise<void> => {
+  const updates = req.body;
+  if (useMongoDb) {
+    const updated = await CustomerModel.findOneAndUpdate(
+      { id: req.params.id },
+      { $set: updates },
+      { new: true }
+    ).lean();
+    if (updated) {
+      const idx = inMemoryCustomers.findIndex(c => c.id === req.params.id);
+      if (idx !== -1) inMemoryCustomers[idx] = { ...inMemoryCustomers[idx], ...updated };
+      saveCustomersToDisk();
+      res.json(updated);
+      return;
+    }
+  }
+
   const idx = inMemoryCustomers.findIndex(c => c.id === req.params.id);
   if (idx === -1) {
     res.status(404).json({ error: 'Customer not found' });
     return;
   }
-  inMemoryCustomers[idx].status = req.body.status || 'active';
+  inMemoryCustomers[idx] = { ...inMemoryCustomers[idx], ...updates };
   saveCustomersToDisk();
   res.json(inMemoryCustomers[idx]);
 });
 
 app.delete('/api/customers/:id', async (req: Request, res: Response): Promise<void> => {
+  if (useMongoDb) {
+    await CustomerModel.findOneAndDelete({ id: req.params.id });
+  }
   const idx = inMemoryCustomers.findIndex(c => c.id === req.params.id);
-  if (idx === -1) {
-    res.status(404).json({ error: 'Customer not found' });
+  if (idx !== -1) {
+    inMemoryCustomers.splice(idx, 1);
+    saveCustomersToDisk();
+  }
+  res.json({ success: true });
+});
+
+// ============================================================
+// HERITAGE CLUB (WHATSAPP BROADCAST LIST & PROMO CODES)
+// ============================================================
+app.post('/api/heritage-club', async (req: Request, res: Response): Promise<void> => {
+  const { whatsapp } = req.body;
+  if (!whatsapp || !whatsapp.trim()) {
+    res.status(400).json({ error: 'WhatsApp number is required to join Heritage Club' });
     return;
   }
-  inMemoryCustomers.splice(idx, 1);
-  saveCustomersToDisk();
-  res.json({ success: true });
+
+  const cleanWhatsApp = whatsapp.trim().replace(/[^\d+]/g, '');
+  if (cleanWhatsApp.length < 8) {
+    res.status(400).json({ error: 'Please enter a valid WhatsApp number' });
+    return;
+  }
+
+  const promoCode = 'HERITAGE10';
+
+  if (useMongoDb) {
+    let member = await HeritageMemberModel.findOne({ whatsapp: cleanWhatsApp });
+    if (!member) {
+      await HeritageMemberModel.create({
+        id: `hc-${Date.now()}`,
+        whatsapp: cleanWhatsApp,
+        promoCode,
+        broadcastList: true,
+        joinedAt: new Date().toISOString(),
+        status: 'active',
+      });
+    }
+  }
+
+  res.json({
+    success: true,
+    promoCode,
+    discount: '10% OFF',
+    message: `Welcome to Heritage Club! Use code ${promoCode} for 10% off your purchase. You're now on our VIP WhatsApp broadcast list.`,
+  });
+});
+
+app.get('/api/admin/heritage-club', authenticateAdmin, async (_req: Request, res: Response) => {
+  if (useMongoDb) {
+    const members = await HeritageMemberModel.find().sort({ createdAt: -1 }).lean();
+    res.json(members);
+  } else {
+    res.json([]);
+  }
+});
+
+// ============================================================
+// CLEAR DEMO DATA (REVIEWS, ORDERS, MESSAGES)
+// ============================================================
+app.post('/api/admin/clear-demo-data', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
+  const { clearOrders, clearReviews, clearMessages } = req.body;
+  const result: any = {};
+
+  if (clearOrders) {
+    if (useMongoDb) {
+      await OrderModel.deleteMany({});
+    }
+    inMemoryOrders.length = 0;
+    result.orders = 'Cleared';
+  }
+
+  if (clearReviews) {
+    if (useMongoDb) {
+      await ReviewModel.deleteMany({});
+    }
+    for (const k in inMemoryReviews) delete inMemoryReviews[k];
+    result.reviews = 'Cleared';
+  }
+
+  if (clearMessages) {
+    if (useMongoDb) {
+      await MessageModel.deleteMany({});
+    }
+    inMemoryMessages.length = 0;
+    result.messages = 'Cleared';
+  }
+
+  res.json({ success: true, message: 'Selected demo records cleared successfully', result });
 });
 
 // ============================================================

@@ -18,7 +18,23 @@ const INITIAL_PRODUCTS: Product[] = [];
 const INITIAL_REVIEWS: Record<string, Review[]> = {};
 const INITIAL_ORDERS: Order[] = [];
 const INITIAL_CUSTOMERS: AdminCustomer[] = [];
-const INITIAL_PROMOS: PromoCode[] = [];
+const INITIAL_PROMOS: PromoCode[] = [
+  {
+    id: 'promo-heritage10',
+    code: 'HERITAGE10',
+    discountType: 'percentage',
+    value: 10,
+    minOrderValue: 0,
+    usageLimit: 100000,
+    timesUsed: 0,
+    startDate: '2026-01-01',
+    expiryDate: '2030-12-31',
+    scope: 'store-wide',
+    active: true,
+    totalDiscountGiven: 0,
+    revenueGenerated: 0
+  }
+];
 const INITIAL_NOTIFICATIONS: AdminNotification[] = [];
 
 // Automatic purge of obsolete cached demo data from previous sessions
@@ -925,6 +941,9 @@ export const apiService = {
     name: string;
     email: string;
     phone: string;
+    whatsapp?: string;
+    customerType?: string;
+    notes?: string;
     address?: string;
     city?: string;
     postalCode?: string;
@@ -947,6 +966,9 @@ export const apiService = {
       name: customerData.name.trim(),
       email: customerData.email.trim(),
       phone: customerData.phone.trim(),
+      whatsapp: (customerData.whatsapp || customerData.phone || '').trim(),
+      customerType: customerData.customerType || 'Permanent Buyer',
+      notes: (customerData.notes || '').trim(),
       joinDate: new Date().toISOString().split('T')[0],
       totalOrders: 0,
       totalSpend: 0,
@@ -1016,10 +1038,80 @@ export const apiService = {
     return true;
   },
 
+  // --- HERITAGE CLUB (WHATSAPP BROADCAST & PROMO) ---
+  async joinHeritageClub(whatsapp: string, name?: string): Promise<{ success: boolean; promoCode: string; message: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/api/heritage-club`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ whatsapp, name }),
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {
+      // fallback
+    }
+    return {
+      success: true,
+      promoCode: 'HERITAGE10',
+      message: 'Welcome to the Heritage Club! Use code HERITAGE10 for 10% off your entire order.'
+    };
+  },
+
+  async getHeritageClubMembers(): Promise<Array<{ id: string; whatsapp: string; name?: string; promoCode: string; createdAt: string }>> {
+    try {
+      const token = this.getAdminToken();
+      const res = await fetch(`${API_BASE}/api/admin/heritage-club`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {}
+    return [];
+  },
+
+  // --- CLEAR DEMO DATA ---
+  async clearDemoData(options: { clearOrders?: boolean; clearReviews?: boolean; clearMessages?: boolean }): Promise<{ success: boolean; message: string; deleted?: any }> {
+    try {
+      const token = this.getAdminToken();
+      const res = await fetch(`${API_BASE}/api/admin/clear-demo-data`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(options),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (options.clearOrders) {
+          localStorage.removeItem('psh_orders');
+          window.dispatchEvent(new CustomEvent('psh:orders-changed'));
+        }
+        if (options.clearReviews) {
+          localStorage.removeItem('psh_reviews');
+          window.dispatchEvent(new CustomEvent('psh:reviews-changed'));
+        }
+        if (options.clearMessages) {
+          localStorage.removeItem('psh_support_tickets');
+          window.dispatchEvent(new CustomEvent('psh:messages-changed'));
+        }
+        return data;
+      }
+    } catch {}
+    return { success: false, message: 'Failed to contact server to clear demo data.' };
+  },
+
   // --- PROMO CODES ---
   async getPromoCodes(): Promise<PromoCode[]> {
     const stored = localStorage.getItem('psh_promos');
-    return stored ? JSON.parse(stored) : INITIAL_PROMOS;
+    const list: PromoCode[] = stored ? JSON.parse(stored) : INITIAL_PROMOS;
+    if (!list.some(p => p.code.toUpperCase() === 'HERITAGE10')) {
+      list.unshift(INITIAL_PROMOS[0]);
+    }
+    return list;
   },
   async createPromoCode(promo: Omit<PromoCode, 'id' | 'timesUsed' | 'totalDiscountGiven' | 'revenueGenerated'>): Promise<PromoCode> {
     const promos = await this.getPromoCodes();
@@ -1205,7 +1297,7 @@ export const apiService = {
     return [];
   },
 
-  async createManager(data: { username: string; password: string; name?: string }): Promise<{ success: boolean; manager?: any; error?: string }> {
+  async createManager(data: { username: string; password: string; name?: string; role?: string }): Promise<{ success: boolean; manager?: any; error?: string }> {
     const token = this.getAdminToken();
     try {
       const res = await fetch(`${API_BASE}/api/admin/managers`, {

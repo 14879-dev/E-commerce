@@ -1,4 +1,4 @@
-export type AdminRole = 'superadmin' | 'staff';
+export type AdminRole = 'superadmin' | 'manager' | 'director' | 'admin' | 'staff';
 
 export interface AdminUser {
   id: string;
@@ -30,6 +30,9 @@ export interface AdminCustomer {
   name: string;
   email: string;
   phone: string;
+  whatsapp?: string;
+  customerType?: 'Permanent Buyer' | 'Director' | 'VIP Patron' | 'Regular Buyer' | string;
+  notes?: string;
   joinDate: string;
   totalOrders: number;
   totalSpend: number;
