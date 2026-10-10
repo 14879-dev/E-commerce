@@ -15,7 +15,6 @@ export const CheckoutPage: React.FC = () => {
   const { items, clearCart, updateQuantity, updateSize, removeFromCart } = useCart();
   const { formatPrice, settings } = useStoreSettings();
 
-  const [sameAsPhone, setSameAsPhone] = useState(false);
   const [address, setAddress] = useState<ShippingAddress>({
     fullName: '',
     email: '',
@@ -122,8 +121,9 @@ export const CheckoutPage: React.FC = () => {
     e.preventDefault();
     if (activeItems.length === 0) return;
 
-    if (!address.whatsapp || !address.whatsapp.trim()) {
-      alert('Please provide a mandatory WhatsApp number for order tracking and dispatch updates.');
+    const contactNumber = (address.whatsapp || address.phone || '').trim();
+    if (!contactNumber) {
+      alert('Please enter your WhatsApp number.');
       return;
     }
 
@@ -232,54 +232,17 @@ export const CheckoutPage: React.FC = () => {
               </div>
               <div>
                 <label className="text-xs font-semibold text-[#1A1A18] block mb-1">
-                  Calling Phone Number <span className="text-red-600">*</span>
+                  WhatsApp Number <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="tel"
                   required
-                  value={address.phone}
+                  value={address.whatsapp || address.phone || ''}
                   onChange={e => {
                     const val = e.target.value;
-                    setAddress(prev => ({
-                      ...prev,
-                      phone: val,
-                      whatsapp: sameAsPhone ? val : prev.whatsapp
-                    }));
+                    setAddress({ ...address, whatsapp: val, phone: val });
                   }}
                   placeholder="e.g. 0300-1234567"
-                  className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#A0988A] text-sm text-[#1A1A18] placeholder-[#1A1A18]/45 focus:outline-none focus:border-[#565449]"
-                />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-[#1A1A18] block">
-                    WhatsApp Number <span className="text-red-600 font-bold">* Mandatory</span>
-                  </label>
-                  <label className="inline-flex items-center gap-1.5 text-[11px] text-[#1A1A18]/80 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={sameAsPhone}
-                      onChange={e => {
-                        const checked = e.target.checked;
-                        setSameAsPhone(checked);
-                        if (checked) {
-                          setAddress(prev => ({ ...prev, whatsapp: prev.phone }));
-                        }
-                      }}
-                      className="rounded border-[#A0988A] text-[#565449] focus:ring-0 cursor-pointer"
-                    />
-                    <span>Same as calling</span>
-                  </label>
-                </div>
-                <input
-                  type="tel"
-                  required
-                  value={address.whatsapp || ''}
-                  onChange={e => {
-                    setSameAsPhone(false);
-                    setAddress({ ...address, whatsapp: e.target.value });
-                  }}
-                  placeholder="e.g. 0300-1234567 (for order tracking)"
                   className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#A0988A] text-sm text-[#1A1A18] placeholder-[#1A1A18]/45 focus:outline-none focus:border-[#565449]"
                 />
               </div>
@@ -294,17 +257,6 @@ export const CheckoutPage: React.FC = () => {
                   onChange={e => setAddress({ ...address, city: e.target.value })}
                   placeholder="e.g. Peshawar, Lahore, Islamabad, Karachi"
                   className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#A0988A] text-sm text-[#1A1A18] placeholder-[#1A1A18]/45 focus:outline-none focus:border-[#565449]"
-                />
-              </div>
-              <div className="sm:col-span-1">
-                <label className="text-xs font-semibold text-[#1A1A18] block mb-1">
-                  Country
-                </label>
-                <input
-                  type="text"
-                  readOnly
-                  value={address.country || 'Pakistan'}
-                  className="w-full px-4 py-2.5 rounded-xl bg-[#A0988A]/10 border border-[#A0988A]/50 text-sm text-[#1A1A18]/80 cursor-default"
                 />
               </div>
               <div className="sm:col-span-2">
