@@ -23,6 +23,7 @@ export interface SizeResult {
   paper_corners?: [number, number][];
   paper_corners_norm?: [number, number][];
   suggested_corners_norm?: [number, number][];
+  h_to_mm?: number[][];
   image_width?: number;
   image_height?: number;
   error?: string;
@@ -42,6 +43,16 @@ const calculateShoeSizeFromMm = (lengthMm: number) => {
   return { uk: 13, eu: 46, us: 13.5, model: 'KDM Custom Mastercraft (Extended Last)' };
 };
 
+// Maps any normalized image coordinate [x, y] to physical millimeters via homography matrix
+const mapPointToMm = (ptNorm: [number, number], H: number[][]): [number, number] => {
+  const x = ptNorm[0];
+  const y = ptNorm[1];
+  const w = H[2][0] * x + H[2][1] * y + H[2][2];
+  const x_mm = (H[0][0] * x + H[0][1] * y + H[0][2]) / (w || 1e-6);
+  const y_mm = (H[1][0] * x + H[1][1] * y + H[1][2]) / (w || 1e-6);
+  return [x_mm, y_mm];
+};
+
 export const FootSizeFinderPage: React.FC = () => {
   // Main Top Mode Tab: 'scanner' | 'ruler'
   const [activeTab, setActiveTab] = useState<'scanner' | 'ruler'>('scanner');
@@ -55,10 +66,10 @@ export const FootSizeFinderPage: React.FC = () => {
 
   // CamScanner 4-Corner Paper Snapper State [TL, TR, BR, BL]
   const [paperCornersNorm, setPaperCornersNorm] = useState<[number, number][]>([
-    [0.22, 0.20],
-    [0.78, 0.20],
-    [0.78, 0.80],
-    [0.22, 0.80],
+    [0.22, 0.18],
+    [0.78, 0.18],
+    [0.78, 0.82],
+    [0.22, 0.82],
   ]);
   const [activeCornerDragIdx, setActiveCornerDragIdx] = useState<number | null>(null);
 
@@ -79,8 +90,10 @@ export const FootSizeFinderPage: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const imageContainerRef = useRef<HTMLDivElement>(null);
-  const paperAdjustContainerRef = useRef<HTMLDivElement>(null);
+
+  // Direct Image Element Refs for 100% letterbox-free coordinate calculations
+  const paperImgRef = useRef<HTMLImageElement>(null);
+  const resultImgRef = useRef<HTMLImageElement>(null);
 
   // Stop camera tracks
   const stopCamera = useCallback(() => {
@@ -241,16 +254,18 @@ export const FootSizeFinderPage: React.FC = () => {
     startCamera(newFacing);
   };
 
-  // Pointer drag handlers for CamScanner 4-Corner Snapper
+  // Pointer drag handlers for CamScanner 4-Corner Snapper (measured directly on image pixels)
   const handleCornerPointerDown = (idx: number) => {
     setActiveCornerDragIdx(idx);
   };
 
   const handleCornerPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (activeCornerDragIdx === null || !paperAdjustContainerRef.current) return;
-    const rect = paperAdjustContainerRef.current.getBoundingClientRect();
-    const xNorm = Math.max(0.01, Math.min(0.99, (e.clientX - rect.left) / rect.width));
-    const yNorm = Math.max(0.01, Math.min(0.99, (e.clientY - rect.top) / rect.height));
+    if (activeCornerDragIdx === null || !paperImgRef.current) return;
+    const rect = paperImgRef.current.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+
+    const xNorm = Math.max(0.005, Math.min(0.995, (e.clientX - rect.left) / rect.width));
+    const yNorm = Math.max(0.005, Math.min(0.995, (e.clientY - rect.top) / rect.height));
 
     setPaperCornersNorm((prev) => {
       const updated = [...prev];
@@ -275,10 +290,12 @@ export const FootSizeFinderPage: React.FC = () => {
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isFineTuning || !activeDragPin || !imageContainerRef.current || !result) return;
-    const rect = imageContainerRef.current.getBoundingClientRect();
-    const xNorm = Math.max(0.02, Math.min(0.98, (e.clientX - rect.left) / rect.width));
-    const yNorm = Math.max(0.02, Math.min(0.98, (e.clientY - rect.top) / rect.height));
+    if (!isFineTuning || !activeDragPin || !resultImgRef.current || !result) return;
+    const rect = resultImgRef.current.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+
+    const xNorm = Math.max(0.01, Math.min(0.99, (e.clientX - rect.left) / rect.width));
+    const yNorm = Math.max(0.01, Math.min(0.99, (e.clientY - rect.top) / rect.height));
 
     let newToe = toeNorm;
     let newHeel = heelNorm;
@@ -291,10 +308,18 @@ export const FootSizeFinderPage: React.FC = () => {
       setHeelNorm(newHeel);
     }
 
-    const currentDist = Math.hypot(newToe[0] - newHeel[0], newToe[1] - newHeel[1]);
-    const ratio = currentDist / (initialDistanceNorm || 0.5);
-    const newLen = Math.round(result.foot_length_mm * ratio);
-    setAdjustedLengthMm(Math.max(220, Math.min(315, newLen)));
+    // Exact physical millimeter calculation via Homography Matrix H
+    if (result.h_to_mm && result.h_to_mm.length === 3) {
+      const toeMm = mapPointToMm(newToe, result.h_to_mm);
+      const heelMm = mapPointToMm(newHeel, result.h_to_mm);
+      const physicalDist = Math.hypot(toeMm[0] - heelMm[0], toeMm[1] - heelMm[1]);
+      setAdjustedLengthMm(Math.max(225, Math.min(315, Math.round(physicalDist))));
+    } else {
+      const currentDist = Math.hypot(newToe[0] - newHeel[0], newToe[1] - newHeel[1]);
+      const ratio = currentDist / (initialDistanceNorm || 0.5);
+      const newLen = Math.round(result.foot_length_mm * ratio);
+      setAdjustedLengthMm(Math.max(225, Math.min(315, newLen)));
+    }
   };
 
   const handlePointerUp = () => {
@@ -448,7 +473,7 @@ export const FootSizeFinderPage: React.FC = () => {
               </div>
             )}
 
-            {/* Step 1.5: CamScanner-style 4-Corner Paper Adjuster (If automatic detection missed or user wants to snap) */}
+            {/* Step 1.5: CamScanner-style 4-Corner Paper Adjuster (Direct image coordinate binding) */}
             {step === 'paper_adjust' && capturedImageB64 && (
               <div className="space-y-4">
                 <div className="bg-[#F7F4EB] p-3 rounded-xl border border-[#A0988A] text-xs text-[#1A1A18] flex items-center justify-between">
@@ -458,47 +483,52 @@ export const FootSizeFinderPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div
-                  ref={paperAdjustContainerRef}
-                  onPointerMove={handleCornerPointerMove}
-                  onPointerUp={handleCornerPointerUp}
-                  className="relative rounded-xl overflow-hidden border border-[#A0988A] bg-black max-h-[460px] flex items-center justify-center shadow-inner select-none touch-none"
-                >
-                  <img
-                    src={`data:image/jpeg;base64,${capturedImageB64}`}
-                    alt="Paper Corner Snapper"
-                    className="max-h-[460px] w-auto object-contain mx-auto pointer-events-none"
-                  />
-
-                  {/* Connected Quadrilateral Boundary */}
-                  <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                    <polygon
-                      points={paperCornersNorm.map((p) => `${p[0] * 100}%,${p[1] * 100}%`).join(' ')}
-                      fill="rgba(0, 240, 255, 0.15)"
-                      stroke="#00F0FF"
-                      strokeWidth="3"
+                <div className="text-center bg-black/90 p-2 rounded-xl overflow-hidden shadow-inner flex items-center justify-center">
+                  <div className="relative inline-block mx-auto max-w-full">
+                    <img
+                      ref={paperImgRef}
+                      src={`data:image/jpeg;base64,${capturedImageB64}`}
+                      alt="Paper Corner Snapper"
+                      className="max-h-[460px] w-auto object-contain block mx-auto select-none pointer-events-none"
                     />
-                  </svg>
 
-                  {/* 4 Draggable Corner Pins */}
-                  {paperCornersNorm.map((corner, idx) => {
-                    const labels = ['Top-Left', 'Top-Right', 'Bottom-Right', 'Bottom-Left'];
-                    return (
-                      <div
-                        key={idx}
-                        onPointerDown={() => handleCornerPointerDown(idx)}
-                        style={{
-                          left: `${corner[0] * 100}%`,
-                          top: `${corner[1] * 100}%`,
-                          transform: 'translate(-50%, -50%)',
-                        }}
-                        className="absolute w-8 h-8 rounded-full bg-cyan-400 border-2 border-white shadow-xl cursor-grab active:cursor-grabbing flex items-center justify-center z-30"
-                        title={labels[idx]}
-                      >
-                        <span className="text-[10px] font-black text-black">{idx + 1}</span>
-                      </div>
-                    );
-                  })}
+                    {/* Touch-bound overlay strictly aligned with image */}
+                    <div
+                      onPointerMove={handleCornerPointerMove}
+                      onPointerUp={handleCornerPointerUp}
+                      className="absolute inset-0 w-full h-full touch-none select-none"
+                    >
+                      {/* Connected Quadrilateral Boundary */}
+                      <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                        <polygon
+                          points={paperCornersNorm.map((p) => `${p[0] * 100}%,${p[1] * 100}%`).join(' ')}
+                          fill="rgba(0, 240, 255, 0.20)"
+                          stroke="#00F0FF"
+                          strokeWidth="3"
+                        />
+                      </svg>
+
+                      {/* 4 Draggable Corner Pins */}
+                      {paperCornersNorm.map((corner, idx) => {
+                        const labels = ['Top-Left', 'Top-Right', 'Bottom-Right', 'Bottom-Left'];
+                        return (
+                          <div
+                            key={idx}
+                            onPointerDown={() => handleCornerPointerDown(idx)}
+                            style={{
+                              left: `${corner[0] * 100}%`,
+                              top: `${corner[1] * 100}%`,
+                              transform: 'translate(-50%, -50%)',
+                            }}
+                            className="absolute w-8 h-8 rounded-full bg-cyan-400 border-2 border-white shadow-2xl cursor-grab active:cursor-grabbing flex items-center justify-center z-30"
+                            title={labels[idx]}
+                          >
+                            <span className="text-[11px] font-black text-black">{idx + 1}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex gap-3">
@@ -532,7 +562,7 @@ export const FootSizeFinderPage: React.FC = () => {
                   Computing Planar Homography &amp; PCA...
                 </h2>
                 <p className="text-xs sm:text-sm text-[#1A1A18]/80 max-w-sm mx-auto">
-                  Unwarping perspective trapezoid into canonical 2.0 px/mm plane and isolating heel pternion and longest toe apex.
+                  Unwarping perspective trapezoid into canonical coordinate plane and isolating heel pternion and longest toe apex.
                 </p>
               </div>
             )}
@@ -588,13 +618,13 @@ export const FootSizeFinderPage: React.FC = () => {
                       <span className="text-xs uppercase text-[#1A1A18]/80 block font-semibold">Bare Foot Length</span>
                       <span className="font-bold text-2xl text-[#1A1A18]">{lengthMm} mm</span>
                       <span className="text-[11px] text-[#1A1A18]/60 block mt-0.5">
-                        {isFineTuning ? 'Live Pin Distance' : 'Heel Apex to Longest Toe'}
+                        {isFineTuning ? 'Live Millimeter Pin Distance' : 'Heel Apex to Longest Toe'}
                       </span>
                     </div>
                     <div className="p-4 rounded-xl bg-[#F7F4EB] border border-[#A0988A] text-center shadow-xs">
                       <span className="text-xs uppercase text-[#1A1A18]/80 block font-semibold">Ball Width</span>
                       <span className="font-bold text-2xl text-[#1A1A18]">{widthMm} mm</span>
-                      <span className="text-[11px] text-[#1A1A18]/60 block mt-0.5">Metatarsal Arch Spread</span>
+                      <span className="text-[11px] text-[#1A1A18]/60 block mt-0.5">Widest Part ("Panja")</span>
                     </div>
                   </div>
 
@@ -631,7 +661,7 @@ export const FootSizeFinderPage: React.FC = () => {
 
                       {isFineTuning && (
                         <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-lg text-xs text-amber-900">
-                          <span>🎯 <strong>Drag green (Toe)</strong> or <strong>red (Heel)</strong> dot directly on the photo to fine-tune to your exact foot apex.</span>
+                          <span>🎯 <strong>Drag green (Toe)</strong> or <strong>red (Heel)</strong> pin directly on your foot photo. Real-time millimeters update automatically!</span>
                           <button
                             type="button"
                             onClick={resetToAutoDetection}
@@ -643,59 +673,61 @@ export const FootSizeFinderPage: React.FC = () => {
                         </div>
                       )}
 
-                      <div
-                        ref={imageContainerRef}
-                        onPointerMove={handlePointerMove}
-                        onPointerUp={handlePointerUp}
-                        className="relative rounded-xl overflow-hidden border border-[#A0988A] bg-[#565449]/10 max-h-80 flex items-center justify-center shadow-inner select-none touch-none"
-                      >
-                        <img
-                          src={`data:image/jpeg;base64,${result.annotated_image_base64}`}
-                          alt="Detection Proof"
-                          className="max-h-80 w-auto object-contain mx-auto pointer-events-none"
-                        />
+                      <div className="text-center bg-[#565449]/10 p-2 rounded-xl overflow-hidden border border-[#A0988A] flex items-center justify-center">
+                        <div className="relative inline-block mx-auto max-w-full">
+                          <img
+                            ref={resultImgRef}
+                            src={`data:image/jpeg;base64,${result.annotated_image_base64}`}
+                            alt="Detection Proof"
+                            className="max-h-80 w-auto object-contain block mx-auto select-none pointer-events-none"
+                          />
 
-                        {isFineTuning && (
-                          <>
-                            <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                              <line
-                                x1={`${toeNorm[0] * 100}%`}
-                                y1={`${toeNorm[1] * 100}%`}
-                                x2={`${heelNorm[0] * 100}%`}
-                                y2={`${heelNorm[1] * 100}%`}
-                                stroke="#00F0FF"
-                                strokeWidth="3"
-                                strokeDasharray="4 2"
-                              />
-                            </svg>
-
+                          {isFineTuning && (
                             <div
-                              onPointerDown={() => handlePointerDown('toe')}
-                              style={{
-                                left: `${toeNorm[0] * 100}%`,
-                                top: `${toeNorm[1] * 100}%`,
-                                transform: 'translate(-50%, -50%)',
-                              }}
-                              className="absolute w-7 h-7 rounded-full bg-emerald-500 border-2 border-white shadow-lg cursor-grab active:cursor-grabbing flex items-center justify-center z-20 animate-pulse"
-                              title="Drag to longest toe tip"
+                              onPointerMove={handlePointerMove}
+                              onPointerUp={handlePointerUp}
+                              className="absolute inset-0 w-full h-full touch-none select-none"
                             >
-                              <span className="text-[9px] font-bold text-white">TOE</span>
-                            </div>
+                              <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                                <line
+                                  x1={`${toeNorm[0] * 100}%`}
+                                  y1={`${toeNorm[1] * 100}%`}
+                                  x2={`${heelNorm[0] * 100}%`}
+                                  y2={`${heelNorm[1] * 100}%`}
+                                  stroke="#00F0FF"
+                                  strokeWidth="3"
+                                  strokeDasharray="4 2"
+                                />
+                              </svg>
 
-                            <div
-                              onPointerDown={() => handlePointerDown('heel')}
-                              style={{
-                                left: `${heelNorm[0] * 100}%`,
-                                top: `${heelNorm[1] * 100}%`,
-                                transform: 'translate(-50%, -50%)',
-                              }}
-                              className="absolute w-7 h-7 rounded-full bg-red-500 border-2 border-white shadow-lg cursor-grab active:cursor-grabbing flex items-center justify-center z-20 animate-pulse"
-                              title="Drag to rear heel apex"
-                            >
-                              <span className="text-[9px] font-bold text-white">HEEL</span>
+                              <div
+                                onPointerDown={() => handlePointerDown('toe')}
+                                style={{
+                                  left: `${toeNorm[0] * 100}%`,
+                                  top: `${toeNorm[1] * 100}%`,
+                                  transform: 'translate(-50%, -50%)',
+                                }}
+                                className="absolute w-7 h-7 rounded-full bg-emerald-500 border-2 border-white shadow-2xl cursor-grab active:cursor-grabbing flex items-center justify-center z-30 animate-pulse"
+                                title="Drag to longest toe tip"
+                              >
+                                <span className="text-[9px] font-black text-white">TOE</span>
+                              </div>
+
+                              <div
+                                onPointerDown={() => handlePointerDown('heel')}
+                                style={{
+                                  left: `${heelNorm[0] * 100}%`,
+                                  top: `${heelNorm[1] * 100}%`,
+                                  transform: 'translate(-50%, -50%)',
+                                }}
+                                className="absolute w-7 h-7 rounded-full bg-red-500 border-2 border-white shadow-2xl cursor-grab active:cursor-grabbing flex items-center justify-center z-30 animate-pulse"
+                                title="Drag to rear heel apex"
+                              >
+                                <span className="text-[9px] font-black text-white">HEEL</span>
+                              </div>
                             </div>
-                          </>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
