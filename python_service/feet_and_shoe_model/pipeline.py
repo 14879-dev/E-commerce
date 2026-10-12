@@ -484,26 +484,17 @@ def run_wildoctopus_model(
     # Step 4: Render Annotated Proof Image
     annotated = img_bgr.copy()
 
-    # Draw calibrated paper boundary in bright cyan
+    # Draw calibrated A4 paper boundary in bright cyan with corner highlights
     cv2.polylines(annotated, [np.int32(ref_orig)], True, (255, 220, 0), 3, cv2.LINE_AA)
-
-    # Draw longitudinal measurement line in bright yellow
-    cv2.line(annotated, tuple(np.int32(toe_orig)), tuple(np.int32(heel_orig)), (0, 240, 255), 3, cv2.LINE_AA)
-
-    # Draw landmark dots
-    cv2.circle(annotated, tuple(np.int32(toe_orig)), 9, (0, 255, 0), -1, cv2.LINE_AA)   # Green = Toe
-    cv2.circle(annotated, tuple(np.int32(heel_orig)), 9, (0, 0, 255), -1, cv2.LINE_AA)  # Red = Heel
-
-    for text, pt, col in [("Toe", toe_orig, (0, 255, 0)), ("Heel", heel_orig, (0, 0, 255))]:
-        pos = (int(pt[0] + 14), int(pt[1]))
-        cv2.putText(annotated, text, pos, cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 3, cv2.LINE_AA)
-        cv2.putText(annotated, text, pos, cv2.FONT_HERSHEY_SIMPLEX, 0.7, col, 2, cv2.LINE_AA)
+    for c_pt in np.int32(ref_orig):
+        cv2.circle(annotated, tuple(c_pt), 7, (0, 240, 255), -1, cv2.LINE_AA)
+        cv2.circle(annotated, tuple(c_pt), 8, (255, 255, 255), 2, cv2.LINE_AA)
 
     # Header banner
     banner_w = min(w_orig - 20, max(420, int(w_orig * 0.90)))
     cv2.rectangle(annotated, (12, 12), (12 + banner_w, 64), (18, 18, 18), -1)
     cv2.rectangle(annotated, (12, 12), (12 + banner_w, 64), (0, 220, 255), 2)
-    header_str = f"Foot: {foot_len_mm}mm x {foot_wid_mm}mm | Calibrated: Size {uk_size} (EU {eu_size})"
+    header_str = f"A4 Calibrated | Foot: {foot_len_mm}mm x {foot_wid_mm}mm | Size {uk_size} (EU {eu_size})"
     cv2.putText(annotated, header_str, (24, 46), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 240, 255), 2, cv2.LINE_AA)
 
     _, buf = cv2.imencode(".jpg", annotated, [int(cv2.IMWRITE_JPEG_QUALITY), 90])

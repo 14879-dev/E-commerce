@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Upload, RotateCcw, AlertTriangle, ArrowRight, Check, Sparkles, FileText, Sliders, RefreshCw, Ruler, Info, Crosshair } from 'lucide-react';
+import { Camera, Upload, RotateCcw, AlertTriangle, ArrowRight, Check, Sparkles, FileText, Ruler, Info, Crosshair } from 'lucide-react';
 import { SEOHelmet } from '../components/common/SEOHelmet';
 import { PageHero } from '../components/common/PageHero';
 
@@ -16,14 +16,9 @@ export interface SizeResult {
   fit_profile?: string;
   fit_note: string;
   annotated_image_base64?: string;
-  toe_point?: [number, number];
-  heel_point?: [number, number];
-  toe_point_norm?: [number, number];
-  heel_point_norm?: [number, number];
   paper_corners?: [number, number][];
   paper_corners_norm?: [number, number][];
   suggested_corners_norm?: [number, number][];
-  h_to_mm?: number[][];
   image_width?: number;
   image_height?: number;
   error?: string;
@@ -41,16 +36,6 @@ const calculateShoeSizeFromMm = (lengthMm: number) => {
   if (lengthMm <= 291) return { uk: 11, eu: 44, us: 11.5, model: 'KDM Kaptaan Royal Double-Sole' };
   if (lengthMm <= 300) return { uk: 12, eu: 45, us: 12.5, model: 'KDM Kaptaan Sovereign (Broad Last)' };
   return { uk: 13, eu: 46, us: 13.5, model: 'KDM Custom Mastercraft (Extended Last)' };
-};
-
-// Maps any normalized image coordinate [x, y] to physical millimeters via homography matrix
-const mapPointToMm = (ptNorm: [number, number], H: number[][]): [number, number] => {
-  const x = ptNorm[0];
-  const y = ptNorm[1];
-  const w = H[2][0] * x + H[2][1] * y + H[2][2];
-  const x_mm = (H[0][0] * x + H[0][1] * y + H[0][2]) / (w || 1e-6);
-  const y_mm = (H[1][0] * x + H[1][1] * y + H[1][2]) / (w || 1e-6);
-  return [x_mm, y_mm];
 };
 
 export const FootSizeFinderPage: React.FC = () => {
@@ -73,14 +58,6 @@ export const FootSizeFinderPage: React.FC = () => {
   ]);
   const [activeCornerDragIdx, setActiveCornerDragIdx] = useState<number | null>(null);
 
-  // Result Pin Fine-Tuning State
-  const [isFineTuning, setIsFineTuning] = useState(false);
-  const [toeNorm, setToeNorm] = useState<[number, number]>([0.5, 0.25]);
-  const [heelNorm, setHeelNorm] = useState<[number, number]>([0.5, 0.75]);
-  const [initialDistanceNorm, setInitialDistanceNorm] = useState<number>(0.5);
-  const [adjustedLengthMm, setAdjustedLengthMm] = useState<number>(260);
-  const [activeDragPin, setActiveDragPin] = useState<'toe' | 'heel' | null>(null);
-
   // Mode 2: Tape Measure / Ruler Input State
   const [rulerLengthCm, setRulerLengthCm] = useState<number>(26.2);
   const [rulerUnit, setRulerUnit] = useState<'cm' | 'in'>('cm');
@@ -90,10 +67,7 @@ export const FootSizeFinderPage: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Direct Image Element Refs for 100% letterbox-free coordinate calculations
   const paperImgRef = useRef<HTMLImageElement>(null);
-  const resultImgRef = useRef<HTMLImageElement>(null);
 
   // Stop camera tracks
   const stopCamera = useCallback(() => {
@@ -108,7 +82,6 @@ export const FootSizeFinderPage: React.FC = () => {
     stopCamera();
     setErrorMsg('');
     setStep('camera');
-    setIsFineTuning(false);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -201,18 +174,9 @@ export const FootSizeFinderPage: React.FC = () => {
       }
 
       setResult(data);
-      // Initialize CamScanner corners if available
       if (data.paper_corners_norm) {
         setPaperCornersNorm(data.paper_corners_norm);
       }
-      // Initialize interactive landmark pins
-      const tNorm: [number, number] = data.toe_point_norm || [0.5, 0.25];
-      const hNorm: [number, number] = data.heel_point_norm || [0.5, 0.75];
-      setToeNorm(tNorm);
-      setHeelNorm(hNorm);
-      const dist = Math.hypot(tNorm[0] - hNorm[0], tNorm[1] - hNorm[1]) || 0.5;
-      setInitialDistanceNorm(dist);
-      setAdjustedLengthMm(Math.round(data.foot_length_mm));
       setStep('result');
     } catch (err: any) {
       setErrorMsg(err.message?.includes('timeout')
@@ -283,60 +247,6 @@ export const FootSizeFinderPage: React.FC = () => {
     processImageBase64(capturedImageB64, paperCornersNorm);
   };
 
-  // Pointer drag handler for interactive landmark micro-tuning
-  const handlePointerDown = (pin: 'toe' | 'heel') => {
-    if (!isFineTuning) return;
-    setActiveDragPin(pin);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isFineTuning || !activeDragPin || !resultImgRef.current || !result) return;
-    const rect = resultImgRef.current.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) return;
-
-    const xNorm = Math.max(0.01, Math.min(0.99, (e.clientX - rect.left) / rect.width));
-    const yNorm = Math.max(0.01, Math.min(0.99, (e.clientY - rect.top) / rect.height));
-
-    let newToe = toeNorm;
-    let newHeel = heelNorm;
-
-    if (activeDragPin === 'toe') {
-      newToe = [xNorm, yNorm];
-      setToeNorm(newToe);
-    } else {
-      newHeel = [xNorm, yNorm];
-      setHeelNorm(newHeel);
-    }
-
-    // Exact physical millimeter calculation via Homography Matrix H
-    if (result.h_to_mm && result.h_to_mm.length === 3) {
-      const toeMm = mapPointToMm(newToe, result.h_to_mm);
-      const heelMm = mapPointToMm(newHeel, result.h_to_mm);
-      const physicalDist = Math.hypot(toeMm[0] - heelMm[0], toeMm[1] - heelMm[1]);
-      setAdjustedLengthMm(Math.max(225, Math.min(315, Math.round(physicalDist))));
-    } else {
-      const currentDist = Math.hypot(newToe[0] - newHeel[0], newToe[1] - newHeel[1]);
-      const ratio = currentDist / (initialDistanceNorm || 0.5);
-      const newLen = Math.round(result.foot_length_mm * ratio);
-      setAdjustedLengthMm(Math.max(225, Math.min(315, newLen)));
-    }
-  };
-
-  const handlePointerUp = () => {
-    setActiveDragPin(null);
-  };
-
-  const resetToAutoDetection = () => {
-    if (!result) return;
-    const tNorm: [number, number] = result.toe_point_norm || [0.5, 0.25];
-    const hNorm: [number, number] = result.heel_point_norm || [0.5, 0.75];
-    setToeNorm(tNorm);
-    setHeelNorm(hNorm);
-    const dist = Math.hypot(tNorm[0] - hNorm[0], tNorm[1] - hNorm[1]) || 0.5;
-    setInitialDistanceNorm(dist);
-    setAdjustedLengthMm(Math.round(result.foot_length_mm));
-  };
-
   // Ruler mode conversions
   const rulerLengthMm = rulerUnit === 'cm' ? rulerLengthCm * 10 : rulerLengthCm * 25.4;
   const rulerSize = calculateShoeSizeFromMm(rulerLengthMm);
@@ -352,7 +262,7 @@ export const FootSizeFinderPage: React.FC = () => {
         badge="Master Artisan Fitting"
         title="Find Your Exact Shoe Size"
         subtitle="100% Guaranteed Custom Fit"
-        description="Measure with camera precision using standard white A4 paper, or input your physical ruler measurement for guaranteed accuracy."
+        description="Full precision calibration using standard white A4 paper (210 × 297 mm), or input your physical ruler measurement for guaranteed accuracy."
       />
 
       <div className="max-w-2xl mx-auto py-6 sm:py-10 px-4">
@@ -479,7 +389,7 @@ export const FootSizeFinderPage: React.FC = () => {
                 <div className="bg-[#F7F4EB] p-3 rounded-xl border border-[#A0988A] text-xs text-[#1A1A18] flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Crosshair className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span><strong>CamScanner 4-Corner Snapper:</strong> Drag the 4 pins onto the physical corners of the white paper.</span>
+                    <span><strong>Align A4 Paper Corners:</strong> Drag the 4 pins onto the physical corners of the white sheet.</span>
                   </div>
                 </div>
 
@@ -545,7 +455,7 @@ export const FootSizeFinderPage: React.FC = () => {
                     className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3 px-6 rounded-xl shadow-md transition text-xs sm:text-sm border border-[#565449] cursor-pointer flex items-center justify-center gap-2"
                   >
                     <Check className="w-4 h-4" />
-                    <span>Confirm 4 Corners &amp; Measure Foot</span>
+                    <span>Confirm Corners &amp; Calculate Size</span>
                   </button>
                 </div>
               </div>
@@ -559,21 +469,21 @@ export const FootSizeFinderPage: React.FC = () => {
                   <Sparkles className="w-6 h-6 text-[#1A1A18] absolute inset-0 m-auto animate-pulse" />
                 </div>
                 <h2 className="font-serif font-bold text-xl text-[#1A1A18]">
-                  Computing Planar Homography &amp; PCA...
+                  Computing Planar Homography...
                 </h2>
                 <p className="text-xs sm:text-sm text-[#1A1A18]/80 max-w-sm mx-auto">
-                  Unwarping perspective trapezoid into canonical coordinate plane and isolating heel pternion and longest toe apex.
+                  Unwarping A4 paper perspective into canonical millimeter space and isolating foot dimensions.
                 </p>
               </div>
             )}
 
             {/* Result Display */}
             {step === 'result' && result && (() => {
-              const currentSize = calculateShoeSizeFromMm(adjustedLengthMm);
+              const currentSize = calculateShoeSizeFromMm(result.foot_length_mm);
               const ukSize = currentSize.uk;
               const euSize = currentSize.eu;
               const usSize = currentSize.us;
-              const lengthMm = adjustedLengthMm;
+              const lengthMm = Math.round(result.foot_length_mm);
               const widthMm = Math.round(result.foot_width_mm);
               const fitProfile = result.fit_profile || (widthMm < 93 ? 'Slim / Narrow' : widthMm > 105 ? 'Wide Comfort' : 'Regular Standard');
 
@@ -585,9 +495,9 @@ export const FootSizeFinderPage: React.FC = () => {
                         <Check className="w-5 h-5" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-sm text-[#1A1A18]">Full Extreme Accuracy Verified</h3>
+                        <h3 className="font-bold text-sm text-[#1A1A18]">Full Accuracy Calibrated</h3>
                         <p className="text-xs text-[#1A1A18]/70">
-                          Calibrated via A4 Planar Homography (210 &times; 297 mm)
+                          Calibrated via Standard A4 Paper (210 &times; 297 mm)
                         </p>
                       </div>
                     </div>
@@ -618,7 +528,7 @@ export const FootSizeFinderPage: React.FC = () => {
                       <span className="text-xs uppercase text-[#1A1A18]/80 block font-semibold">Bare Foot Length</span>
                       <span className="font-bold text-2xl text-[#1A1A18]">{lengthMm} mm</span>
                       <span className="text-[11px] text-[#1A1A18]/60 block mt-0.5">
-                        {isFineTuning ? 'Live Millimeter Pin Distance' : 'Heel Apex to Longest Toe'}
+                        Heel Apex to Longest Toe
                       </span>
                     </div>
                     <div className="p-4 rounded-xl bg-[#F7F4EB] border border-[#A0988A] text-center shadow-xs">
@@ -628,106 +538,30 @@ export const FootSizeFinderPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Interactive Landmark Detection Proof Canvas */}
+                  {/* Calibrated A4 Paper View */}
                   {result.annotated_image_base64 && (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-[#1A1A18]">
-                          Anatomical Foot Landmark Pins:
+                          Calibrated A4 Paper Scan:
                         </span>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setStep('paper_adjust')}
-                            className="text-xs px-2.5 py-1 rounded-lg font-semibold bg-[#F7F4EB] text-[#1A1A18] border border-[#A0988A] hover:bg-[#A0988A]/20 transition cursor-pointer"
-                            title="Adjust paper corners"
-                          >
-                            📐 Re-adjust Paper Corners
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setIsFineTuning(!isFineTuning)}
-                            className={`text-xs px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1.5 border transition cursor-pointer ${
-                              isFineTuning
-                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                                : 'bg-[#F7F4EB] text-[#1A1A18] border-[#A0988A] hover:bg-[#A0988A]/20'
-                            }`}
-                          >
-                            <Sliders className="w-3.5 h-3.5" />
-                            <span>{isFineTuning ? 'Pins Active' : 'Micro-Adjust Heel/Toe'}</span>
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setStep('paper_adjust')}
+                          className="text-xs px-3 py-1.5 rounded-lg font-bold bg-[#F7F4EB] text-[#1A1A18] border border-[#A0988A] hover:bg-[#A0988A]/20 transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+                          title="Adjust paper corners"
+                        >
+                          <Crosshair className="w-3.5 h-3.5 text-[#565449]" />
+                          <span>Adjust Paper Corners</span>
+                        </button>
                       </div>
 
-                      {isFineTuning && (
-                        <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-lg text-xs text-amber-900">
-                          <span>🎯 <strong>Drag green (Toe)</strong> or <strong>red (Heel)</strong> pin directly on your foot photo. Real-time millimeters update automatically!</span>
-                          <button
-                            type="button"
-                            onClick={resetToAutoDetection}
-                            className="ml-2 text-[11px] bg-amber-200/80 hover:bg-amber-300 px-2 py-0.5 rounded font-bold text-amber-950 flex items-center gap-1 cursor-pointer"
-                          >
-                            <RefreshCw className="w-3 h-3" />
-                            <span>Reset</span>
-                          </button>
-                        </div>
-                      )}
-
-                      <div className="text-center bg-[#565449]/10 p-2 rounded-xl overflow-hidden border border-[#A0988A] flex items-center justify-center">
-                        <div className="relative inline-block mx-auto max-w-full">
-                          <img
-                            ref={resultImgRef}
-                            src={`data:image/jpeg;base64,${result.annotated_image_base64}`}
-                            alt="Detection Proof"
-                            className="max-h-80 w-auto object-contain block mx-auto select-none pointer-events-none"
-                          />
-
-                          {isFineTuning && (
-                            <div
-                              onPointerMove={handlePointerMove}
-                              onPointerUp={handlePointerUp}
-                              className="absolute inset-0 w-full h-full touch-none select-none"
-                            >
-                              <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                                <line
-                                  x1={`${toeNorm[0] * 100}%`}
-                                  y1={`${toeNorm[1] * 100}%`}
-                                  x2={`${heelNorm[0] * 100}%`}
-                                  y2={`${heelNorm[1] * 100}%`}
-                                  stroke="#00F0FF"
-                                  strokeWidth="3"
-                                  strokeDasharray="4 2"
-                                />
-                              </svg>
-
-                              <div
-                                onPointerDown={() => handlePointerDown('toe')}
-                                style={{
-                                  left: `${toeNorm[0] * 100}%`,
-                                  top: `${toeNorm[1] * 100}%`,
-                                  transform: 'translate(-50%, -50%)',
-                                }}
-                                className="absolute w-7 h-7 rounded-full bg-emerald-500 border-2 border-white shadow-2xl cursor-grab active:cursor-grabbing flex items-center justify-center z-30 animate-pulse"
-                                title="Drag to longest toe tip"
-                              >
-                                <span className="text-[9px] font-black text-white">TOE</span>
-                              </div>
-
-                              <div
-                                onPointerDown={() => handlePointerDown('heel')}
-                                style={{
-                                  left: `${heelNorm[0] * 100}%`,
-                                  top: `${heelNorm[1] * 100}%`,
-                                  transform: 'translate(-50%, -50%)',
-                                }}
-                                className="absolute w-7 h-7 rounded-full bg-red-500 border-2 border-white shadow-2xl cursor-grab active:cursor-grabbing flex items-center justify-center z-30 animate-pulse"
-                                title="Drag to rear heel apex"
-                              >
-                                <span className="text-[9px] font-black text-white">HEEL</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                      <div className="text-center bg-[#565449]/10 p-2 rounded-xl overflow-hidden border border-[#A0988A] flex items-center justify-center shadow-inner">
+                        <img
+                          src={`data:image/jpeg;base64,${result.annotated_image_base64}`}
+                          alt="Calibrated A4 Paper Scan"
+                          className="max-h-80 w-auto object-contain block mx-auto select-none rounded-lg"
+                        />
                       </div>
                     </div>
                   )}
