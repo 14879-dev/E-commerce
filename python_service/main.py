@@ -463,22 +463,17 @@ async def calculate_foot_size(request: SizeCalculationRequest):
 
         quality_issues, mean_brightness, lap_var = _check_image_quality(proc)
 
-        # 1. Execute High-Precision Homography Computer Vision Engine
+        # 1. Execute High-Precision Homography Computer Vision Engine (A4 Paper Exclusively)
         if WILDOCTOPUS_MODEL_AVAILABLE:
             try:
                 cv_result = run_wildoctopus_model(
                     img,
                     rembg_session=REMBG_SESSION,
-                    ref_type=request.calibration_object,
+                    ref_type="a4_paper",
                     custom_corners=request.paper_corners
                 )
                 if cv_result.get("success", False):
                     return cv_result
-                elif cv_result.get("error_code") == "NO_REFERENCE_DETECTED" and request.calibration_object != "credit_card":
-                    # Try credit card calibration fallback in case user used card instead of A4
-                    card_attempt = run_wildoctopus_model(img, rembg_session=REMBG_SESSION, ref_type="credit_card")
-                    if card_attempt.get("success", False):
-                        return card_attempt
                 if "error" in cv_result:
                     return JSONResponse(status_code=400, content=cv_result)
             except Exception as cv_e:

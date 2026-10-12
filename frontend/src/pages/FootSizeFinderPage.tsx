@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Upload, RotateCcw, AlertTriangle, ArrowRight, Check, Sparkles, CreditCard, FileText, Sliders, RefreshCw, Ruler, ShoppingBag, Info, Crosshair } from 'lucide-react';
+import { Camera, Upload, RotateCcw, AlertTriangle, ArrowRight, Check, Sparkles, FileText, Sliders, RefreshCw, Ruler, Info, Crosshair } from 'lucide-react';
 import { SEOHelmet } from '../components/common/SEOHelmet';
 import { PageHero } from '../components/common/PageHero';
 
@@ -43,12 +43,11 @@ const calculateShoeSizeFromMm = (lengthMm: number) => {
 };
 
 export const FootSizeFinderPage: React.FC = () => {
-  // Main Top Mode Tab: 'scanner' | 'ruler' | 'brand'
-  const [activeTab, setActiveTab] = useState<'scanner' | 'ruler' | 'brand'>('scanner');
+  // Main Top Mode Tab: 'scanner' | 'ruler'
+  const [activeTab, setActiveTab] = useState<'scanner' | 'ruler'>('scanner');
 
   // Scanner Steps: 'camera' | 'paper_adjust' | 'analyzing' | 'result' | 'error' | 'camera_denied'
   const [step, setStep] = useState<'camera' | 'paper_adjust' | 'analyzing' | 'result' | 'error' | 'camera_denied'>('camera');
-  const [calibrationObject, setCalibrationObject] = useState<'a4_paper' | 'credit_card'>('a4_paper');
   const [result, setResult] = useState<SizeResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [activeFacingMode, setActiveFacingMode] = useState<'environment' | 'user'>('environment');
@@ -75,10 +74,6 @@ export const FootSizeFinderPage: React.FC = () => {
   const [rulerLengthCm, setRulerLengthCm] = useState<number>(26.2);
   const [rulerUnit, setRulerUnit] = useState<'cm' | 'in'>('cm');
   const [rulerWidthProfile, setRulerWidthProfile] = useState<'narrow' | 'regular' | 'wide'>('regular');
-
-  // Mode 3: Brand Size Matcher State
-  const [selectedBrand, setSelectedBrand] = useState<'Bata' | 'Service' | 'Nike' | 'Adidas' | 'Clarks'>('Bata');
-  const [selectedBrandSize, setSelectedBrandSize] = useState<number>(8);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -168,7 +163,7 @@ export const FootSizeFinderPage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           image_base64: b64,
-          calibration_object: calibrationObject,
+          calibration_object: 'a4_paper',
           paper_corners: customCorners,
         }),
         signal: AbortSignal.timeout(45000),
@@ -186,10 +181,7 @@ export const FootSizeFinderPage: React.FC = () => {
         }
 
         setErrorMsg(
-          data.error ||
-          (calibrationObject === 'a4_paper'
-            ? 'Could not detect foot on A4 paper. Please place your bare foot flat directly on top of a plain white A4 sheet with all 4 corners visible.'
-            : 'Could not detect credit/ID card reference. Please place the card flat next to your foot with good overhead lighting.')
+          data.error || 'Could not detect foot on A4 paper. Please place your bare foot flat directly on top of a plain white A4 sheet with all 4 corners visible.'
         );
         setStep('error');
         return;
@@ -324,32 +316,18 @@ export const FootSizeFinderPage: React.FC = () => {
   const rulerLengthMm = rulerUnit === 'cm' ? rulerLengthCm * 10 : rulerLengthCm * 25.4;
   const rulerSize = calculateShoeSizeFromMm(rulerLengthMm);
 
-  // Brand conversion calculation
-  const getBrandEquivalentSize = (brand: string, size: number) => {
-    // International standard sneaker vs handcrafted chappal allowance
-    // Sneakers have padding; traditional Peshawari chappals fit true to formal dress/derby size
-    if (brand === 'Bata' || brand === 'Service') {
-      return size; // Direct 1:1 match
-    }
-    // Nike / Adidas runs 0.5 to 1 size smaller than traditional lasts
-    return Math.max(6, Math.min(13, size - 0.5));
-  };
-
-  const convertedUkSize = Math.round(getBrandEquivalentSize(selectedBrand, selectedBrandSize));
-  const convertedDetails = calculateShoeSizeFromMm((convertedUkSize - 6) * 8.5 + 245);
-
   return (
     <div className="w-full">
       <SEOHelmet
         title="Foot Size Calibration — Peshawari Chappal Co."
-        description="Find your exact Peshawari Chappal size with millimeter computer vision, tape measure input, or brand shoe converter."
+        description="Find your exact Peshawari Chappal size with high-precision A4 computer vision or direct tape measure input."
       />
 
       <PageHero
         badge="Master Artisan Fitting"
         title="Find Your Exact Shoe Size"
-        subtitle="100% Guaranteed Custom Fit Across All Methods"
-        description="Choose your preferred sizing method: CamScanner-style A4 paper calibration, exact tape measure input, or standard brand conversion."
+        subtitle="100% Guaranteed Custom Fit"
+        description="Measure with camera precision using standard white A4 paper, or input your physical ruler measurement for guaranteed accuracy."
       />
 
       <div className="max-w-2xl mx-auto py-6 sm:py-10 px-4">
@@ -363,7 +341,7 @@ export const FootSizeFinderPage: React.FC = () => {
           onChange={handleFileUpload}
         />
 
-        {/* 3 Main Method Switcher Tabs */}
+        {/* 2 Main Method Switcher Tabs */}
         <div className="flex bg-[#A0988A]/25 p-1 rounded-2xl border border-[#A0988A]/50 mb-6 shadow-xs">
           <button
             type="button"
@@ -375,7 +353,7 @@ export const FootSizeFinderPage: React.FC = () => {
             }`}
           >
             <Camera className="w-4 h-4 shrink-0" />
-            <span className="truncate">Camera Scanner</span>
+            <span className="truncate">Camera Scanner (A4 Paper)</span>
           </button>
 
           <button
@@ -388,20 +366,7 @@ export const FootSizeFinderPage: React.FC = () => {
             }`}
           >
             <Ruler className="w-4 h-4 shrink-0" />
-            <span className="truncate">Tape Measure</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('brand')}
-            className={`flex-1 py-3 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
-              activeTab === 'brand'
-                ? 'bg-[#565449] text-[#F7F4EB] shadow-md'
-                : 'text-[#1A1A18] hover:bg-[#A0988A]/20'
-            }`}
-          >
-            <ShoppingBag className="w-4 h-4 shrink-0" />
-            <span className="truncate">Brand Converter</span>
+            <span className="truncate">Tape Measure / Ruler</span>
           </button>
         </div>
 
@@ -410,34 +375,11 @@ export const FootSizeFinderPage: React.FC = () => {
         {/* ============================================================== */}
         {activeTab === 'scanner' && (
           <div className="bg-[#A0988A]/20 rounded-2xl border border-[#A0988A] shadow-md p-4 sm:p-6 backdrop-blur-xs">
-            {/* Reference Selector Tabs */}
+            {/* Standard A4 Calibration Header */}
             {step === 'camera' && (
-              <div className="flex justify-center gap-2 mb-4">
-                <button
-                  type="button"
-                  onClick={() => setCalibrationObject('a4_paper')}
-                  className={`flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 border transition ${
-                    calibrationObject === 'a4_paper'
-                      ? 'bg-[#565449] text-[#F7F4EB] border-[#565449] shadow-sm'
-                      : 'bg-[#F7F4EB] text-[#1A1A18] border-[#A0988A]/60 hover:bg-[#A0988A]/20'
-                  }`}
-                >
-                  <FileText className="w-4 h-4" />
-                  <span>A4 Paper Sheet</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setCalibrationObject('credit_card')}
-                  className={`flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 border transition ${
-                    calibrationObject === 'credit_card'
-                      ? 'bg-[#565449] text-[#F7F4EB] border-[#565449] shadow-sm'
-                      : 'bg-[#F7F4EB] text-[#1A1A18] border-[#A0988A]/60 hover:bg-[#A0988A]/20'
-                  }`}
-                >
-                  <CreditCard className="w-4 h-4" />
-                  <span>Credit / ID Card</span>
-                </button>
+              <div className="flex items-center gap-2 mb-4 bg-[#F7F4EB] p-2.5 rounded-xl border border-[#A0988A] text-xs font-semibold text-[#1A1A18]">
+                <FileText className="w-4 h-4 text-[#565449] shrink-0" />
+                <span>Standard White A4 Paper Sheet Calibration (210 &times; 297 mm)</span>
               </div>
             )}
 
@@ -457,7 +399,7 @@ export const FootSizeFinderPage: React.FC = () => {
                   <div className="absolute inset-4 pointer-events-none border-2 border-dashed border-[#F7F4EB]/70 rounded-xl flex flex-col justify-between p-3">
                     <div className="flex justify-between items-start">
                       <span className="text-xs bg-[#565449]/90 backdrop-blur-xs text-[#F7F4EB] px-2.5 py-1 rounded-md font-medium border border-[#F7F4EB]/30 shadow-xs">
-                        {calibrationObject === 'a4_paper' ? '📄 Plain White A4 Sheet' : '💳 Standard Card (Flat on Floor)'}
+                        📄 Plain White A4 Sheet
                       </span>
                       <button
                         type="button"
@@ -470,17 +412,15 @@ export const FootSizeFinderPage: React.FC = () => {
                     </div>
 
                     <div className="flex-1 flex items-center justify-center pointer-events-none">
-                      <div className={`border-2 border-dashed border-emerald-400/70 rounded-lg ${
-                        calibrationObject === 'a4_paper' ? 'w-48 sm:w-60 h-64 sm:h-80' : 'w-56 h-36'
-                      } flex items-center justify-center bg-emerald-500/5`}>
+                      <div className="border-2 border-dashed border-emerald-400/70 rounded-lg w-48 sm:w-60 h-68 sm:h-84 flex items-center justify-center bg-emerald-500/5">
                         <span className="text-[11px] text-emerald-200 bg-black/60 px-2.5 py-1 rounded backdrop-blur-xs text-center">
-                          {calibrationObject === 'a4_paper' ? 'Place foot flat on paper' : 'Place card flat beside foot'}
+                          Place bare foot flat on white A4 paper
                         </span>
                       </div>
                     </div>
 
                     <div className="text-center text-xs bg-[#565449]/90 backdrop-blur-xs text-[#F7F4EB] py-1.5 px-3 rounded-md mx-auto border border-[#F7F4EB]/30 shadow-xs">
-                      Hold phone flat overhead. Keep all 4 corners visible in frame.
+                      Hold phone flat overhead. Keep all 4 corners of paper visible in frame.
                     </div>
                   </div>
                 </div>
@@ -514,7 +454,7 @@ export const FootSizeFinderPage: React.FC = () => {
                 <div className="bg-[#F7F4EB] p-3 rounded-xl border border-[#A0988A] text-xs text-[#1A1A18] flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Crosshair className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span><strong>CamScanner 4-Corner Snapper:</strong> Drag the 4 pins onto the physical corners of the paper.</span>
+                    <span><strong>CamScanner 4-Corner Snapper:</strong> Drag the 4 pins onto the physical corners of the white paper.</span>
                   </div>
                 </div>
 
@@ -617,7 +557,7 @@ export const FootSizeFinderPage: React.FC = () => {
                       <div>
                         <h3 className="font-bold text-sm text-[#1A1A18]">Full Extreme Accuracy Verified</h3>
                         <p className="text-xs text-[#1A1A18]/70">
-                          {result.calibration_object === 'credit_card' ? 'Calibrated via Standard Card Scale' : 'Calibrated via A4 Planar Homography'}
+                          Calibrated via A4 Planar Homography (210 &times; 297 mm)
                         </p>
                       </div>
                     </div>
@@ -987,99 +927,6 @@ export const FootSizeFinderPage: React.FC = () => {
               className="w-full bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md transition text-center border border-[#565449] cursor-pointer"
             >
               <span>Shop Authentic Size {rulerSize.uk} Peshawari Chappals</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        )}
-
-        {/* ============================================================== */}
-        {/* TAB 3: BRAND SHOE SIZE CONVERTER                               */}
-        {/* ============================================================== */}
-        {activeTab === 'brand' && (
-          <div className="bg-[#A0988A]/20 rounded-2xl border border-[#A0988A] shadow-md p-5 sm:p-7 backdrop-blur-xs space-y-6">
-            <div className="flex items-center gap-3 pb-3 border-b border-[#A0988A]/40">
-              <div className="w-10 h-10 rounded-full bg-[#565449] text-[#F7F4EB] flex items-center justify-center shadow-xs">
-                <ShoppingBag className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="font-serif font-bold text-lg text-[#1A1A18]">
-                  Brand Footwear Size Matcher
-                </h2>
-                <p className="text-xs text-[#1A1A18]/70">
-                  Convert your standard commercial shoe size to authentic handcrafted Peshawari lasts.
-                </p>
-              </div>
-            </div>
-
-            {/* Brand Selectors */}
-            <div className="space-y-3">
-              <span className="text-xs uppercase font-bold text-[#1A1A18]/80 block tracking-wider">
-                Select Your Usual Shoe Brand
-              </span>
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                {(['Bata', 'Service', 'Nike', 'Adidas', 'Clarks'] as const).map((b) => (
-                  <button
-                    key={b}
-                    type="button"
-                    onClick={() => setSelectedBrand(b)}
-                    className={`py-2.5 px-3 rounded-xl border text-center font-bold text-xs transition cursor-pointer ${
-                      selectedBrand === b
-                        ? 'bg-[#565449] text-white border-[#565449] shadow-sm'
-                        : 'bg-[#F7F4EB] text-[#1A1A18] border-[#A0988A] hover:bg-[#A0988A]/20'
-                    }`}
-                  >
-                    {b}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Size Selector Buttons */}
-            <div className="space-y-3">
-              <span className="text-xs uppercase font-bold text-[#1A1A18]/80 block tracking-wider">
-                Select Your Usual Size in {selectedBrand}
-              </span>
-              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-                {[6, 7, 8, 9, 10, 11, 12, 13].map((sz) => (
-                  <button
-                    key={sz}
-                    type="button"
-                    onClick={() => setSelectedBrandSize(sz)}
-                    className={`py-3 rounded-xl border font-black text-sm transition cursor-pointer ${
-                      selectedBrandSize === sz
-                        ? 'bg-[#565449] text-white border-[#565449] shadow-sm'
-                        : 'bg-[#F7F4EB] text-[#1A1A18] border-[#A0988A] hover:bg-[#A0988A]/20'
-                    }`}
-                  >
-                    {sz}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Equivalent Peshawari Last Card */}
-            <div className="bg-[#F7F4EB] p-6 rounded-xl border border-[#A0988A] text-center shadow-xs space-y-2">
-              <span className="text-xs uppercase tracking-wider text-[#1A1A18]/80 font-bold block">
-                Your Authentic Peshawari Chappal Fit
-              </span>
-              <div className="font-serif font-black text-5xl text-[#1A1A18]">
-                Size {convertedUkSize}
-              </div>
-              <p className="text-xs sm:text-sm text-[#1A1A18]/80 font-semibold">
-                Pak / UK {convertedUkSize} &nbsp;·&nbsp; EU {convertedDetails.eu} &nbsp;·&nbsp; US {convertedDetails.us}
-              </p>
-              <p className="text-xs text-[#1A1A18]/70 pt-2 border-t border-[#A0988A]/30">
-                {selectedBrand === 'Nike' || selectedBrand === 'Adidas'
-                  ? `Sneakers contain heavy foam padding. For authentic open-toe leather Peshawari chappals, size ${convertedUkSize} provides the exact artisanal last balance.`
-                  : `Your standard ${selectedBrand} size ${selectedBrandSize} corresponds seamlessly to our Khyber mastercraft last.`}
-              </p>
-            </div>
-
-            <Link
-              to={`/products?size=${convertedUkSize}`}
-              className="w-full bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md transition text-center border border-[#565449] cursor-pointer"
-            >
-              <span>Shop Size {convertedUkSize} Collection</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
