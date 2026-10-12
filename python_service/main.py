@@ -65,6 +65,7 @@ class SizeCalculationRequest(BaseModel):
     calibration_object: str = "a4_paper"
     known_width_mm: Optional[float] = None
     known_height_mm: Optional[float] = None
+    paper_corners: Optional[List[List[float]]] = None
 
 REFERENCE_SIZES = {
     "a4_paper":    {"width_mm": 210.0, "height_mm": 297.0},
@@ -468,7 +469,8 @@ async def calculate_foot_size(request: SizeCalculationRequest):
                 cv_result = run_wildoctopus_model(
                     img,
                     rembg_session=REMBG_SESSION,
-                    ref_type=request.calibration_object
+                    ref_type=request.calibration_object,
+                    custom_corners=request.paper_corners
                 )
                 if cv_result.get("success", False):
                     return cv_result

@@ -383,11 +383,12 @@ def compute_anatomical_foot_metrics(
 def run_wildoctopus_model(
     img_bgr: np.ndarray,
     rembg_session=None,
-    ref_type: str = "a4_paper"
+    ref_type: str = "a4_paper",
+    custom_corners: Optional[List[List[float]]] = None
 ) -> Dict[str, Any]:
     """
     Executes the High-Precision Foot Measurement Engine:
-    1. Detects reference quadrilateral corners with sub-pixel precision.
+    1. Detects reference quadrilateral corners (or uses user-snapped corner pins).
     2. Rectifies camera tilt and angle via planar perspective homography.
     3. Segments the foot footprint with dual U2Net deep learning & chromatic contrast.
     4. Computes scale-invariant millimeter foot length and metatarsal width via PCA.
@@ -400,23 +401,43 @@ def run_wildoctopus_model(
     scale = max_proc_dim / float(max(h_orig, w_orig)) if max(h_orig, w_orig) > max_proc_dim else 1.0
     proc_img = cv2.resize(img_bgr, (int(w_orig * scale), int(h_orig * scale)))
 
-    # Step 1: Detect Reference Object Corners
-    ref_corners = detect_reference_quadrilateral(proc_img, ref_type=ref_type)
+    # Step 1: Detect or Use User-Specified Reference Object Corners
+    ref_corners = None
+    if custom_corners is not None and len(custom_corners) == 4:
+        raw_c = np.array(custom_corners, dtype=np.float32)
+        # If coordinates are normalized in [0, 1], scale to proc_img coordinates
+        if np.max(raw_c) <= 1.05:
+            ref_corners = np.zeros_like(raw_c)
+            ref_corners[:, 0] = raw_c[:, 0] * float(proc_img.shape[1])
+            ref_corners[:, 1] = raw_c[:, 1] * float(proc_img.shape[0])
+        else:
+            # Scale down from original image coordinates
+            ref_corners = raw_c * scale
+    else:
+        ref_corners = detect_reference_quadrilateral(proc_img, ref_type=ref_type)
 
-    if ref_corners is None:
-        # If A4 failed, attempt credit card fallback
-        if ref_type == "a4_paper":
-            card_corners = detect_reference_quadrilateral(proc_img, ref_type="credit_card")
-            if card_corners is not None:
-                ref_corners = card_corners
-                ref_type = "credit_card"
+        if ref_corners is None:
+            # If A4 failed, attempt credit card fallback
+            if ref_type == "a4_paper":
+                card_corners = detect_reference_quadrilateral(proc_img, ref_type="credit_card")
+                if card_corners is not None:
+                    ref_corners = card_corners
+                    ref_type = "credit_card"
 
     if ref_corners is None:
         ref_label = "A4 paper sheet" if ref_type == "a4_paper" else "standard credit card"
+        _, preview_buf = cv2.imencode(".jpg", img_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
         return {
             "success": False,
-            "error": f"Reference object not detected clearly. Please place a plain white {ref_label} flat on the floor with all 4 corners visible in the camera frame.",
+            "error": f"Reference object not detected automatically. Please adjust the 4 paper corner pins on your photo to align with the 4 corners of your {ref_label}.",
             "error_code": "NO_REFERENCE_DETECTED",
+            "suggested_corners_norm": [
+                [0.22, 0.20],
+                [0.78, 0.20],
+                [0.78, 0.80],
+                [0.22, 0.80],
+            ],
+            "annotated_image_base64": base64.b64encode(preview_buf).decode("utf-8")
         }
 
     # Step 2: Canonical Planar Perspective Homography Unwarping
@@ -508,8 +529,8 @@ def run_wildoctopus_model(
         "heel_point": [round(float(heel_orig[0]), 1), round(float(heel_orig[1]), 1)],
         "toe_point_norm": [round(float(toe_orig[0] / max(1.0, w_orig)), 4), round(float(toe_orig[1] / max(1.0, h_orig)), 4)],
         "heel_point_norm": [round(float(heel_orig[0] / max(1.0, w_orig)), 4), round(float(heel_orig[1] / max(1.0, h_orig)), 4)],
-        "image_width": int(w_orig),
-        "image_height": int(h_orig),
+        "paper_corners": [[round(float(p[0]), 1), round(float(p[1]), 1)] for p in ref_orig],
+        "paper_corners_norm": [[round(float(p[0] / max(1.0, w_orig)), 4), round(float(p[1] / max(1.0, h_orig)), 4)] for p in ref_orig],
         "annotated_image_base64": annotated_b64,
         "model": "High-Precision Orthogonal Perspective Homography Computer Vision Engine",
     }

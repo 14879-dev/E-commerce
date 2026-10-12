@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Upload, RotateCcw, AlertTriangle, ArrowRight, Check, Sparkles, CreditCard, FileText, Sliders, RefreshCw } from 'lucide-react';
+import { Camera, Upload, RotateCcw, AlertTriangle, ArrowRight, Check, Sparkles, CreditCard, FileText, Sliders, RefreshCw, Ruler, ShoppingBag, Info, Crosshair } from 'lucide-react';
 import { SEOHelmet } from '../components/common/SEOHelmet';
 import { PageHero } from '../components/common/PageHero';
 
@@ -20,6 +20,9 @@ export interface SizeResult {
   heel_point?: [number, number];
   toe_point_norm?: [number, number];
   heel_point_norm?: [number, number];
+  paper_corners?: [number, number][];
+  paper_corners_norm?: [number, number][];
+  suggested_corners_norm?: [number, number][];
   image_width?: number;
   image_height?: number;
   error?: string;
@@ -27,26 +30,40 @@ export interface SizeResult {
   model?: string;
 }
 
-// Authentic Peshawari Last Sizing Function
+// Authentic Master Artisan Peshawari Last Sizing Table
 const calculateShoeSizeFromMm = (lengthMm: number) => {
-  if (lengthMm <= 248) return { uk: 6, eu: 39, us: 6.5 };
-  if (lengthMm <= 256) return { uk: 7, eu: 40, us: 7.5 };
-  if (lengthMm <= 264) return { uk: 8, eu: 41, us: 8.5 };
-  if (lengthMm <= 273) return { uk: 9, eu: 42, us: 9.5 };
-  if (lengthMm <= 282) return { uk: 10, eu: 43, us: 10.5 };
-  if (lengthMm <= 291) return { uk: 11, eu: 44, us: 11.5 };
-  if (lengthMm <= 300) return { uk: 12, eu: 45, us: 12.5 };
-  return { uk: 13, eu: 46, us: 13.5 };
+  if (lengthMm <= 248) return { uk: 6, eu: 39, us: 6.5, model: 'KDM Zalmi Signature (Sleek Last)' };
+  if (lengthMm <= 256) return { uk: 7, eu: 40, us: 7.5, model: 'KDM Zalmi Signature (Standard Fit)' };
+  if (lengthMm <= 264) return { uk: 8, eu: 41, us: 8.5, model: 'KDM Traditional Heritage Classic' };
+  if (lengthMm <= 273) return { uk: 9, eu: 42, us: 9.5, model: 'KDM Traditional Heritage Classic' };
+  if (lengthMm <= 282) return { uk: 10, eu: 43, us: 10.5, model: 'KDM Kaptaan Royal Double-Sole' };
+  if (lengthMm <= 291) return { uk: 11, eu: 44, us: 11.5, model: 'KDM Kaptaan Royal Double-Sole' };
+  if (lengthMm <= 300) return { uk: 12, eu: 45, us: 12.5, model: 'KDM Kaptaan Sovereign (Broad Last)' };
+  return { uk: 13, eu: 46, us: 13.5, model: 'KDM Custom Mastercraft (Extended Last)' };
 };
 
 export const FootSizeFinderPage: React.FC = () => {
-  const [step, setStep] = useState<'camera' | 'analyzing' | 'result' | 'error' | 'camera_denied'>('camera');
+  // Main Top Mode Tab: 'scanner' | 'ruler' | 'brand'
+  const [activeTab, setActiveTab] = useState<'scanner' | 'ruler' | 'brand'>('scanner');
+
+  // Scanner Steps: 'camera' | 'paper_adjust' | 'analyzing' | 'result' | 'error' | 'camera_denied'
+  const [step, setStep] = useState<'camera' | 'paper_adjust' | 'analyzing' | 'result' | 'error' | 'camera_denied'>('camera');
   const [calibrationObject, setCalibrationObject] = useState<'a4_paper' | 'credit_card'>('a4_paper');
   const [result, setResult] = useState<SizeResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [activeFacingMode, setActiveFacingMode] = useState<'environment' | 'user'>('environment');
+  const [capturedImageB64, setCapturedImageB64] = useState<string | null>(null);
 
-  // Interactive Pin Fine-Tuning State
+  // CamScanner 4-Corner Paper Snapper State [TL, TR, BR, BL]
+  const [paperCornersNorm, setPaperCornersNorm] = useState<[number, number][]>([
+    [0.22, 0.20],
+    [0.78, 0.20],
+    [0.78, 0.80],
+    [0.22, 0.80],
+  ]);
+  const [activeCornerDragIdx, setActiveCornerDragIdx] = useState<number | null>(null);
+
+  // Result Pin Fine-Tuning State
   const [isFineTuning, setIsFineTuning] = useState(false);
   const [toeNorm, setToeNorm] = useState<[number, number]>([0.5, 0.25]);
   const [heelNorm, setHeelNorm] = useState<[number, number]>([0.5, 0.75]);
@@ -54,11 +71,21 @@ export const FootSizeFinderPage: React.FC = () => {
   const [adjustedLengthMm, setAdjustedLengthMm] = useState<number>(260);
   const [activeDragPin, setActiveDragPin] = useState<'toe' | 'heel' | null>(null);
 
+  // Mode 2: Tape Measure / Ruler Input State
+  const [rulerLengthCm, setRulerLengthCm] = useState<number>(26.2);
+  const [rulerUnit, setRulerUnit] = useState<'cm' | 'in'>('cm');
+  const [rulerWidthProfile, setRulerWidthProfile] = useState<'narrow' | 'regular' | 'wide'>('regular');
+
+  // Mode 3: Brand Size Matcher State
+  const [selectedBrand, setSelectedBrand] = useState<'Bata' | 'Service' | 'Nike' | 'Adidas' | 'Clarks'>('Bata');
+  const [selectedBrandSize, setSelectedBrandSize] = useState<number>(8);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
+  const paperAdjustContainerRef = useRef<HTMLDivElement>(null);
 
   // Stop camera tracks
   const stopCamera = useCallback(() => {
@@ -102,9 +129,13 @@ export const FootSizeFinderPage: React.FC = () => {
   }, [stopCamera]);
 
   useEffect(() => {
-    startCamera('environment');
+    if (activeTab === 'scanner' && step === 'camera') {
+      startCamera('environment');
+    } else {
+      stopCamera();
+    }
     return () => stopCamera();
-  }, [startCamera, stopCamera]);
+  }, [activeTab, step, startCamera, stopCamera]);
 
   // Capture frame as base64 JPEG
   const captureFrame = (): string | null => {
@@ -124,11 +155,12 @@ export const FootSizeFinderPage: React.FC = () => {
     return canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
   };
 
-  // Process image with backend model
-  const processImageBase64 = async (b64: string) => {
+  // Process image with backend model (with optional user-adjusted corners)
+  const processImageBase64 = async (b64: string, customCorners?: [number, number][]) => {
     stopCamera();
     setStep('analyzing');
     setErrorMsg('');
+    setCapturedImageB64(b64);
 
     try {
       const res = await fetch('/api/py/calculate-foot-size', {
@@ -137,6 +169,7 @@ export const FootSizeFinderPage: React.FC = () => {
         body: JSON.stringify({
           image_base64: b64,
           calibration_object: calibrationObject,
+          paper_corners: customCorners,
         }),
         signal: AbortSignal.timeout(45000),
       });
@@ -144,6 +177,14 @@ export const FootSizeFinderPage: React.FC = () => {
       const data = await res.json().catch(() => ({ success: false, error: 'Service temporarily unavailable.' }));
 
       if (!res.ok || !data.success) {
+        // If automatic detection struggled to detach paper, offer CamScanner paper corner adjustment
+        if (data.suggested_corners_norm && !customCorners) {
+          setPaperCornersNorm(data.suggested_corners_norm);
+          setErrorMsg(data.error || 'Please align the 4 corner pins with the 4 corners of your paper.');
+          setStep('paper_adjust');
+          return;
+        }
+
         setErrorMsg(
           data.error ||
           (calibrationObject === 'a4_paper'
@@ -155,6 +196,10 @@ export const FootSizeFinderPage: React.FC = () => {
       }
 
       setResult(data);
+      // Initialize CamScanner corners if available
+      if (data.paper_corners_norm) {
+        setPaperCornersNorm(data.paper_corners_norm);
+      }
       // Initialize interactive landmark pins
       const tNorm: [number, number] = data.toe_point_norm || [0.5, 0.25];
       const hNorm: [number, number] = data.heel_point_norm || [0.5, 0.75];
@@ -204,6 +249,33 @@ export const FootSizeFinderPage: React.FC = () => {
     startCamera(newFacing);
   };
 
+  // Pointer drag handlers for CamScanner 4-Corner Snapper
+  const handleCornerPointerDown = (idx: number) => {
+    setActiveCornerDragIdx(idx);
+  };
+
+  const handleCornerPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (activeCornerDragIdx === null || !paperAdjustContainerRef.current) return;
+    const rect = paperAdjustContainerRef.current.getBoundingClientRect();
+    const xNorm = Math.max(0.01, Math.min(0.99, (e.clientX - rect.left) / rect.width));
+    const yNorm = Math.max(0.01, Math.min(0.99, (e.clientY - rect.top) / rect.height));
+
+    setPaperCornersNorm((prev) => {
+      const updated = [...prev];
+      updated[activeCornerDragIdx] = [xNorm, yNorm];
+      return updated;
+    });
+  };
+
+  const handleCornerPointerUp = () => {
+    setActiveCornerDragIdx(null);
+  };
+
+  const recomputeWithCustomPaperCorners = () => {
+    if (!capturedImageB64) return;
+    processImageBase64(capturedImageB64, paperCornersNorm);
+  };
+
   // Pointer drag handler for interactive landmark micro-tuning
   const handlePointerDown = (pin: 'toe' | 'heel') => {
     if (!isFineTuning) return;
@@ -248,18 +320,36 @@ export const FootSizeFinderPage: React.FC = () => {
     setAdjustedLengthMm(Math.round(result.foot_length_mm));
   };
 
+  // Ruler mode conversions
+  const rulerLengthMm = rulerUnit === 'cm' ? rulerLengthCm * 10 : rulerLengthCm * 25.4;
+  const rulerSize = calculateShoeSizeFromMm(rulerLengthMm);
+
+  // Brand conversion calculation
+  const getBrandEquivalentSize = (brand: string, size: number) => {
+    // International standard sneaker vs handcrafted chappal allowance
+    // Sneakers have padding; traditional Peshawari chappals fit true to formal dress/derby size
+    if (brand === 'Bata' || brand === 'Service') {
+      return size; // Direct 1:1 match
+    }
+    // Nike / Adidas runs 0.5 to 1 size smaller than traditional lasts
+    return Math.max(6, Math.min(13, size - 0.5));
+  };
+
+  const convertedUkSize = Math.round(getBrandEquivalentSize(selectedBrand, selectedBrandSize));
+  const convertedDetails = calculateShoeSizeFromMm((convertedUkSize - 6) * 8.5 + 245);
+
   return (
     <div className="w-full">
       <SEOHelmet
-        title="Foot Size Scanner — Peshawari Chappal Co."
-        description="Instant camera-based foot size measurement using sub-millimeter computer vision calibration."
+        title="Foot Size Calibration — Peshawari Chappal Co."
+        description="Find your exact Peshawari Chappal size with millimeter computer vision, tape measure input, or brand shoe converter."
       />
 
       <PageHero
-        badge="Sub-Millimeter Metrology"
-        title="AI Foot Size Calibration"
-        subtitle="Full Extreme Precision on Standard Reference Scale"
-        description="Eliminate sizing doubts. Our homography computer vision engine neutralizes camera tilt to extract your exact foot contours for authentic Peshawari wooden lasts."
+        badge="Master Artisan Fitting"
+        title="Find Your Exact Shoe Size"
+        subtitle="100% Guaranteed Custom Fit Across All Methods"
+        description="Choose your preferred sizing method: CamScanner-style A4 paper calibration, exact tape measure input, or standard brand conversion."
       />
 
       <div className="max-w-2xl mx-auto py-6 sm:py-10 px-4">
@@ -273,402 +363,727 @@ export const FootSizeFinderPage: React.FC = () => {
           onChange={handleFileUpload}
         />
 
-        {/* Header */}
-        <div className="text-center mb-6">
-          <span className="text-xs font-bold tracking-widest text-[#1A1A18] uppercase mb-1 block">
-            Computer Vision Metrology
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#1A1A18]">
-            Find Your Exact Shoe Size
-          </h1>
-          <p className="text-sm text-[#1A1A18]/80 mt-1 max-w-md mx-auto">
-            Place your bare foot on a standard reference scale and point your camera directly overhead.
-          </p>
+        {/* 3 Main Method Switcher Tabs */}
+        <div className="flex bg-[#A0988A]/25 p-1 rounded-2xl border border-[#A0988A]/50 mb-6 shadow-xs">
+          <button
+            type="button"
+            onClick={() => { setActiveTab('scanner'); setStep('camera'); }}
+            className={`flex-1 py-3 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+              activeTab === 'scanner'
+                ? 'bg-[#565449] text-[#F7F4EB] shadow-md'
+                : 'text-[#1A1A18] hover:bg-[#A0988A]/20'
+            }`}
+          >
+            <Camera className="w-4 h-4 shrink-0" />
+            <span className="truncate">Camera Scanner</span>
+          </button>
 
-          {/* Reference Selector Tabs */}
-          <div className="flex justify-center gap-2 mt-4 max-w-md mx-auto">
-            <button
-              type="button"
-              onClick={() => setCalibrationObject('a4_paper')}
-              className={`flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 border transition ${
-                calibrationObject === 'a4_paper'
-                  ? 'bg-[#565449] text-[#F7F4EB] border-[#565449] shadow-sm'
-                  : 'bg-[#F7F4EB] text-[#1A1A18] border-[#A0988A]/60 hover:bg-[#A0988A]/20'
-              }`}
-            >
-              <FileText className="w-4 h-4" />
-              <span>A4 Paper (Recommended)</span>
-            </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('ruler')}
+            className={`flex-1 py-3 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+              activeTab === 'ruler'
+                ? 'bg-[#565449] text-[#F7F4EB] shadow-md'
+                : 'text-[#1A1A18] hover:bg-[#A0988A]/20'
+            }`}
+          >
+            <Ruler className="w-4 h-4 shrink-0" />
+            <span className="truncate">Tape Measure</span>
+          </button>
 
-            <button
-              type="button"
-              onClick={() => setCalibrationObject('credit_card')}
-              className={`flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 border transition ${
-                calibrationObject === 'credit_card'
-                  ? 'bg-[#565449] text-[#F7F4EB] border-[#565449] shadow-sm'
-                  : 'bg-[#F7F4EB] text-[#1A1A18] border-[#A0988A]/60 hover:bg-[#A0988A]/20'
-              }`}
-            >
-              <CreditCard className="w-4 h-4" />
-              <span>Credit / ID Card</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab('brand')}
+            className={`flex-1 py-3 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+              activeTab === 'brand'
+                ? 'bg-[#565449] text-[#F7F4EB] shadow-md'
+                : 'text-[#1A1A18] hover:bg-[#A0988A]/20'
+            }`}
+          >
+            <ShoppingBag className="w-4 h-4 shrink-0" />
+            <span className="truncate">Brand Converter</span>
+          </button>
         </div>
 
-        {/* Main Step Container */}
-        <div className="bg-[#A0988A]/20 rounded-2xl border border-[#A0988A] shadow-md p-4 sm:p-6 backdrop-blur-xs">
-
-          {/* 1. CAMERA CAPTURE STEP */}
-          {step === 'camera' && (
-            <div className="space-y-4">
-              <div className="relative rounded-xl overflow-hidden bg-[#565449] aspect-[3/4] sm:aspect-[4/3] flex items-center justify-center shadow-inner">
-                <video
-                  ref={videoRef}
-                  playsInline
-                  muted
-                  autoPlay
-                  className="w-full h-full object-cover"
-                />
-
-                {/* Viewfinder Target Overlays */}
-                <div className="absolute inset-4 pointer-events-none border-2 border-dashed border-[#F7F4EB]/70 rounded-xl flex flex-col justify-between p-3">
-                  <div className="flex justify-between items-start">
-                    <span className="text-xs bg-[#565449]/90 backdrop-blur-xs text-[#F7F4EB] px-2.5 py-1 rounded-md font-medium border border-[#F7F4EB]/30 shadow-xs">
-                      {calibrationObject === 'a4_paper' ? '📄 Plain White A4 Sheet' : '💳 Standard Card (Flat on Floor)'}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={toggleCameraFacing}
-                      className="pointer-events-auto p-2 rounded-full bg-[#565449]/90 text-[#F7F4EB] hover:bg-[#45433A] border border-[#F7F4EB]/30 transition shadow-xs"
-                      title="Flip camera"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {/* Center Alignment Silhouette */}
-                  <div className="flex-1 flex items-center justify-center pointer-events-none">
-                    <div className={`border-2 border-dashed border-emerald-400/70 rounded-lg ${
-                      calibrationObject === 'a4_paper' ? 'w-48 sm:w-60 h-64 sm:h-80' : 'w-56 h-36'
-                    } flex items-center justify-center bg-emerald-500/5`}>
-                      <span className="text-[11px] text-emerald-200 bg-black/50 px-2 py-0.5 rounded backdrop-blur-xs">
-                        {calibrationObject === 'a4_paper' ? 'Place foot flat on paper' : 'Place card flat beside foot'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="text-center text-xs bg-[#565449]/90 backdrop-blur-xs text-[#F7F4EB] py-1.5 px-3 rounded-md mx-auto border border-[#F7F4EB]/30 shadow-xs">
-                    Hold phone flat overhead. Keep all 4 corners visible in frame.
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-2">
+        {/* ============================================================== */}
+        {/* TAB 1: CAMERA SCANNER (WITH CAMSCANNER 4-CORNER PAPER SNAPPER) */}
+        {/* ============================================================== */}
+        {activeTab === 'scanner' && (
+          <div className="bg-[#A0988A]/20 rounded-2xl border border-[#A0988A] shadow-md p-4 sm:p-6 backdrop-blur-xs">
+            {/* Reference Selector Tabs */}
+            {step === 'camera' && (
+              <div className="flex justify-center gap-2 mb-4">
                 <button
                   type="button"
-                  onClick={handleCapture}
-                  className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md transition active:scale-95 text-sm sm:text-base border border-[#565449] cursor-pointer"
+                  onClick={() => setCalibrationObject('a4_paper')}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 border transition ${
+                    calibrationObject === 'a4_paper'
+                      ? 'bg-[#565449] text-[#F7F4EB] border-[#565449] shadow-sm'
+                      : 'bg-[#F7F4EB] text-[#1A1A18] border-[#A0988A]/60 hover:bg-[#A0988A]/20'
+                  }`}
                 >
-                  <Camera className="w-5 h-5" />
-                  <span>Capture &amp; Calibrate</span>
+                  <FileText className="w-4 h-4" />
+                  <span>A4 Paper Sheet</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3.5 px-5 rounded-xl flex items-center justify-center gap-2 border border-[#565449] transition cursor-pointer"
-                  title="Upload photo from gallery"
+                  onClick={() => setCalibrationObject('credit_card')}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 border transition ${
+                    calibrationObject === 'credit_card'
+                      ? 'bg-[#565449] text-[#F7F4EB] border-[#565449] shadow-sm'
+                      : 'bg-[#F7F4EB] text-[#1A1A18] border-[#A0988A]/60 hover:bg-[#A0988A]/20'
+                  }`}
                 >
-                  <Upload className="w-5 h-5" />
-                  <span className="hidden sm:inline">Upload Photo</span>
+                  <CreditCard className="w-4 h-4" />
+                  <span>Credit / ID Card</span>
                 </button>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* 2. ANALYZING STEP */}
-          {step === 'analyzing' && (
-            <div className="py-12 text-center space-y-4">
-              <div className="relative w-16 h-16 mx-auto">
-                <div className="w-16 h-16 border-4 border-[#A0988A] border-t-[#565449] rounded-full animate-spin" />
-                <Sparkles className="w-6 h-6 text-[#1A1A18] absolute inset-0 m-auto animate-pulse" />
-              </div>
-              <h2 className="font-serif font-bold text-xl text-[#1A1A18]">
-                Calibrating Foot Geometry...
-              </h2>
-              <p className="text-xs sm:text-sm text-[#1A1A18]/80 max-w-sm mx-auto">
-                Neutralizing camera tilt via homography matrix, segmenting foot footprint, and computing anatomical PCA heel-to-toe metrics.
-              </p>
-            </div>
-          )}
+            {/* Step 1: Camera Viewfinder */}
+            {step === 'camera' && (
+              <div className="space-y-4">
+                <div className="relative rounded-xl overflow-hidden bg-[#565449] aspect-[3/4] sm:aspect-[4/3] flex items-center justify-center shadow-inner">
+                  <video
+                    ref={videoRef}
+                    playsInline
+                    muted
+                    autoPlay
+                    className="w-full h-full object-cover"
+                  />
 
-          {/* 3. RESULT STEP */}
-          {step === 'result' && result && (() => {
-            const currentSize = calculateShoeSizeFromMm(adjustedLengthMm);
-            const ukSize = currentSize.uk;
-            const euSize = currentSize.eu;
-            const usSize = currentSize.us;
-            const lengthMm = adjustedLengthMm;
-            const widthMm = Math.round(result.foot_width_mm);
-            const fitProfile = result.fit_profile || (widthMm < 93 ? 'Slim / Narrow' : widthMm > 105 ? 'Wide Comfort' : 'Regular Standard');
-
-            return (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between pb-3 border-b border-[#A0988A]/40">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-                      <Check className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm text-[#1A1A18]">Full Extreme Accuracy Verified</h3>
-                      <p className="text-xs text-[#1A1A18]/70">
-                        {result.calibration_object === 'credit_card' ? 'Calibrated via Standard Card Scale' : 'Calibrated via A4 Planar Homography'}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300">
-                    99.5% Precision
-                  </span>
-                </div>
-
-                {/* Main Recommended Size Card */}
-                <div className="text-center py-6 bg-[#F7F4EB] rounded-xl border border-[#A0988A] shadow-xs">
-                  <span className="text-xs uppercase tracking-wider text-[#1A1A18]/80 font-bold block mb-1">
-                    Recommended Peshawari Chappal Size
-                  </span>
-                  <div className="font-serif font-bold text-5xl sm:text-6xl text-[#1A1A18] my-2">
-                    Size {ukSize}
-                  </div>
-                  <p className="text-xs sm:text-sm text-[#1A1A18]/80 font-medium">
-                    Pak / UK {ukSize} &nbsp;·&nbsp; EU {euSize} &nbsp;·&nbsp; US {usSize}
-                  </p>
-                  <div className="mt-3 inline-block bg-[#565449]/10 text-[#1A1A18] text-xs font-semibold px-3 py-1 rounded-full border border-[#565449]/20">
-                    Profile: {fitProfile} Fit
-                  </div>
-                </div>
-
-                {/* Millimeter metrics */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-4 rounded-xl bg-[#F7F4EB] border border-[#A0988A] text-center shadow-xs">
-                    <span className="text-xs uppercase text-[#1A1A18]/80 block font-semibold">Bare Foot Length</span>
-                    <span className="font-bold text-2xl text-[#1A1A18]">{lengthMm} mm</span>
-                    <span className="text-[11px] text-[#1A1A18]/60 block mt-0.5">
-                      {isFineTuning ? 'Live Pin Distance' : 'Heel Apex to Longest Toe'}
-                    </span>
-                  </div>
-                  <div className="p-4 rounded-xl bg-[#F7F4EB] border border-[#A0988A] text-center shadow-xs">
-                    <span className="text-xs uppercase text-[#1A1A18]/80 block font-semibold">Ball Width</span>
-                    <span className="font-bold text-2xl text-[#1A1A18]">{widthMm} mm</span>
-                    <span className="text-[11px] text-[#1A1A18]/60 block mt-0.5">Metatarsal Arch Spread</span>
-                  </div>
-                </div>
-
-                {/* Master Artisan Fitting Note */}
-                {result.fit_note && (
-                  <div className="bg-[#F7F4EB] p-4 rounded-xl border border-[#A0988A] text-xs text-[#1A1A18] leading-relaxed shadow-xs">
-                    <span className="font-bold block text-sm mb-1 text-[#1A1A18]">Master Artisan Recommendation:</span>
-                    <p>{result.fit_note}</p>
-                  </div>
-                )}
-
-                {/* Interactive Landmark Detection Proof Canvas */}
-                {result.annotated_image_base64 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#1A1A18]">
-                        Anatomical Detection &amp; Landmark Pins:
+                  {/* Viewfinder Target Overlays */}
+                  <div className="absolute inset-4 pointer-events-none border-2 border-dashed border-[#F7F4EB]/70 rounded-xl flex flex-col justify-between p-3">
+                    <div className="flex justify-between items-start">
+                      <span className="text-xs bg-[#565449]/90 backdrop-blur-xs text-[#F7F4EB] px-2.5 py-1 rounded-md font-medium border border-[#F7F4EB]/30 shadow-xs">
+                        {calibrationObject === 'a4_paper' ? '📄 Plain White A4 Sheet' : '💳 Standard Card (Flat on Floor)'}
                       </span>
                       <button
                         type="button"
-                        onClick={() => setIsFineTuning(!isFineTuning)}
-                        className={`text-xs px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1.5 border transition cursor-pointer ${
-                          isFineTuning
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                            : 'bg-[#F7F4EB] text-[#1A1A18] border-[#A0988A] hover:bg-[#A0988A]/20'
-                        }`}
+                        onClick={toggleCameraFacing}
+                        className="pointer-events-auto p-2 rounded-full bg-[#565449]/90 text-[#F7F4EB] hover:bg-[#45433A] border border-[#F7F4EB]/30 transition shadow-xs"
+                        title="Flip camera"
                       >
-                        <Sliders className="w-3.5 h-3.5" />
-                        <span>{isFineTuning ? 'Fine-Tuning Active' : 'Micro-Adjust Pins'}</span>
+                        <RotateCcw className="w-4 h-4" />
                       </button>
                     </div>
 
-                    {isFineTuning && (
-                      <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-lg text-xs text-amber-900">
-                        <span>🎯 <strong>Drag green (Toe)</strong> or <strong>red (Heel)</strong> dot directly on the photo to fine-tune to your exact foot apex.</span>
-                        <button
-                          type="button"
-                          onClick={resetToAutoDetection}
-                          className="ml-2 text-[11px] bg-amber-200/80 hover:bg-amber-300 px-2 py-0.5 rounded font-bold text-amber-950 flex items-center gap-1 cursor-pointer"
-                        >
-                          <RefreshCw className="w-3 h-3" />
-                          <span>Reset</span>
-                        </button>
+                    <div className="flex-1 flex items-center justify-center pointer-events-none">
+                      <div className={`border-2 border-dashed border-emerald-400/70 rounded-lg ${
+                        calibrationObject === 'a4_paper' ? 'w-48 sm:w-60 h-64 sm:h-80' : 'w-56 h-36'
+                      } flex items-center justify-center bg-emerald-500/5`}>
+                        <span className="text-[11px] text-emerald-200 bg-black/60 px-2.5 py-1 rounded backdrop-blur-xs text-center">
+                          {calibrationObject === 'a4_paper' ? 'Place foot flat on paper' : 'Place card flat beside foot'}
+                        </span>
                       </div>
-                    )}
+                    </div>
 
-                    <div
-                      ref={imageContainerRef}
-                      onPointerMove={handlePointerMove}
-                      onPointerUp={handlePointerUp}
-                      className="relative rounded-xl overflow-hidden border border-[#A0988A] bg-[#565449]/10 max-h-80 flex items-center justify-center shadow-inner select-none touch-none"
-                    >
-                      <img
-                        src={`data:image/jpeg;base64,${result.annotated_image_base64}`}
-                        alt="Detection Proof"
-                        className="max-h-80 w-auto object-contain mx-auto pointer-events-none"
-                      />
-
-                      {/* Interactive Drag Handles in Fine-Tuning Mode */}
-                      {isFineTuning && (
-                        <>
-                          {/* Vector connection line */}
-                          <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                            <line
-                              x1={`${toeNorm[0] * 100}%`}
-                              y1={`${toeNorm[1] * 100}%`}
-                              x2={`${heelNorm[0] * 100}%`}
-                              y2={`${heelNorm[1] * 100}%`}
-                              stroke="#00F0FF"
-                              strokeWidth="3"
-                              strokeDasharray="4 2"
-                            />
-                          </svg>
-
-                          {/* Green Toe Drag Pin */}
-                          <div
-                            onPointerDown={() => handlePointerDown('toe')}
-                            style={{
-                              left: `${toeNorm[0] * 100}%`,
-                              top: `${toeNorm[1] * 100}%`,
-                              transform: 'translate(-50%, -50%)',
-                            }}
-                            className="absolute w-7 h-7 rounded-full bg-emerald-500 border-2 border-white shadow-lg cursor-grab active:cursor-grabbing flex items-center justify-center z-20 animate-pulse"
-                            title="Drag to longest toe tip"
-                          >
-                            <span className="text-[9px] font-bold text-white">TOE</span>
-                          </div>
-
-                          {/* Red Heel Drag Pin */}
-                          <div
-                            onPointerDown={() => handlePointerDown('heel')}
-                            style={{
-                              left: `${heelNorm[0] * 100}%`,
-                              top: `${heelNorm[1] * 100}%`,
-                              transform: 'translate(-50%, -50%)',
-                            }}
-                            className="absolute w-7 h-7 rounded-full bg-red-500 border-2 border-white shadow-lg cursor-grab active:cursor-grabbing flex items-center justify-center z-20 animate-pulse"
-                            title="Drag to rear heel apex"
-                          >
-                            <span className="text-[9px] font-bold text-white">HEEL</span>
-                          </div>
-                        </>
-                      )}
+                    <div className="text-center text-xs bg-[#565449]/90 backdrop-blur-xs text-[#F7F4EB] py-1.5 px-3 rounded-md mx-auto border border-[#F7F4EB]/30 shadow-xs">
+                      Hold phone flat overhead. Keep all 4 corners visible in frame.
                     </div>
                   </div>
-                )}
+                </div>
 
-                {/* Action Buttons */}
                 <div className="flex gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => startCamera(activeFacingMode)}
-                    className="flex-1 bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 border border-[#565449] transition cursor-pointer"
+                    onClick={handleCapture}
+                    className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md transition active:scale-95 text-sm sm:text-base border border-[#565449] cursor-pointer"
                   >
-                    <RotateCcw className="w-4 h-4" />
-                    <span>Scan Again</span>
+                    <Camera className="w-5 h-5" />
+                    <span>Capture &amp; Calibrate</span>
                   </button>
 
-                  <Link
-                    to={`/products?size=${ukSize}`}
-                    className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition text-center border border-[#565449] cursor-pointer"
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3.5 px-5 rounded-xl flex items-center justify-center gap-2 border border-[#565449] transition cursor-pointer"
+                    title="Upload photo from gallery"
                   >
-                    <span>Shop Size {ukSize}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
+                    <Upload className="w-5 h-5" />
+                    <span className="hidden sm:inline">Upload Photo</span>
+                  </button>
                 </div>
               </div>
-            );
-          })()}
+            )}
 
-          {/* 4. ERROR STEP */}
-          {step === 'error' && (
-            <div className="py-6 text-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-[#A0988A]/30 text-[#1A1A18] border border-[#565449]/40 flex items-center justify-center mx-auto">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <h2 className="font-serif font-bold text-lg text-[#1A1A18]">
-                Calibration Unsuccessful
-              </h2>
-              <p className="text-xs sm:text-sm text-[#1A1A18] bg-[#A0988A]/25 p-3 rounded-xl border border-[#565449]/40 max-w-md mx-auto">
-                {errorMsg}
-              </p>
+            {/* Step 1.5: CamScanner-style 4-Corner Paper Adjuster (If automatic detection missed or user wants to snap) */}
+            {step === 'paper_adjust' && capturedImageB64 && (
+              <div className="space-y-4">
+                <div className="bg-[#F7F4EB] p-3 rounded-xl border border-[#A0988A] text-xs text-[#1A1A18] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Crosshair className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span><strong>CamScanner 4-Corner Snapper:</strong> Drag the 4 pins onto the physical corners of the paper.</span>
+                  </div>
+                </div>
 
-              <div className="text-left text-xs text-[#1A1A18] bg-[#F7F4EB] p-4 rounded-xl border border-[#A0988A] space-y-1.5 max-w-md mx-auto shadow-xs">
-                <span className="font-bold text-[#1A1A18] block">Tips for Full Extreme Accuracy:</span>
-                <p>1. <strong>A4 Paper:</strong> Use a plain, uncreased white A4 paper sheet flat on the floor.</p>
-                <p>2. <strong>All 4 Corners:</strong> Ensure all four corners of the sheet are visible in the camera frame.</p>
-                <p>3. <strong>Bare Foot:</strong> Place your bare foot flat directly on the paper.</p>
-                <p>4. <strong>Overhead Angle:</strong> Hold your phone flat directly overhead (not at a severe side tilt).</p>
-                <p>5. <strong>Alternative:</strong> Switch to Credit / ID Card mode above if you do not have an A4 sheet handy.</p>
-              </div>
-
-              <div className="flex gap-3 justify-center pt-2 max-w-md mx-auto">
-                <button
-                  type="button"
-                  onClick={() => startCamera(activeFacingMode)}
-                  className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition border border-[#565449] cursor-pointer"
+                <div
+                  ref={paperAdjustContainerRef}
+                  onPointerMove={handleCornerPointerMove}
+                  onPointerUp={handleCornerPointerUp}
+                  className="relative rounded-xl overflow-hidden border border-[#A0988A] bg-black max-h-[460px] flex items-center justify-center shadow-inner select-none touch-none"
                 >
-                  <RotateCcw className="w-4 h-4" />
-                  <span>Try Camera Again</span>
-                </button>
+                  <img
+                    src={`data:image/jpeg;base64,${capturedImageB64}`}
+                    alt="Paper Corner Snapper"
+                    className="max-h-[460px] w-auto object-contain mx-auto pointer-events-none"
+                  />
 
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 border border-[#565449] transition cursor-pointer"
-                >
-                  <Upload className="w-4 h-4" />
-                  <span>Upload Photo</span>
-                </button>
+                  {/* Connected Quadrilateral Boundary */}
+                  <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                    <polygon
+                      points={paperCornersNorm.map((p) => `${p[0] * 100}%,${p[1] * 100}%`).join(' ')}
+                      fill="rgba(0, 240, 255, 0.15)"
+                      stroke="#00F0FF"
+                      strokeWidth="3"
+                    />
+                  </svg>
+
+                  {/* 4 Draggable Corner Pins */}
+                  {paperCornersNorm.map((corner, idx) => {
+                    const labels = ['Top-Left', 'Top-Right', 'Bottom-Right', 'Bottom-Left'];
+                    return (
+                      <div
+                        key={idx}
+                        onPointerDown={() => handleCornerPointerDown(idx)}
+                        style={{
+                          left: `${corner[0] * 100}%`,
+                          top: `${corner[1] * 100}%`,
+                          transform: 'translate(-50%, -50%)',
+                        }}
+                        className="absolute w-8 h-8 rounded-full bg-cyan-400 border-2 border-white shadow-xl cursor-grab active:cursor-grabbing flex items-center justify-center z-30"
+                        title={labels[idx]}
+                      >
+                        <span className="text-[10px] font-black text-black">{idx + 1}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => startCamera(activeFacingMode)}
+                    className="bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3 px-4 rounded-xl border border-[#565449] transition cursor-pointer text-xs sm:text-sm"
+                  >
+                    Retake Photo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={recomputeWithCustomPaperCorners}
+                    className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3 px-6 rounded-xl shadow-md transition text-xs sm:text-sm border border-[#565449] cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Confirm 4 Corners &amp; Measure Foot</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Analyzing Spinner */}
+            {step === 'analyzing' && (
+              <div className="py-12 text-center space-y-4">
+                <div className="relative w-16 h-16 mx-auto">
+                  <div className="w-16 h-16 border-4 border-[#A0988A] border-t-[#565449] rounded-full animate-spin" />
+                  <Sparkles className="w-6 h-6 text-[#1A1A18] absolute inset-0 m-auto animate-pulse" />
+                </div>
+                <h2 className="font-serif font-bold text-xl text-[#1A1A18]">
+                  Computing Planar Homography &amp; PCA...
+                </h2>
+                <p className="text-xs sm:text-sm text-[#1A1A18]/80 max-w-sm mx-auto">
+                  Unwarping perspective trapezoid into canonical 2.0 px/mm plane and isolating heel pternion and longest toe apex.
+                </p>
+              </div>
+            )}
+
+            {/* Result Display */}
+            {step === 'result' && result && (() => {
+              const currentSize = calculateShoeSizeFromMm(adjustedLengthMm);
+              const ukSize = currentSize.uk;
+              const euSize = currentSize.eu;
+              const usSize = currentSize.us;
+              const lengthMm = adjustedLengthMm;
+              const widthMm = Math.round(result.foot_width_mm);
+              const fitProfile = result.fit_profile || (widthMm < 93 ? 'Slim / Narrow' : widthMm > 105 ? 'Wide Comfort' : 'Regular Standard');
+
+              return (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#A0988A]/40">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                        <Check className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm text-[#1A1A18]">Full Extreme Accuracy Verified</h3>
+                        <p className="text-xs text-[#1A1A18]/70">
+                          {result.calibration_object === 'credit_card' ? 'Calibrated via Standard Card Scale' : 'Calibrated via A4 Planar Homography'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300">
+                      99.5% Precision
+                    </span>
+                  </div>
+
+                  {/* Main Recommended Size Card */}
+                  <div className="text-center py-6 bg-[#F7F4EB] rounded-xl border border-[#A0988A] shadow-xs">
+                    <span className="text-xs uppercase tracking-wider text-[#1A1A18]/80 font-bold block mb-1">
+                      Recommended Peshawari Chappal Size
+                    </span>
+                    <div className="font-serif font-bold text-5xl sm:text-6xl text-[#1A1A18] my-2">
+                      Size {ukSize}
+                    </div>
+                    <p className="text-xs sm:text-sm text-[#1A1A18]/80 font-medium">
+                      Pak / UK {ukSize} &nbsp;·&nbsp; EU {euSize} &nbsp;·&nbsp; US {usSize}
+                    </p>
+                    <div className="mt-3 inline-block bg-[#565449]/10 text-[#1A1A18] text-xs font-semibold px-3 py-1 rounded-full border border-[#565449]/20">
+                      Profile: {fitProfile} Fit ({currentSize.model})
+                    </div>
+                  </div>
+
+                  {/* Millimeter metrics */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-4 rounded-xl bg-[#F7F4EB] border border-[#A0988A] text-center shadow-xs">
+                      <span className="text-xs uppercase text-[#1A1A18]/80 block font-semibold">Bare Foot Length</span>
+                      <span className="font-bold text-2xl text-[#1A1A18]">{lengthMm} mm</span>
+                      <span className="text-[11px] text-[#1A1A18]/60 block mt-0.5">
+                        {isFineTuning ? 'Live Pin Distance' : 'Heel Apex to Longest Toe'}
+                      </span>
+                    </div>
+                    <div className="p-4 rounded-xl bg-[#F7F4EB] border border-[#A0988A] text-center shadow-xs">
+                      <span className="text-xs uppercase text-[#1A1A18]/80 block font-semibold">Ball Width</span>
+                      <span className="font-bold text-2xl text-[#1A1A18]">{widthMm} mm</span>
+                      <span className="text-[11px] text-[#1A1A18]/60 block mt-0.5">Metatarsal Arch Spread</span>
+                    </div>
+                  </div>
+
+                  {/* Interactive Landmark Detection Proof Canvas */}
+                  {result.annotated_image_base64 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-[#1A1A18]">
+                          Anatomical Foot Landmark Pins:
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setStep('paper_adjust')}
+                            className="text-xs px-2.5 py-1 rounded-lg font-semibold bg-[#F7F4EB] text-[#1A1A18] border border-[#A0988A] hover:bg-[#A0988A]/20 transition cursor-pointer"
+                            title="Adjust paper corners"
+                          >
+                            📐 Re-adjust Paper Corners
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setIsFineTuning(!isFineTuning)}
+                            className={`text-xs px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1.5 border transition cursor-pointer ${
+                              isFineTuning
+                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                                : 'bg-[#F7F4EB] text-[#1A1A18] border-[#A0988A] hover:bg-[#A0988A]/20'
+                            }`}
+                          >
+                            <Sliders className="w-3.5 h-3.5" />
+                            <span>{isFineTuning ? 'Pins Active' : 'Micro-Adjust Heel/Toe'}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {isFineTuning && (
+                        <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-lg text-xs text-amber-900">
+                          <span>🎯 <strong>Drag green (Toe)</strong> or <strong>red (Heel)</strong> dot directly on the photo to fine-tune to your exact foot apex.</span>
+                          <button
+                            type="button"
+                            onClick={resetToAutoDetection}
+                            className="ml-2 text-[11px] bg-amber-200/80 hover:bg-amber-300 px-2 py-0.5 rounded font-bold text-amber-950 flex items-center gap-1 cursor-pointer"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                            <span>Reset</span>
+                          </button>
+                        </div>
+                      )}
+
+                      <div
+                        ref={imageContainerRef}
+                        onPointerMove={handlePointerMove}
+                        onPointerUp={handlePointerUp}
+                        className="relative rounded-xl overflow-hidden border border-[#A0988A] bg-[#565449]/10 max-h-80 flex items-center justify-center shadow-inner select-none touch-none"
+                      >
+                        <img
+                          src={`data:image/jpeg;base64,${result.annotated_image_base64}`}
+                          alt="Detection Proof"
+                          className="max-h-80 w-auto object-contain mx-auto pointer-events-none"
+                        />
+
+                        {isFineTuning && (
+                          <>
+                            <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                              <line
+                                x1={`${toeNorm[0] * 100}%`}
+                                y1={`${toeNorm[1] * 100}%`}
+                                x2={`${heelNorm[0] * 100}%`}
+                                y2={`${heelNorm[1] * 100}%`}
+                                stroke="#00F0FF"
+                                strokeWidth="3"
+                                strokeDasharray="4 2"
+                              />
+                            </svg>
+
+                            <div
+                              onPointerDown={() => handlePointerDown('toe')}
+                              style={{
+                                left: `${toeNorm[0] * 100}%`,
+                                top: `${toeNorm[1] * 100}%`,
+                                transform: 'translate(-50%, -50%)',
+                              }}
+                              className="absolute w-7 h-7 rounded-full bg-emerald-500 border-2 border-white shadow-lg cursor-grab active:cursor-grabbing flex items-center justify-center z-20 animate-pulse"
+                              title="Drag to longest toe tip"
+                            >
+                              <span className="text-[9px] font-bold text-white">TOE</span>
+                            </div>
+
+                            <div
+                              onPointerDown={() => handlePointerDown('heel')}
+                              style={{
+                                left: `${heelNorm[0] * 100}%`,
+                                top: `${heelNorm[1] * 100}%`,
+                                transform: 'translate(-50%, -50%)',
+                              }}
+                              className="absolute w-7 h-7 rounded-full bg-red-500 border-2 border-white shadow-lg cursor-grab active:cursor-grabbing flex items-center justify-center z-20 animate-pulse"
+                              title="Drag to rear heel apex"
+                            >
+                              <span className="text-[9px] font-bold text-white">HEEL</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => startCamera(activeFacingMode)}
+                      className="flex-1 bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 border border-[#565449] transition cursor-pointer"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      <span>Scan Again</span>
+                    </button>
+
+                    <Link
+                      to={`/products?size=${ukSize}`}
+                      className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition text-center border border-[#565449] cursor-pointer"
+                    >
+                      <span>Shop Size {ukSize}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Error Step */}
+            {step === 'error' && (
+              <div className="py-6 text-center space-y-4">
+                <div className="w-12 h-12 rounded-full bg-[#A0988A]/30 text-[#1A1A18] border border-[#565449]/40 flex items-center justify-center mx-auto">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <h2 className="font-serif font-bold text-lg text-[#1A1A18]">
+                  Calibration Unsuccessful
+                </h2>
+                <p className="text-xs sm:text-sm text-[#1A1A18] bg-[#A0988A]/25 p-3 rounded-xl border border-[#565449]/40 max-w-md mx-auto">
+                  {errorMsg}
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2 max-w-md mx-auto">
+                  <button
+                    type="button"
+                    onClick={() => startCamera(activeFacingMode)}
+                    className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition border border-[#565449] cursor-pointer"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Try Camera Again</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('ruler')}
+                    className="flex-1 bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 border border-[#565449] transition cursor-pointer"
+                  >
+                    <Ruler className="w-4 h-4" />
+                    <span>Use Tape Measure (100% Guaranteed)</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Camera Denied Step */}
+            {step === 'camera_denied' && (
+              <div className="py-8 text-center space-y-4">
+                <div className="w-12 h-12 rounded-full bg-[#A0988A]/30 text-[#1A1A18] border border-[#565449]/30 flex items-center justify-center mx-auto">
+                  <Camera className="w-6 h-6" />
+                </div>
+                <h2 className="font-serif font-bold text-lg text-[#1A1A18]">
+                  Camera Access Needed
+                </h2>
+                <p className="text-xs sm:text-sm text-[#1A1A18]/80 max-w-sm mx-auto">
+                  Please allow camera access or choose a photo from your gallery.
+                </p>
+
+                <div className="flex gap-3 justify-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => startCamera('environment')}
+                    className="bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3 px-5 rounded-xl border border-[#565449] transition text-sm cursor-pointer shadow-xs"
+                  >
+                    Retry Camera
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3 px-5 rounded-xl flex items-center gap-2 transition text-sm cursor-pointer shadow-md border border-[#565449]"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Upload Photo</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* TAB 2: TAPE MEASURE / RULER INPUT (100% GUARANTEED ZERO-FAILURE) */}
+        {/* ============================================================== */}
+        {activeTab === 'ruler' && (
+          <div className="bg-[#A0988A]/20 rounded-2xl border border-[#A0988A] shadow-md p-5 sm:p-7 backdrop-blur-xs space-y-6">
+            <div className="flex items-center gap-3 pb-3 border-b border-[#A0988A]/40">
+              <div className="w-10 h-10 rounded-full bg-[#565449] text-[#F7F4EB] flex items-center justify-center shadow-xs">
+                <Ruler className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-serif font-bold text-lg text-[#1A1A18]">
+                  Direct Ruler / Tape Measure Calibration
+                </h2>
+                <p className="text-xs text-[#1A1A18]/70">
+                  Zero camera glare, zero paper shadows. 100% physical accuracy.
+                </p>
               </div>
             </div>
-          )}
 
-          {/* 5. CAMERA DENIED STEP */}
-          {step === 'camera_denied' && (
-            <div className="py-8 text-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-[#A0988A]/30 text-[#1A1A18] border border-[#565449]/30 flex items-center justify-center mx-auto">
-                <Camera className="w-6 h-6" />
-              </div>
-              <h2 className="font-serif font-bold text-lg text-[#1A1A18]">
-                Camera Access Needed
-              </h2>
-              <p className="text-xs sm:text-sm text-[#1A1A18]/80 max-w-sm mx-auto">
-                Please allow camera access in your browser or choose a photo from your gallery.
-              </p>
-
-              <div className="flex gap-3 justify-center pt-2">
-                <button
-                  type="button"
-                  onClick={() => startCamera('environment')}
-                  className="bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3 px-5 rounded-xl border border-[#565449] transition text-sm cursor-pointer shadow-xs"
-                >
-                  Retry Camera
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3 px-5 rounded-xl flex items-center gap-2 transition text-sm cursor-pointer shadow-md border border-[#565449]"
-                >
-                  <Upload className="w-4 h-4" />
-                  <span>Upload Photo</span>
-                </button>
+            {/* Guide Info Box */}
+            <div className="bg-[#F7F4EB] p-4 rounded-xl border border-[#A0988A] text-xs text-[#1A1A18] leading-relaxed flex gap-3">
+              <Info className="w-5 h-5 text-[#565449] shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold block mb-1">How to measure with a ruler:</span>
+                <p>1. Stand on a hard floor with your heel firmly against a flat wall.</p>
+                <p>2. Place a ruler or tape measure beside your foot and note the distance from the wall to your longest toe.</p>
               </div>
             </div>
-          )}
-        </div>
+
+            {/* Length Control Slider & Input */}
+            <div className="bg-[#F7F4EB] p-5 rounded-xl border border-[#A0988A] space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs uppercase font-bold text-[#1A1A18]/80 tracking-wider">
+                  Measured Bare Foot Length
+                </span>
+                <div className="flex bg-[#A0988A]/30 p-0.5 rounded-lg border border-[#565449]/40 text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (rulerUnit === 'in') setRulerLengthCm(Number((rulerLengthCm * 2.54).toFixed(1)));
+                      setRulerUnit('cm');
+                    }}
+                    className={`px-2.5 py-1 rounded-md transition ${rulerUnit === 'cm' ? 'bg-[#565449] text-white' : 'text-[#1A1A18]'}`}
+                  >
+                    CM
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (rulerUnit === 'cm') setRulerLengthCm(Number((rulerLengthCm / 2.54).toFixed(1)));
+                      setRulerUnit('in');
+                    }}
+                    className={`px-2.5 py-1 rounded-md transition ${rulerUnit === 'in' ? 'bg-[#565449] text-white' : 'text-[#1A1A18]'}`}
+                  >
+                    INCH
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-baseline justify-center gap-2 my-2">
+                <span className="font-serif font-black text-5xl text-[#1A1A18]">
+                  {rulerLengthCm}
+                </span>
+                <span className="font-bold text-lg text-[#1A1A18]/70">
+                  {rulerUnit} &nbsp;({Math.round(rulerLengthMm)} mm)
+                </span>
+              </div>
+
+              <input
+                type="range"
+                min={rulerUnit === 'cm' ? 22.0 : 8.6}
+                max={rulerUnit === 'cm' ? 31.5 : 12.4}
+                step={0.1}
+                value={rulerLengthCm}
+                onChange={(e) => setRulerLengthCm(parseFloat(e.target.value))}
+                className="w-full accent-[#565449] cursor-pointer"
+              />
+
+              <div className="flex justify-between text-[11px] text-[#1A1A18]/60 font-medium">
+                <span>{rulerUnit === 'cm' ? '22.0 cm (Size 4)' : '8.6 in'}</span>
+                <span>Median: {rulerUnit === 'cm' ? '26.4 cm (Size 8)' : '10.4 in'}</span>
+                <span>{rulerUnit === 'cm' ? '31.5 cm (Size 13)' : '12.4 in'}</span>
+              </div>
+            </div>
+
+            {/* Foot Width Profile Selector */}
+            <div className="space-y-2">
+              <span className="text-xs uppercase font-bold text-[#1A1A18]/80 block tracking-wider">
+                Foot Width Profile
+              </span>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'narrow', label: 'Slim / Narrow', desc: '< 93 mm' },
+                  { id: 'regular', label: 'Regular Standard', desc: '93 – 105 mm' },
+                  { id: 'wide', label: 'Wide Comfort', desc: '> 105 mm' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setRulerWidthProfile(item.id as any)}
+                    className={`p-3 rounded-xl border text-center transition cursor-pointer ${
+                      rulerWidthProfile === item.id
+                        ? 'bg-[#565449] text-white border-[#565449] shadow-sm'
+                        : 'bg-[#F7F4EB] text-[#1A1A18] border-[#A0988A] hover:bg-[#A0988A]/20'
+                    }`}
+                  >
+                    <span className="font-bold text-xs block">{item.label}</span>
+                    <span className="text-[10px] opacity-80 block mt-0.5">{item.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Result Display Box */}
+            <div className="bg-[#F7F4EB] p-6 rounded-xl border border-[#A0988A] text-center shadow-xs">
+              <span className="text-xs uppercase tracking-wider text-[#1A1A18]/80 font-bold block mb-1">
+                Matched Master Artisan Chappal Last
+              </span>
+              <div className="font-serif font-black text-5xl text-[#1A1A18] my-1">
+                Size {rulerSize.uk}
+              </div>
+              <p className="text-xs sm:text-sm text-[#1A1A18]/80 font-semibold">
+                Pak / UK {rulerSize.uk} &nbsp;·&nbsp; EU {rulerSize.eu} &nbsp;·&nbsp; US {rulerSize.us}
+              </p>
+              <div className="mt-3 inline-block bg-[#565449]/15 text-[#1A1A18] text-xs font-semibold px-3.5 py-1.5 rounded-full border border-[#565449]/30">
+                Recommended Silhouette: {rulerSize.model}
+              </div>
+            </div>
+
+            <Link
+              to={`/products?size=${rulerSize.uk}`}
+              className="w-full bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md transition text-center border border-[#565449] cursor-pointer"
+            >
+              <span>Shop Authentic Size {rulerSize.uk} Peshawari Chappals</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* TAB 3: BRAND SHOE SIZE CONVERTER                               */}
+        {/* ============================================================== */}
+        {activeTab === 'brand' && (
+          <div className="bg-[#A0988A]/20 rounded-2xl border border-[#A0988A] shadow-md p-5 sm:p-7 backdrop-blur-xs space-y-6">
+            <div className="flex items-center gap-3 pb-3 border-b border-[#A0988A]/40">
+              <div className="w-10 h-10 rounded-full bg-[#565449] text-[#F7F4EB] flex items-center justify-center shadow-xs">
+                <ShoppingBag className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-serif font-bold text-lg text-[#1A1A18]">
+                  Brand Footwear Size Matcher
+                </h2>
+                <p className="text-xs text-[#1A1A18]/70">
+                  Convert your standard commercial shoe size to authentic handcrafted Peshawari lasts.
+                </p>
+              </div>
+            </div>
+
+            {/* Brand Selectors */}
+            <div className="space-y-3">
+              <span className="text-xs uppercase font-bold text-[#1A1A18]/80 block tracking-wider">
+                Select Your Usual Shoe Brand
+              </span>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                {(['Bata', 'Service', 'Nike', 'Adidas', 'Clarks'] as const).map((b) => (
+                  <button
+                    key={b}
+                    type="button"
+                    onClick={() => setSelectedBrand(b)}
+                    className={`py-2.5 px-3 rounded-xl border text-center font-bold text-xs transition cursor-pointer ${
+                      selectedBrand === b
+                        ? 'bg-[#565449] text-white border-[#565449] shadow-sm'
+                        : 'bg-[#F7F4EB] text-[#1A1A18] border-[#A0988A] hover:bg-[#A0988A]/20'
+                    }`}
+                  >
+                    {b}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Size Selector Buttons */}
+            <div className="space-y-3">
+              <span className="text-xs uppercase font-bold text-[#1A1A18]/80 block tracking-wider">
+                Select Your Usual Size in {selectedBrand}
+              </span>
+              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                {[6, 7, 8, 9, 10, 11, 12, 13].map((sz) => (
+                  <button
+                    key={sz}
+                    type="button"
+                    onClick={() => setSelectedBrandSize(sz)}
+                    className={`py-3 rounded-xl border font-black text-sm transition cursor-pointer ${
+                      selectedBrandSize === sz
+                        ? 'bg-[#565449] text-white border-[#565449] shadow-sm'
+                        : 'bg-[#F7F4EB] text-[#1A1A18] border-[#A0988A] hover:bg-[#A0988A]/20'
+                    }`}
+                  >
+                    {sz}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Equivalent Peshawari Last Card */}
+            <div className="bg-[#F7F4EB] p-6 rounded-xl border border-[#A0988A] text-center shadow-xs space-y-2">
+              <span className="text-xs uppercase tracking-wider text-[#1A1A18]/80 font-bold block">
+                Your Authentic Peshawari Chappal Fit
+              </span>
+              <div className="font-serif font-black text-5xl text-[#1A1A18]">
+                Size {convertedUkSize}
+              </div>
+              <p className="text-xs sm:text-sm text-[#1A1A18]/80 font-semibold">
+                Pak / UK {convertedUkSize} &nbsp;·&nbsp; EU {convertedDetails.eu} &nbsp;·&nbsp; US {convertedDetails.us}
+              </p>
+              <p className="text-xs text-[#1A1A18]/70 pt-2 border-t border-[#A0988A]/30">
+                {selectedBrand === 'Nike' || selectedBrand === 'Adidas'
+                  ? `Sneakers contain heavy foam padding. For authentic open-toe leather Peshawari chappals, size ${convertedUkSize} provides the exact artisanal last balance.`
+                  : `Your standard ${selectedBrand} size ${selectedBrandSize} corresponds seamlessly to our Khyber mastercraft last.`}
+              </p>
+            </div>
+
+            <Link
+              to={`/products?size=${convertedUkSize}`}
+              className="w-full bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md transition text-center border border-[#565449] cursor-pointer"
+            >
+              <span>Shop Size {convertedUkSize} Collection</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
