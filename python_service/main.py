@@ -74,8 +74,8 @@ REFERENCE_SIZES = {
 
 # Authentic Peshawari Chappal Sizing Table (Standard UK / Pakistani sizing)
 CHAPPAL_SIZE_CHART = [
-    (247.0, 39, 6.0, 6.5),
-    (255.0, 40, 7.0, 7.5),
+    (248.0, 39, 6.0, 6.5),
+    (256.0, 40, 7.0, 7.5),
     (264.0, 41, 8.0, 8.5),
     (273.0, 42, 9.0, 9.5),
     (282.0, 43, 10.0, 10.5),
@@ -462,24 +462,25 @@ async def calculate_foot_size(request: SizeCalculationRequest):
 
         quality_issues, mean_brightness, lap_var = _check_image_quality(proc)
 
-        # 1. Execute wildoctopus/FeetAndShoeMeasurement Precision Engine
+        # 1. Execute High-Precision Homography Computer Vision Engine
         if WILDOCTOPUS_MODEL_AVAILABLE:
             try:
-                cv_result = run_wildoctopus_model(img, rembg_session=REMBG_SESSION)
+                cv_result = run_wildoctopus_model(
+                    img,
+                    rembg_session=REMBG_SESSION,
+                    ref_type=request.calibration_object
+                )
                 if cv_result.get("success", False):
                     return cv_result
-                elif "error" in cv_result:
+                elif cv_result.get("error_code") == "NO_REFERENCE_DETECTED" and request.calibration_object != "credit_card":
+                    # Try credit card calibration fallback in case user used card instead of A4
+                    card_attempt = run_wildoctopus_model(img, rembg_session=REMBG_SESSION, ref_type="credit_card")
+                    if card_attempt.get("success", False):
+                        return card_attempt
+                if "error" in cv_result:
                     return JSONResponse(status_code=400, content=cv_result)
             except Exception as cv_e:
                 print("Notice: Precision CV model error:", cv_e)
-                return JSONResponse(
-                    status_code=400,
-                    content={
-                        "success": False,
-                        "error": "Could not detect A4 paper sheet and bare foot clearly. Please ensure your foot is flat on a standard white A4 sheet with good overhead lighting.",
-                        "error_code": "DETECTION_FAILED"
-                    }
-                )
 
         if FEET_CV_AVAILABLE:
             try:

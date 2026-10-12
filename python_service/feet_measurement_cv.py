@@ -202,15 +202,16 @@ def run_feet_and_shoe_measurement_pipeline(
     img_bgr: np.ndarray,
     ref_long_mm: float = 297.0,
     ref_short_mm: float = 210.0,
-    cal_obj: str = "a4_paper"
+    cal_obj: str = "a4_paper",
+    rembg_session = None
 ) -> Dict[str, Any]:
     """
     Executes computer vision measurement.
     Strictly enforces:
-    1. A4 paper reference detected.
+    1. Reference object detected (A4 paper or credit card).
     2. Bare foot detected on paper.
     Delegates to the orthogonal perspective unwarping engine.
     """
     from feet_and_shoe_model.pipeline import run_wildoctopus_model
-    return run_wildoctopus_model(img_bgr)
+    return run_wildoctopus_model(img_bgr, rembg_session=rembg_session, ref_type=cal_obj)
 
