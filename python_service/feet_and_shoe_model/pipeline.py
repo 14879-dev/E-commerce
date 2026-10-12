@@ -504,6 +504,12 @@ def run_wildoctopus_model(
         "confidence_pct": 99,
         "fit_profile": fit_profile,
         "fit_note": f"Foot: {foot_len_mm}mm x {foot_wid_mm}mm | Recommended: UK / Pak Size {uk_size} (EU {eu_size}). {fit_profile} fit. Recommended model: {model_rec}.",
+        "toe_point": [round(float(toe_orig[0]), 1), round(float(toe_orig[1]), 1)],
+        "heel_point": [round(float(heel_orig[0]), 1), round(float(heel_orig[1]), 1)],
+        "toe_point_norm": [round(float(toe_orig[0] / max(1.0, w_orig)), 4), round(float(toe_orig[1] / max(1.0, h_orig)), 4)],
+        "heel_point_norm": [round(float(heel_orig[0] / max(1.0, w_orig)), 4), round(float(heel_orig[1] / max(1.0, h_orig)), 4)],
+        "image_width": int(w_orig),
+        "image_height": int(h_orig),
         "annotated_image_base64": annotated_b64,
         "model": "High-Precision Orthogonal Perspective Homography Computer Vision Engine",
     }
