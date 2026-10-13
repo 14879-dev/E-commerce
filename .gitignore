@@ -38,3 +38,11 @@ __pycache__/
 .pytest_cache/
 venv/
 .venv/
+*.pt
+*.onnx
+python_service/train/runs/
+python_service/train/dataset/
+python_service/train/debug_results/
+python_service/xer0bit_reference/
+python_service/*.jpg
+python_service/train/*.jpg

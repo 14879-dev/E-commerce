@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Upload, RotateCcw, AlertTriangle, ArrowRight, Check, Sparkles, FileText, Ruler, Info, Crosshair } from 'lucide-react';
+import { Camera, Upload, RotateCcw, AlertTriangle, ArrowRight, Check, Sparkles, CreditCard, Ruler, Info, Crosshair } from 'lucide-react';
 import { SEOHelmet } from '../components/common/SEOHelmet';
 import { PageHero } from '../components/common/PageHero';
 
@@ -83,6 +83,12 @@ export const FootSizeFinderPage: React.FC = () => {
     setErrorMsg('');
     setStep('camera');
 
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      console.warn('getUserMedia not supported on this origin');
+      setStep('camera_denied');
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -149,7 +155,7 @@ export const FootSizeFinderPage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           image_base64: b64,
-          calibration_object: 'a4_paper',
+          calibration_object: 'credit_card',
           paper_corners: customCorners,
         }),
         signal: AbortSignal.timeout(45000),
@@ -158,16 +164,8 @@ export const FootSizeFinderPage: React.FC = () => {
       const data = await res.json().catch(() => ({ success: false, error: 'Service temporarily unavailable.' }));
 
       if (!res.ok || !data.success) {
-        // If automatic detection struggled to detach paper, offer CamScanner paper corner adjustment
-        if (data.suggested_corners_norm && !customCorners) {
-          setPaperCornersNorm(data.suggested_corners_norm);
-          setErrorMsg(data.error || 'Please align the 4 corner pins with the 4 corners of your paper.');
-          setStep('paper_adjust');
-          return;
-        }
-
         setErrorMsg(
-          data.error || 'Could not detect foot on A4 paper. Please place your bare foot flat directly on top of a plain white A4 sheet with all 4 corners visible.'
+          data.error || 'Could not detect foot or credit card. Please place any standard debit card, credit card, CNIC, or ID card flat on the floor directly next to your bare foot and capture from overhead.'
         );
         setStep('error');
         return;
@@ -255,14 +253,14 @@ export const FootSizeFinderPage: React.FC = () => {
     <div className="w-full">
       <SEOHelmet
         title="Foot Size Calibration — Peshawari Chappal Co."
-        description="Find your exact Peshawari Chappal size with high-precision A4 computer vision or direct tape measure input."
+        description="Find your exact Peshawari Chappal size with high-precision Credit Card / ID Card computer vision or direct tape measure input."
       />
 
       <PageHero
         badge="Master Artisan Fitting"
         title="Find Your Exact Shoe Size"
         subtitle="100% Guaranteed Custom Fit"
-        description="Full precision calibration using standard white A4 paper (210 × 297 mm), or input your physical ruler measurement for guaranteed accuracy."
+        description="Full precision calibration using any standard Credit Card, Debit Card, or ID Card (85.6 × 54.0 mm), or input your physical ruler measurement for guaranteed accuracy."
       />
 
       <div className="max-w-2xl mx-auto py-6 sm:py-10 px-4">
@@ -287,8 +285,8 @@ export const FootSizeFinderPage: React.FC = () => {
                 : 'text-[#1A1A18] hover:bg-[#A0988A]/20'
             }`}
           >
-            <Camera className="w-4 h-4 shrink-0" />
-            <span className="truncate">Camera Scanner (A4 Paper)</span>
+            <CreditCard className="w-4 h-4 shrink-0" />
+            <span className="truncate">Camera Scanner (Card Reference)</span>
           </button>
 
           <button
@@ -306,15 +304,25 @@ export const FootSizeFinderPage: React.FC = () => {
         </div>
 
         {/* ============================================================== */}
-        {/* TAB 1: CAMERA SCANNER (WITH CAMSCANNER 4-CORNER PAPER SNAPPER) */}
+        {/* TAB 1: CAMERA SCANNER (XER0BIT YOLOV8 REFERENCE CARD ENGINE) */}
         {/* ============================================================== */}
         {activeTab === 'scanner' && (
           <div className="bg-[#A0988A]/20 rounded-2xl border border-[#A0988A] shadow-md p-4 sm:p-6 backdrop-blur-xs">
-            {/* Standard A4 Calibration Header */}
+            {/* Hidden File Input & Canvas */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept="image/*"
+              className="hidden"
+            />
+            <canvas ref={canvasRef} className="hidden" />
+
+            {/* Standard Card Calibration Header */}
             {step === 'camera' && (
               <div className="flex items-center gap-2 mb-4 bg-[#F7F4EB] p-2.5 rounded-xl border border-[#A0988A] text-xs font-semibold text-[#1A1A18]">
-                <FileText className="w-4 h-4 text-[#565449] shrink-0" />
-                <span>Standard White A4 Paper Sheet Calibration (210 &times; 297 mm)</span>
+                <CreditCard className="w-4 h-4 text-[#565449] shrink-0" />
+                <span>Standard Credit Card / ID Card Calibration (85.6 &times; 54.0 mm)</span>
               </div>
             )}
 
@@ -333,8 +341,8 @@ export const FootSizeFinderPage: React.FC = () => {
                   {/* Viewfinder Target Overlays */}
                   <div className="absolute inset-4 pointer-events-none border-2 border-dashed border-[#F7F4EB]/70 rounded-xl flex flex-col justify-between p-3">
                     <div className="flex justify-between items-start">
-                      <span className="text-xs bg-[#565449]/90 backdrop-blur-xs text-[#F7F4EB] px-2.5 py-1 rounded-md font-medium border border-[#F7F4EB]/30 shadow-xs">
-                        📄 Plain White A4 Sheet
+                      <span className="text-xs bg-[#565449]/90 backdrop-blur-xs text-[#F7F4EB] px-2.5 py-1 rounded-md font-medium border border-[#F7F4EB]/30 shadow-xs flex items-center gap-1.5">
+                        💳 Card Flat Beside Foot
                       </span>
                       <button
                         type="button"
@@ -349,13 +357,13 @@ export const FootSizeFinderPage: React.FC = () => {
                     <div className="flex-1 flex items-center justify-center pointer-events-none">
                       <div className="border-2 border-dashed border-emerald-400/70 rounded-lg w-48 sm:w-60 h-68 sm:h-84 flex items-center justify-center bg-emerald-500/5">
                         <span className="text-[11px] text-emerald-200 bg-black/60 px-2.5 py-1 rounded backdrop-blur-xs text-center">
-                          Place bare foot flat on white A4 paper
+                          Place bare foot flat next to card
                         </span>
                       </div>
                     </div>
 
                     <div className="text-center text-xs bg-[#565449]/90 backdrop-blur-xs text-[#F7F4EB] py-1.5 px-3 rounded-md mx-auto border border-[#F7F4EB]/30 shadow-xs">
-                      Hold phone flat overhead. Keep all 4 corners of paper visible in frame.
+                      Hold phone flat overhead. Keep card and bare foot clearly in frame.
                     </div>
                   </div>
                 </div>
@@ -373,11 +381,11 @@ export const FootSizeFinderPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3.5 px-5 rounded-xl flex items-center justify-center gap-2 border border-[#565449] transition cursor-pointer"
+                    className="flex-1 bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 border border-[#565449] transition cursor-pointer text-sm sm:text-base active:scale-95 shadow-sm"
                     title="Upload photo from gallery"
                   >
-                    <Upload className="w-5 h-5" />
-                    <span className="hidden sm:inline">Upload Photo</span>
+                    <Upload className="w-5 h-5 shrink-0" />
+                    <span>Upload Photo</span>
                   </button>
                 </div>
               </div>
@@ -497,7 +505,7 @@ export const FootSizeFinderPage: React.FC = () => {
                       <div>
                         <h3 className="font-bold text-sm text-[#1A1A18]">Full Accuracy Calibrated</h3>
                         <p className="text-xs text-[#1A1A18]/70">
-                          Calibrated via Standard A4 Paper (210 &times; 297 mm)
+                          Calibrated via Standard Credit Card / ID Card (85.6 &times; 54.0 mm)
                         </p>
                       </div>
                     </div>
@@ -538,22 +546,13 @@ export const FootSizeFinderPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Calibrated A4 Paper View */}
+                  {/* Calibrated Card & Foot Scan View */}
                   {result.annotated_image_base64 && (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-[#1A1A18]">
-                          Calibrated A4 Paper Scan:
+                          Calibrated Foot &amp; Reference Card Scan:
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => setStep('paper_adjust')}
-                          className="text-xs px-3 py-1.5 rounded-lg font-bold bg-[#F7F4EB] text-[#1A1A18] border border-[#A0988A] hover:bg-[#A0988A]/20 transition cursor-pointer flex items-center gap-1.5 shadow-xs"
-                          title="Adjust paper corners"
-                        >
-                          <Crosshair className="w-3.5 h-3.5 text-[#565449]" />
-                          <span>Adjust Paper Corners</span>
-                        </button>
                       </div>
 
                       <div className="text-center bg-[#565449]/10 p-2 rounded-xl overflow-hidden border border-[#A0988A] flex items-center justify-center shadow-inner">

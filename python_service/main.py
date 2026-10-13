@@ -22,6 +22,14 @@ except ImportError:
     CV2_AVAILABLE = False
 
 try:
+    from xer0bit_card_model import run_card_foot_measurement
+    XER0BIT_MODEL_AVAILABLE = True
+    print("Xer0bit Reference Card & Foot Measurement Model loaded successfully.")
+except Exception as e:
+    print("Notice: xer0bit_card_model import:", e)
+    XER0BIT_MODEL_AVAILABLE = False
+
+try:
     from feet_and_shoe_model.pipeline import run_wildoctopus_model
     WILDOCTOPUS_MODEL_AVAILABLE = True
     print("wildoctopus/FeetAndShoeMeasurement model loaded successfully.")
@@ -62,14 +70,15 @@ class OutfitMatchRequest(BaseModel):
 
 class SizeCalculationRequest(BaseModel):
     image_base64: str
-    calibration_object: str = "a4_paper"
+    calibration_object: str = "credit_card"
     known_width_mm: Optional[float] = None
     known_height_mm: Optional[float] = None
     paper_corners: Optional[List[List[float]]] = None
 
 REFERENCE_SIZES = {
-    "a4_paper":    {"width_mm": 210.0, "height_mm": 297.0},
     "credit_card": {"width_mm": 85.60, "height_mm": 53.98},
+    "id_card":     {"width_mm": 85.60, "height_mm": 53.98},
+    "a4_paper":    {"width_mm": 210.0, "height_mm": 297.0},
     "us_letter":   {"width_mm": 215.9, "height_mm": 279.4},
 }
 
@@ -463,8 +472,26 @@ async def calculate_foot_size(request: SizeCalculationRequest):
 
         quality_issues, mean_brightness, lap_var = _check_image_quality(proc)
 
-        # 1. Execute High-Precision Homography Computer Vision Engine (A4 Paper Exclusively)
-        if WILDOCTOPUS_MODEL_AVAILABLE:
+        # Save last upload for inspection
+        cv2.imwrite("last_user_upload.jpg", img)
+        print(f"\n[INCOMING UPLOAD] Shape: {img_w}x{img_h}, custom_corners: {request.paper_corners}", flush=True)
+
+        # 1. Execute Xer0bit YOLOv8 Reference Card & Foot Calibration Engine (Default)
+        if XER0BIT_MODEL_AVAILABLE:
+            try:
+                card_res = run_card_foot_measurement(img, rembg_session=REMBG_SESSION)
+                if card_res.get("success", False):
+                    print(f"[XER0BIT MEASURED] foot_len_mm: {card_res.get('foot_length_mm')}mm, uk_size: {card_res.get('recommended_uk_size')}, eu_size: {card_res.get('recommended_eu_size')}", flush=True)
+                    card_res["warnings"] = quality_issues
+                    return card_res
+                if "error" in card_res:
+                    print(f"[XER0BIT FAILED] error: {card_res.get('error')}", flush=True)
+                    return JSONResponse(status_code=400, content=card_res)
+            except Exception as xe:
+                print("Notice: Xer0bit model execution error:", xe, flush=True)
+
+        # 2. Fallback to Homography Computer Vision Engine if requested
+        if WILDOCTOPUS_MODEL_AVAILABLE and request.calibration_object == "a4_paper":
             try:
                 cv_result = run_wildoctopus_model(
                     img,
@@ -473,11 +500,13 @@ async def calculate_foot_size(request: SizeCalculationRequest):
                     custom_corners=request.paper_corners
                 )
                 if cv_result.get("success", False):
+                    print(f"[MEASURED] foot_len_mm: {cv_result.get('foot_length_mm')}mm, uk_size: {cv_result.get('recommended_uk_size')}, eu_size: {cv_result.get('recommended_eu_size')}", flush=True)
                     return cv_result
                 if "error" in cv_result:
+                    print(f"[MEASUREMENT FAILED] error: {cv_result.get('error')}", flush=True)
                     return JSONResponse(status_code=400, content=cv_result)
             except Exception as cv_e:
-                print("Notice: Precision CV model error:", cv_e)
+                print("Notice: Precision CV model error:", cv_e, flush=True)
 
         if FEET_CV_AVAILABLE:
             try:

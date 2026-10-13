@@ -369,32 +369,63 @@ def segment_foot_on_a4_paper(
 
     pts = foot_cnt.reshape(-1, 2).astype(np.float32)
 
-    # Longitudinal axis metrics:
-    # In portrait canonical space, toes are at lower Y (top) and heel at higher Y (bottom)
-    y_min_idx = np.argmin(pts[:, 1])
-    y_max_idx = np.argmax(pts[:, 1])
-    toe_pt = pts[y_min_idx]
-    heel_pt = pts[y_max_idx]
+    # Rotation-Invariant Anatomical PCA Principal Axis Analysis:
+    # Fits a line along the longitudinal anatomical axis of the foot
+    line_params = cv2.fitLine(pts, cv2.DIST_L2, 0, 0.01, 0.01)
+    vx = float(line_params[0][0])
+    vy = float(line_params[1][0])
+    x0 = float(line_params[2][0])
+    y0 = float(line_params[3][0])
 
-    foot_len_px = float(heel_pt[1] - toe_pt[1])
-    # Euclidean distance if slightly angled
-    foot_len_px = max(foot_len_px, float(np.linalg.norm(toe_pt - heel_pt)))
+    norm_v = np.hypot(vx, vy) + 1e-6
+    vx /= norm_v
+    vy /= norm_v
+
+    # Project all contour points onto the longitudinal axis
+    projections = (pts[:, 0] - x0) * vx + (pts[:, 1] - y0) * vy
+    min_idx = int(np.argmin(projections))
+    max_idx = int(np.argmax(projections))
+
+    pt_1 = pts[min_idx]
+    pt_2 = pts[max_idx]
+
+    # Major axis length from PCA
+    axis_len_px = float(np.max(projections) - np.min(projections))
+
+    # Also evaluate rotated bounding rectangle
+    rot_rect = cv2.minAreaRect(foot_cnt)
+    rect_w, rect_h = rot_rect[1]
+    rect_major_px = float(max(rect_w, rect_h))
+    rect_minor_px = float(min(rect_w, rect_h))
+
+    # True anatomical foot length is the maximum longitudinal span
+    foot_len_px = max(axis_len_px, rect_major_px)
     foot_len_mm = round(foot_len_px / SCALE_PX_PER_MM, 1)
 
-    # Ball width: cross-sectional span across 55% - 80% from heel to toe
-    ball_band = (pts[:, 1] >= (toe_pt[1] + foot_len_px * 0.15)) & (pts[:, 1] <= (toe_pt[1] + foot_len_px * 0.45))
-    if np.any(ball_band):
-        x_band = pts[ball_band, 0]
-        ball_wid_px = float(np.max(x_band) - np.min(x_band))
+    # Ball width is the cross-sectional span (metatarsal width)
+    foot_wid_px = rect_minor_px
+    foot_wid_mm = round(foot_wid_px / SCALE_PX_PER_MM, 1)
+
+    # Differentiate Toe from Heel:
+    # Metatarsal/toes region is significantly wider than the narrow calcaneus (heel)
+    mid_proj = (np.min(projections) + np.max(projections)) / 2.0
+    perp_vx, perp_vy = -vy, vx
+
+    region_1 = projections < mid_proj
+    region_2 = projections >= mid_proj
+
+    perp_1 = (pts[region_1, 0] - x0) * perp_vx + (pts[region_1, 1] - y0) * perp_vy if np.any(region_1) else np.array([0])
+    perp_2 = (pts[region_2, 0] - x0) * perp_vx + (pts[region_2, 1] - y0) * perp_vy if np.any(region_2) else np.array([0])
+
+    w_1 = float(np.max(perp_1) - np.min(perp_1)) if len(perp_1) > 0 else 0
+    w_2 = float(np.max(perp_2) - np.min(perp_2)) if len(perp_2) > 0 else 0
+
+    if w_1 > w_2:
+        toe_pt = pt_1
+        heel_pt = pt_2
     else:
-        min_rect = cv2.minAreaRect(foot_cnt)
-        ball_wid_px = float(min(min_rect[1]))
-
-    foot_wid_mm = round(ball_wid_px / SCALE_PX_PER_MM, 1)
-
-    # Clamp bounds to realistic human foot range [215.0, 315.0]
-    foot_len_mm = max(215.0, min(315.0, foot_len_mm))
-    foot_wid_mm = max(72.0, min(120.0, foot_wid_mm))
+        toe_pt = pt_2
+        heel_pt = pt_1
 
     return foot_cnt, toe_pt, heel_pt, foot_len_mm, foot_wid_mm
 
@@ -455,7 +486,7 @@ def run_wildoctopus_model(
     )
 
     # Unwarp into canonical space
-    unwarped = cv2.warpPerspective(proc_img, M_to_canvas, (dst_w_px, dst_h_px), flags=cv2.INTER_CUBIC)
+    unwarped = cv2.warpPerspective(proc_img, M_to_canvas, (dst_w_px, dst_h_px), flags=cv2.INTER_LINEAR)
     M_inv = np.linalg.inv(M_to_canvas)
 
     # Step 3: Segment Foot on Unwarped A4 Paper

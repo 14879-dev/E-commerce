@@ -360,6 +360,46 @@ app.use('/api/auth', createRateLimiter(20, 60000));
 // Apply rate limiting to checkout orders (spam shield)
 app.use('/api/orders', createRateLimiter(40, 60000));
 
+// Proxy /api/py to Python FastAPI microservice (port 8000 or Railway internal service)
+app.use('/api/py', (req: Request, res: Response) => {
+  const pyBase = (process.env.PYTHON_SERVICE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
+  const pyUrl = `${pyBase}/api/py${req.url}`;
+  const targetUrl = new URL(pyUrl);
+
+  const bodyData = (req.body && (req.method === 'POST' || req.method === 'PUT'))
+    ? (typeof req.body === 'string' ? req.body : JSON.stringify(req.body))
+    : undefined;
+
+  const headers: any = { ...req.headers, host: targetUrl.host };
+  if (bodyData) {
+    headers['content-length'] = Buffer.byteLength(bodyData);
+    headers['content-type'] = 'application/json';
+  }
+
+  const options: http.RequestOptions = {
+    method: req.method,
+    headers,
+  };
+
+  const proxyReq = http.request(pyUrl, options, (pyRes) => {
+    res.writeHead(pyRes.statusCode || 500, pyRes.headers);
+    pyRes.pipe(res);
+  });
+
+  proxyReq.on('error', (err) => {
+    console.error('Python microservice proxy error:', err.message);
+    res.status(503).json({
+      success: false,
+      error: 'Python neural service is initializing or unavailable. Please ensure python microservice is running on port 8000.',
+    });
+  });
+
+  if (bodyData) {
+    proxyReq.write(bodyData);
+  }
+  proxyReq.end();
+});
+
 // ============================================================
 // MONGOOSE SCHEMAS (used when MONGO_URI is set)
 // ============================================================
@@ -2741,7 +2781,7 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 const serverPort = Number(PORT) || 8080;
-const targetPorts = Array.from(new Set([serverPort, 8080, 5000, 3000]));
+const targetPorts = Array.from(new Set([serverPort, 8080, 5000]));
 
 targetPorts.forEach((port, idx) => {
   try {
