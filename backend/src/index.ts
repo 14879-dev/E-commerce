@@ -361,43 +361,39 @@ app.use('/api/auth', createRateLimiter(20, 60000));
 app.use('/api/orders', createRateLimiter(40, 60000));
 
 // Proxy /api/py to Python FastAPI microservice (port 8000 or Railway internal service)
-app.use('/api/py', (req: Request, res: Response) => {
-  const pyBase = (process.env.PYTHON_SERVICE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
-  const pyUrl = `${pyBase}/api/py${req.url}`;
-  const targetUrl = new URL(pyUrl);
+app.use('/api/py', async (req: Request, res: Response) => {
+  try {
+    const pyBase = (process.env.PYTHON_SERVICE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
+    const pyUrl = `${pyBase}/api/py${req.url}`;
 
-  const bodyData = (req.body && (req.method === 'POST' || req.method === 'PUT'))
-    ? (typeof req.body === 'string' ? req.body : JSON.stringify(req.body))
-    : undefined;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
 
-  const headers: any = { ...req.headers, host: targetUrl.host };
-  if (bodyData) {
-    headers['content-length'] = Buffer.byteLength(bodyData);
-    headers['content-type'] = 'application/json';
-  }
+    const fetchOptions: RequestInit = {
+      method: req.method,
+      headers,
+    };
 
-  const options: http.RequestOptions = {
-    method: req.method,
-    headers,
-  };
+    if (req.body && (req.method === 'POST' || req.method === 'PUT')) {
+      fetchOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    }
 
-  const proxyReq = http.request(pyUrl, options, (pyRes) => {
-    res.writeHead(pyRes.statusCode || 500, pyRes.headers);
-    pyRes.pipe(res);
-  });
+    const pyRes = await fetch(pyUrl, fetchOptions);
+    const contentType = pyRes.headers.get('content-type') || 'application/json';
+    res.status(pyRes.status);
+    res.setHeader('Content-Type', contentType);
 
-  proxyReq.on('error', (err) => {
+    const data = await pyRes.text();
+    res.send(data);
+  } catch (err: any) {
     console.error('Python microservice proxy error:', err.message);
     res.status(503).json({
       success: false,
-      error: 'Python neural service is initializing or unavailable. Please ensure python microservice is running on port 8000.',
+      error: 'Python neural service is unreachable or initializing.',
+      detail: err.message,
     });
-  });
-
-  if (bodyData) {
-    proxyReq.write(bodyData);
   }
-  proxyReq.end();
 });
 
 // ============================================================
