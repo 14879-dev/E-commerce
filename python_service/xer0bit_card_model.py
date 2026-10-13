@@ -289,10 +289,20 @@ def segment_foot(
 ) -> Optional[Dict[str, Any]]:
     """
     Segments the bare foot beside the reference card.
-    Uses multi-spectral floor background subtraction + skin chromatic thresholding + PCA isolation.
+    Uses multi-spectral floor contrast, dark/light floor adaptive thresholding,
+    chromatic skin extraction, and scale-anchored candidate scoring.
     """
     h, w = img_bgr.shape[:2]
     total_area = h * w
+
+    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    lab = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2LAB)
+    ycrcb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2YCrCb)
+
+    clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
+    l_eq = clahe.apply(lab[:, :, 0])
+    a_chan = lab[:, :, 1]
 
     # Step 1: Neural Foreground Mask via rembg (if available)
     neural_mask = None
@@ -306,7 +316,6 @@ def segment_foot(
             neural_mask = None
 
     # Step 2: Chromatic Floor Contrast
-    # Sample corner borders for ambient floor color
     corner_samples = np.concatenate([
         img_bgr[0:30, 0:30, :].reshape(-1, 3),
         img_bgr[0:30, -30:, :].reshape(-1, 3),
@@ -315,54 +324,66 @@ def segment_foot(
     ], axis=0)
     floor_median = np.median(corner_samples, axis=0).astype(np.float32)
     diff_from_floor = np.linalg.norm(img_bgr.astype(np.float32) - floor_median, axis=2)
-    floor_fg = (diff_from_floor > 22.0).astype(np.uint8) * 255
+    floor_fg = (diff_from_floor > 20.0).astype(np.uint8) * 255
 
-    # Step 3: Skin-Tone Chromatic Filter (broadened for varied Pakistani/South Asian skin tones)
-    ycrcb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2YCrCb)
+    # Step 3: Skin-Tone Chromatic Filter (broadened for varied indoor lighting)
     cr = ycrcb[:, :, 1]
     cb = ycrcb[:, :, 2]
-    skin_mask = ((cr >= 122) & (cr <= 195) & (cb >= 65) & (cb <= 145)).astype(np.uint8) * 255
+    skin_mask = ((cr >= 115) & (cr <= 200) & (cb >= 60) & (cb <= 150)).astype(np.uint8) * 255
 
-    # Step 4: CLAHE Contrast on Luminance
-    lab = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2LAB)
-    l_chan = lab[:, :, 0]
-    clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
-    l_eq = clahe.apply(l_chan)
-    _, l_otsu = cv2.threshold(l_eq, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    # Step 4: Canny Edge Closed Mask
+    canny_map = cv2.Canny(blurred, 25, 95)
+    canny_closed = cv2.morphologyEx(canny_map, cv2.MORPH_CLOSE, np.ones((15, 15), np.uint8))
 
-    # Candidate masks to test
-    candidate_masks = []
+    # Comprehensive multi-spectral search masks (works on light floors, dark floors, tiles, wood, and carpets)
+    candidate_masks = [
+        cv2.threshold(l_eq, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1],      # Dark floor: foot is brighter
+        cv2.threshold(l_eq, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1],  # Light floor: foot is darker
+        cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1],      # Gray normal Otsu
+        cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1],  # Gray inverted Otsu
+        cv2.threshold(a_chan, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1],   # LAB A-channel (skin redness)
+        cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 35, 4),
+        cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 35, 4),
+        cv2.bitwise_or(floor_fg, skin_mask),
+        floor_fg,
+        skin_mask,
+        canny_closed,
+    ]
     if neural_mask is not None:
-        candidate_masks.append(neural_mask)
-    candidate_masks.append(cv2.bitwise_or(floor_fg, skin_mask))
-    candidate_masks.append(floor_fg)
-    candidate_masks.append(skin_mask)
-    candidate_masks.append(l_otsu)
+        candidate_masks.insert(0, neural_mask)
 
     foot_candidates = []
+
+    # Inclusive area bounds: a foot can be 0.15% to 65% of frame on smartphone cameras
+    min_area = total_area * 0.0015
+    max_area = total_area * 0.70
+
+    # Scale-derived expected foot dimensions from the card
+    card_ppm = card_info.get("ppm", 2.5) if card_info else 2.5
+    card_l_px = card_info.get("l_edge_px", 214.0) if card_info else 214.0
+    expected_foot_len = 262.0 * card_ppm  # Median adult foot = 262 mm
 
     for mask in candidate_masks:
         m_proc = mask.copy()
 
-        # Mask out card with 15px margin to avoid merging card into foot
+        # Mask out card with a tight 8px margin so we don't erase the foot if nearby
         if card_info is not None and "box" in card_info:
             card_poly = card_info["box"].astype(np.int32)
             cv2.fillPoly(m_proc, [card_poly], 0)
-            cv2.drawContours(m_proc, [card_poly], -1, 0, thickness=25)
+            cv2.drawContours(m_proc, [card_poly], -1, 0, thickness=8)
 
-        # Morphological smoothing
-        m_proc = cv2.morphologyEx(m_proc, cv2.MORPH_CLOSE, np.ones((13, 13), np.uint8))
+        # Morphological smoothing to connect toes with the foot body
+        m_proc = cv2.morphologyEx(m_proc, cv2.MORPH_CLOSE, np.ones((11, 11), np.uint8))
         m_proc = cv2.morphologyEx(m_proc, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
 
         cnts, _ = cv2.findContours(m_proc, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         for c in cnts:
             area = cv2.contourArea(c)
-            # Plausible foot area: 1.0% to 65% of frame
-            if area < total_area * 0.010 or area > total_area * 0.70:
+            if area < min_area or area > max_area:
                 continue
 
             bx, by, bw, bh = cv2.boundingRect(c)
-            # Disregard contours that are just the entire image frame
+            # Ignore contours that touch all four borders
             if bx <= 2 and by <= 2 and (bx + bw) >= (w - 3) and (by + bh) >= (h - 3):
                 continue
 
@@ -370,7 +391,7 @@ def segment_foot(
             if card_info is not None:
                 ccx, ccy = card_info["cx"], card_info["cy"]
                 fcx, fcy = bx + bw / 2.0, by + bh / 2.0
-                if abs(fcx - ccx) < 25 and abs(fcy - ccy) < 25:
+                if abs(fcx - ccx) < 20 and abs(fcy - ccy) < 20:
                     continue
 
             min_rect = cv2.minAreaRect(c)
@@ -380,34 +401,69 @@ def segment_foot(
 
             flen = max(fd1, fd2)
             fwid = min(fd1, fd2)
-            if fwid < 15:
+            if fwid < 12:
                 continue
 
             aspect = flen / float(fwid)
-            if 1.4 <= aspect <= 5.5:
-                # Plausible foot: score based on area and anatomical ratio
-                # If card is detected, adult foot length is typically 2.6x to 3.5x card length
-                ratio_score = 1.0
-                if card_info is not None and "l_edge_px" in card_info:
-                    expected_len = card_info["l_edge_px"] * 3.05  # Median foot / card ratio
-                    ratio_diff = abs(flen - expected_len) / expected_len
-                    ratio_score = max(0.2, 1.0 - ratio_diff)
+            if 1.3 <= aspect <= 5.8:
+                # Scale-anchored score: How closely does this match an adult human foot (220 - 310 mm)?
+                len_diff = abs(flen - expected_foot_len) / expected_foot_len
+                score_len = float(np.exp(-3.2 * len_diff))
+                score_aspect = max(0.2, 1.0 - abs(aspect - 2.8) / 2.8)
 
-                combined_score = area * ratio_score
+                combined_score = (score_len * 0.70) + (score_aspect * 0.30)
                 foot_candidates.append({
                     "contour": c,
-                    "area": area,
-                    "flen": flen,
-                    "fwid": fwid,
+                    "area": float(area),
+                    "flen": float(flen),
+                    "fwid": float(fwid),
                     "score": combined_score,
-                    "cx": cx,
-                    "cy": cy
+                    "cx": float(cx),
+                    "cy": float(cy)
                 })
+
+    # Step 5: Region of Interest (ROI) Fallback if full-frame masks missed
+    if not foot_candidates and card_info is not None:
+        # User places foot alongside card: search the adjacent half of the frame
+        ccx = card_info["cx"]
+        # If card is on left (ccx < w/2), foot is on right; if card is on right, foot is on left
+        rx1 = int(w * 0.30) if ccx < w * 0.5 else 0
+        rx2 = w if ccx < w * 0.5 else int(w * 0.70)
+        roi = gray[:, rx1:rx2]
+
+        if roi.size > 0:
+            roi_blurred = cv2.GaussianBlur(roi, (7, 7), 0)
+            for thresh_type in [cv2.THRESH_BINARY, cv2.THRESH_BINARY_INV]:
+                _, roi_bin = cv2.threshold(roi_blurred, 0, 255, thresh_type + cv2.THRESH_OTSU)
+                roi_bin = cv2.morphologyEx(roi_bin, cv2.MORPH_CLOSE, np.ones((13, 13), np.uint8))
+                cnts_roi, _ = cv2.findContours(roi_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                for cr_cnt in cnts_roi:
+                    cr_area = cv2.contourArea(cr_cnt)
+                    if cr_area < min_area:
+                        continue
+                    # Offset contour back to full image coordinates
+                    cr_cnt[:, :, 0] += rx1
+                    min_rect = cv2.minAreaRect(cr_cnt)
+                    (_, _), (fd1, fd2), _ = min_rect
+                    flen = max(fd1, fd2)
+                    fwid = min(fd1, fd2)
+                    if fwid > 12 and 1.3 <= (flen / float(fwid)) <= 5.8:
+                        len_diff = abs(flen - expected_foot_len) / expected_foot_len
+                        score_len = float(np.exp(-3.2 * len_diff))
+                        foot_candidates.append({
+                            "contour": cr_cnt,
+                            "area": float(cr_area),
+                            "flen": float(flen),
+                            "fwid": float(fwid),
+                            "score": score_len,
+                            "cx": float(min_rect[0][0]),
+                            "cy": float(min_rect[0][1])
+                        })
 
     if not foot_candidates:
         return None
 
-    # Pick top candidate
+    # Pick candidate with highest anatomical scale match
     foot_candidates.sort(key=lambda x: x["score"], reverse=True)
     best_foot = foot_candidates[0]
 
