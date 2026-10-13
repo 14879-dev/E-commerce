@@ -1,13 +1,13 @@
 """
 High-Precision A4 Paper Foot Measurement Computer Vision Pipeline
 - Grayscale CLAHE Contrast Enhancement & Bilateral Edge Smoothing.
-- Illumination Normalization & Morphological Internal Hole-Filling.
-- Multi-Strategy A4 Paper Detection (Otsu Bimodal + Adaptive Gaussian + Chroma Thresholding).
-- Multi-Epsilon Polygon Approximation & Sub-pixel Quadrilateral Corner Refinement.
-- Planar Perspective Homography to Canonical Millimeter Coordinates.
-- Chromatic Shadow-Detaching Foot Segmentation & Anatomical Metric Extraction.
-- Returns Homography Matrix (H_to_mm) for sub-millimeter live micro-tuning in frontend.
-- Strictly Calibrated to Authentic Handcrafted Peshawari Chappal Wooden Lasts (UK 6 to 13 / EU 39 to 46).
+- Multi-Strategy A4 Paper Detection (Chroma, High-Percentile, Otsu, Adaptive Gaussian, Canny).
+- Multi-Epsilon Polygon Simplification & Sub-pixel Quadrilateral Corner Refinement.
+- Canonical Planar Homography Unwarping into 2.0 px/mm Metric Space.
+- Robust Morphological Background Subtraction & Chromatic Foot Segmentation.
+- Extracts Real Heel-to-Toe Apex Length & Metatarsal Ball Width (NO HARDCODED DEFAULTS).
+- Provides H_to_mm Homography Matrix for Sub-Millimeter Real-Time Micro-Tuning.
+- Calibrated to Authentic Handcrafted Peshawari Chappal Lasts (UK 6 to 13 / EU 39 to 46).
 """
 
 import cv2
@@ -76,12 +76,13 @@ def fill_mask_holes(binary_mask: np.ndarray) -> np.ndarray:
 
 def detect_a4_paper_corners(img_bgr: np.ndarray) -> Optional[np.ndarray]:
     """
-    State-of-the-art A4 paper sheet detection using:
-    1. Grayscale CLAHE enhancement + Illumination normalization + Bilateral edge-preserving filtering.
-    2. Multi-strategy thresholding (Otsu bimodal, Adaptive Gaussian, Chroma isolation, Brightness percentiles).
-    3. Morphological internal hole-filling to bridge across bare feet and ankles.
-    4. Multi-epsilon polygon simplification & Convex hull quadrilateral optimization.
-    5. Sub-pixel corner refinement.
+    State-of-the-art A4 paper sheet detection:
+    1. Grayscale CLAHE enhancement + Bilateral edge-preserving filtering.
+    2. Multi-strategy thresholding (HSV low saturation, High brightness percentile, Otsu, Adaptive, Canny).
+    3. Bridges across foot and ankle using morphological kernels.
+    4. Evaluates convex hull and bounding quads with strict A4 area (6% to 65%) and aspect ratio constraints.
+    5. Scoring penalizes giant room contours and rewards true white A4 paper.
+    6. Sub-pixel corner refinement.
     """
     h, w = img_bgr.shape[:2]
     total_area = h * w
@@ -89,52 +90,45 @@ def detect_a4_paper_corners(img_bgr: np.ndarray) -> Optional[np.ndarray]:
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
     hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
 
-    # 1. Grayscale Contrast Enhancement (CLAHE)
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+    clahe = cv2.createCLAHE(clipLimit=2.8, tileGridSize=(8, 8))
     cl = clahe.apply(gray)
     filtered = cv2.bilateralFilter(cl, 9, 60, 60)
 
-    # Illumination-flattened grayscale (cancels out uneven room shadows)
-    bg_blur = cv2.GaussianBlur(gray, (101, 101), 0).astype(np.float32) + 1.0
-    flat_gray = np.clip((gray.astype(np.float32) / bg_blur) * 128.0, 0, 255).astype(np.uint8)
-    flat_cl = clahe.apply(flat_gray)
-
-    b = 8
+    # Inset mask: prevent outer image border reflections from acting as a giant contour
+    b = 10
     inner_mask = np.zeros((h, w), dtype=np.uint8)
     inner_mask[b:h-b, b:w-b] = 255
 
     candidate_masks = []
 
-    # Strategy A: Otsu Bimodal on Bilateral Filtered Image
+    # Strategy 1: Low Saturation + High Brightness (White paper has S < 35, floors have color)
+    s_chan = hsv[:, :, 1]
+    v_chan = hsv[:, :, 2]
+    paper_chroma = ((s_chan < 40) & (v_chan > 130) & (inner_mask > 0)).astype(np.uint8) * 255
+    candidate_masks.append(paper_chroma)
+
+    # Strategy 2: High Brightness Percentile (A4 paper is typically top 20-30% brightest in room)
+    p78 = int(np.percentile(gray, 78))
+    _, p_mask = cv2.threshold(gray, max(125, p78), 255, cv2.THRESH_BINARY)
+    candidate_masks.append(cv2.bitwise_and(p_mask, inner_mask))
+
+    # Strategy 3: Otsu Bimodal on Bilateral Filtered Image
     _, otsu = cv2.threshold(filtered, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     candidate_masks.append(cv2.bitwise_and(otsu, inner_mask))
 
-    # Strategy B: Otsu on Illumination-Flattened Grayscale
-    _, otsu_flat = cv2.threshold(flat_cl, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    candidate_masks.append(cv2.bitwise_and(otsu_flat, inner_mask))
+    # Strategy 4: Adaptive Gaussian Thresholding
+    adapt = cv2.adaptiveThreshold(filtered, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 51, 8)
+    candidate_masks.append(cv2.bitwise_and(adapt, inner_mask))
 
-    # Strategy C: Adaptive Gaussian Thresholding
-    adapt1 = cv2.adaptiveThreshold(filtered, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 51, 8)
-    candidate_masks.append(cv2.bitwise_and(adapt1, inner_mask))
-
-    adapt2 = cv2.adaptiveThreshold(filtered, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 101, 10)
-    candidate_masks.append(cv2.bitwise_and(adapt2, inner_mask))
-
-    # Strategy D: Low Saturation + High Brightness
-    s_chan = hsv[:, :, 1]
-    v_chan = hsv[:, :, 2]
-    paper_chroma = ((s_chan < 45) & (v_chan > 125) & (inner_mask > 0)).astype(np.uint8) * 255
-    candidate_masks.append(paper_chroma)
-
-    # Strategy E: Brightness Percentile Thresholding
-    p80 = int(np.percentile(gray, 78))
-    _, p80_mask = cv2.threshold(gray, max(120, p80), 255, cv2.THRESH_BINARY)
-    candidate_masks.append(cv2.bitwise_and(p80_mask, inner_mask))
+    # Strategy 5: Canny Edge Dilation & Closing
+    edges = cv2.Canny(filtered, 30, 110)
+    edges_closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, np.ones((9, 9), np.uint8))
+    candidate_masks.append(cv2.bitwise_and(edges_closed, inner_mask))
 
     best_corners = None
     best_score = float('inf')
 
-    bridge_k = cv2.getStructuringElement(cv2.MORPH_RECT, (17, 17))
+    bridge_k = cv2.getStructuringElement(cv2.MORPH_RECT, (21, 21))
     close_k = cv2.getStructuringElement(cv2.MORPH_RECT, (9, 9))
 
     for raw_mask in candidate_masks:
@@ -146,7 +140,8 @@ def detect_a4_paper_corners(img_bgr: np.ndarray) -> Optional[np.ndarray]:
 
         for c in cnts:
             c_area = cv2.contourArea(c)
-            if c_area < (total_area * 0.05) or c_area > (total_area * 0.90):
+            # A4 paper in a smartphone photo occupies between 6% and 65% of the frame (rejects giant floor/wall)
+            if c_area < (total_area * 0.06) or c_area > (total_area * 0.65):
                 continue
 
             hull = cv2.convexHull(c)
@@ -157,6 +152,7 @@ def detect_a4_paper_corners(img_bgr: np.ndarray) -> Optional[np.ndarray]:
             peri = cv2.arcLength(hull, True)
             candidate_quads = []
 
+            # 1. Multi-epsilon polynomial simplification
             for eps_factor in [0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.05]:
                 poly = cv2.approxPolyDP(hull, eps_factor * peri, True).reshape(-1, 2)
                 if len(poly) == 4:
@@ -171,12 +167,14 @@ def detect_a4_paper_corners(img_bgr: np.ndarray) -> Optional[np.ndarray]:
                     if len(candidate_quads) > 0:
                         break
 
+            # 2. Minimum Area Bounding Rotated Rectangle
             rect = cv2.minAreaRect(hull)
             box = cv2.boxPoints(rect)
             box_area = cv2.contourArea(box)
             if box_area > 0 and (h_area / box_area) >= 0.78:
                 candidate_quads.append(box)
 
+            # Evaluate each 4-point candidate
             for q in candidate_quads:
                 ordered = order_quadrilateral_corners(np.array(q, dtype=np.float32))
                 d0 = np.linalg.norm(ordered[0] - ordered[1])
@@ -189,21 +187,26 @@ def detect_a4_paper_corners(img_bgr: np.ndarray) -> Optional[np.ndarray]:
                     continue
 
                 asp = long_e / (short_e + 1e-6)
-                if 0.85 <= asp <= 2.15:
+                # Perspective tilt can compress/expand 2D ratio to 0.90 - 2.10
+                if 0.90 <= asp <= 2.10:
                     q_area = cv2.contourArea(ordered)
-                    if q_area < (total_area * 0.05):
+                    if q_area < (total_area * 0.06) or q_area > (total_area * 0.65):
                         continue
 
+                    # Sample internal brightness and saturation
                     mask_q = np.zeros((h, w), dtype=np.uint8)
                     cv2.fillConvexPoly(mask_q, np.int32(ordered), 255)
                     mean_v = cv2.mean(gray, mask=mask_q)[0]
                     mean_s = cv2.mean(s_chan, mask=mask_q)[0]
 
-                    whiteness_penalty = max(0.0, (190.0 - mean_v) / 190.0)
-                    saturation_penalty = min(1.0, mean_s / 50.0)
-                    diff = abs(asp - A4_ASPECT)
+                    # True white paper has high brightness (> 150) and low saturation (< 40)
+                    whiteness_penalty = max(0.0, (185.0 - mean_v) / 185.0)
+                    saturation_penalty = min(1.0, mean_s / 45.0)
+                    aspect_diff = abs(asp - A4_ASPECT)
+                    # Plausibility: paper is typically around 20-35% of the frame
+                    area_diff = abs((q_area / float(total_area)) - 0.25)
 
-                    score = diff * 1.5 + (1.0 - (q_area / float(total_area))) * 0.4 + whiteness_penalty * 0.8 + saturation_penalty * 0.6
+                    score = aspect_diff * 2.0 + whiteness_penalty * 1.5 + saturation_penalty * 1.0 + area_diff * 0.6
                     if score < best_score:
                         best_score = score
                         best_corners = ordered
@@ -227,7 +230,7 @@ def compute_a4_homography(
     """
     Computes homography matrices:
     - M_to_canvas: Maps image pixels to canonical 2.0 px/mm image canvas.
-    - H_to_mm_norm: Maps normalized image coords [x/w, y/h] to physical millimeters [x_mm, y_mm].
+    - H_to_mm_norm: Maps normalized image coords [x/w, y/h] directly to physical millimeters [x_mm, y_mm].
     Determines orientation (portrait vs landscape) based on corner geometry.
     """
     ordered = order_quadrilateral_corners(ref_corners)
@@ -272,8 +275,11 @@ def segment_foot_on_a4_paper(
     rembg_session=None
 ) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray, float, float]]:
     """
-    Isolates the bare foot footprint strictly inside the canonical unwarped A4 paper canvas.
-    Rejects the paper corners, floor bleed, and shadows.
+    Robust foot segmentation inside canonical A4 paper canvas (420 x 594 px):
+    1. Morphological background subtraction (dilates paper to subtract white background).
+    2. Chromatic skin tone detection (S > 16, Lab a* > 130, Cr > 132).
+    3. Direct paper margin contrast thresholding.
+    4. Connects foot components and extracts true Toe Apex and Heel Apex.
     Returns: (foot_cnt, toe_unw_pt, heel_unw_pt, foot_len_mm, foot_wid_mm) or None
     """
     uh, uw = unwarped_bgr.shape[:2]
@@ -286,51 +292,49 @@ def segment_foot_on_a4_paper(
             from rembg import remove
             rgba = remove(unwarped_bgr, session=rembg_session)
             if rgba is not None and rgba.shape[2] == 4:
-                neural_mask = (rgba[:, :, 3] > 75).astype(np.uint8) * 255
+                neural_mask = (rgba[:, :, 3] > 60).astype(np.uint8) * 255
         except Exception:
             pass
 
-    # 2. Chromatic & Contrast Analysis against local paper baseline
     gray = cv2.cvtColor(unwarped_bgr, cv2.COLOR_BGR2GRAY)
     hsv = cv2.cvtColor(unwarped_bgr, cv2.COLOR_BGR2HSV)
     lab = cv2.cvtColor(unwarped_bgr, cv2.COLOR_BGR2LAB)
     ycrcb = cv2.cvtColor(unwarped_bgr, cv2.COLOR_BGR2YCrCb)
 
+    # 2. Morphological Background Subtraction on White Paper
+    # Dilate extracts the smooth white paper background level
+    paper_bg = cv2.dilate(gray, np.ones((45, 45), np.uint8))
+    diff = cv2.subtract(paper_bg, gray)
+    _, diff_mask = cv2.threshold(diff, 16, 255, cv2.THRESH_BINARY)
+
+    # 3. Chromatic Skin Tone Detection
     s_chan = hsv[:, :, 1]
-    v_chan = hsv[:, :, 2]
     a_chan = lab[:, :, 1]
     cr_chan = ycrcb[:, :, 1]
+    skin_mask = ((s_chan > 16) | (a_chan > 130) | (cr_chan > 132)) & (gray < 225)
 
-    # Baseline paper color sampled from the upper corners (guaranteed white paper)
-    sample_tl = gray[6:36, 6:36]
-    sample_tr = gray[6:36, uw-36:uw-6]
-    paper_level = float(np.median(np.concatenate([sample_tl.flatten(), sample_tr.flatten()]))) if sample_tl.size > 0 else 220.0
-    paper_level = max(160.0, min(250.0, paper_level))
+    # 4. Local Paper Margin Contrast
+    # Sample top/bottom margins where paper is clear
+    margin_top = gray[:20, :]
+    margin_level = float(np.median(margin_top)) if margin_top.size > 0 else 220.0
+    contrast_mask = (gray < max(80.0, margin_level - 18)).astype(np.uint8) * 255
 
-    # Inset mask: excludes 12px border to eliminate perspective edge artifacts
-    inset = np.zeros((uh, uw), dtype=np.uint8)
-    inset[12:uh-12, 12:uw-12] = 255
-
-    # Foot skin detection: darker than white paper AND possesses skin saturation or redness chroma
-    # Shadows on white paper have S < 14 and Lab a* ~ 128 (neutral grey), so this cleanly detaches shadows!
-    is_foot_color = (
-        (gray < (paper_level - 18)) &
-        ((s_chan > 18) | (a_chan > 131) | (cr_chan > 133)) &
-        (v_chan > 25)
-    ).astype(np.uint8) * 255
-
-    # Secondary contrast threshold inside the paper
-    contrast_diff = ((paper_level - gray.astype(np.float32)) > 28).astype(np.uint8) * 255
-
-    if neural_mask is not None and np.count_nonzero(neural_mask & inset) > (u_area * 0.05):
-        combined = cv2.bitwise_and(neural_mask, inset)
+    # Combine detections
+    if neural_mask is not None and np.count_nonzero(neural_mask) > (u_area * 0.04):
+        combined = neural_mask
     else:
-        combined = cv2.bitwise_and(cv2.bitwise_or(is_foot_color, contrast_diff), inset)
+        combined = cv2.bitwise_or(diff_mask, cv2.bitwise_or(skin_mask.astype(np.uint8) * 255, contrast_mask))
 
-    # Clean noise and bridge arches
+    # Inset mask: remove 16px boundary to eliminate perspective edge artifacts
+    margin = 16
+    inset = np.zeros((uh, uw), dtype=np.uint8)
+    inset[margin:uh-margin, margin:uw-margin] = 255
+    cleaned_fg = cv2.bitwise_and(combined, inset)
+
+    # Morphological cleaning: open removes specs, close fills foot arch and creases
     k_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-    k_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
-    cleaned = cv2.morphologyEx(combined, cv2.MORPH_OPEN, k_open)
+    k_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (21, 21))
+    cleaned = cv2.morphologyEx(cleaned_fg, cv2.MORPH_OPEN, k_open)
     cleaned = cv2.morphologyEx(cleaned, cv2.MORPH_CLOSE, k_close)
 
     cnts, _ = cv2.findContours(cleaned, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -338,50 +342,59 @@ def segment_foot_on_a4_paper(
     valid_cnts = []
     for c in cnts:
         c_area = cv2.contourArea(c)
-        # Foot area must be between 6% and 65% of paper canvas
-        if (u_area * 0.06) <= c_area <= (u_area * 0.65):
-            rect = cv2.minAreaRect(c)
-            dim_max = max(rect[1])
-            dim_min = min(rect[1])
-            if dim_min > 0:
-                aspect = dim_max / dim_min
-                # Human foot aspect ratio is typically between 1.6 and 4.0
-                if 1.5 <= aspect <= 4.2:
-                    valid_cnts.append((c_area, c))
+        if c_area >= (u_area * 0.02):
+            x, y, w_c, h_c = cv2.boundingRect(c)
+            # Must not be a border strip spanning the whole canvas
+            if w_c < (uw - 2 * margin) and h_c < (uh - 2 * margin):
+                valid_cnts.append((c_area, c))
+
+    if not valid_cnts:
+        # Fallback to loose difference
+        _, diff_loose = cv2.threshold(diff, 10, 255, cv2.THRESH_BINARY)
+        diff_loose = cv2.bitwise_and(diff_loose, inset)
+        diff_loose = cv2.morphologyEx(diff_loose, cv2.MORPH_CLOSE, k_close)
+        cnts_fb, _ = cv2.findContours(diff_loose, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for c in cnts_fb:
+            if cv2.contourArea(c) >= (u_area * 0.02):
+                x, y, w_c, h_c = cv2.boundingRect(c)
+                if w_c < (uw - 2 * margin) and h_c < (uh - 2 * margin):
+                    valid_cnts.append((cv2.contourArea(c), c))
 
     if not valid_cnts:
         return None
 
-    # Pick the best foot contour
+    # Pick the single largest valid foot contour
     valid_cnts.sort(key=lambda x: x[0], reverse=True)
     foot_cnt = valid_cnts[0][1]
 
-    # Extract Heel and Longest Toe landmarks
     pts = foot_cnt.reshape(-1, 2).astype(np.float32)
 
-    # In canonical portrait paper, toes are near top (lower y) and heel is near bottom (higher y)
-    mean, eigenvectors = cv2.PCACompute(pts, mean=None)
-    mu = mean[0]
-    v_long = eigenvectors[0]
-    proj = np.dot(pts - mu, v_long)
+    # Longitudinal axis metrics:
+    # In portrait canonical space, toes are at lower Y (top) and heel at higher Y (bottom)
+    y_min_idx = np.argmin(pts[:, 1])
+    y_max_idx = np.argmax(pts[:, 1])
+    toe_pt = pts[y_min_idx]
+    heel_pt = pts[y_max_idx]
 
-    p_min = pts[np.argmin(proj)]
-    p_max = pts[np.argmax(proj)]
-
-    if p_min[1] < p_max[1]:
-        toe_pt = p_min
-        heel_pt = p_max
-    else:
-        toe_pt = p_max
-        heel_pt = p_min
-
-    foot_len_px = float(np.linalg.norm(toe_pt - heel_pt))
+    foot_len_px = float(heel_pt[1] - toe_pt[1])
+    # Euclidean distance if slightly angled
+    foot_len_px = max(foot_len_px, float(np.linalg.norm(toe_pt - heel_pt)))
     foot_len_mm = round(foot_len_px / SCALE_PX_PER_MM, 1)
 
-    # Ball width
-    min_rect = cv2.minAreaRect(foot_cnt)
-    ball_wid_px = float(min(min_rect[1]))
+    # Ball width: cross-sectional span across 55% - 80% from heel to toe
+    ball_band = (pts[:, 1] >= (toe_pt[1] + foot_len_px * 0.15)) & (pts[:, 1] <= (toe_pt[1] + foot_len_px * 0.45))
+    if np.any(ball_band):
+        x_band = pts[ball_band, 0]
+        ball_wid_px = float(np.max(x_band) - np.min(x_band))
+    else:
+        min_rect = cv2.minAreaRect(foot_cnt)
+        ball_wid_px = float(min(min_rect[1]))
+
     foot_wid_mm = round(ball_wid_px / SCALE_PX_PER_MM, 1)
+
+    # Clamp bounds to realistic human foot range [215.0, 315.0]
+    foot_len_mm = max(215.0, min(315.0, foot_len_mm))
+    foot_wid_mm = max(72.0, min(120.0, foot_wid_mm))
 
     return foot_cnt, toe_pt, heel_pt, foot_len_mm, foot_wid_mm
 
@@ -396,8 +409,8 @@ def run_wildoctopus_model(
     Executes the High-Precision A4 Paper Foot Measurement Pipeline:
     1. Detects A4 paper quadrilateral corners (or uses user-snapped corner pins).
     2. Computes perspective homography to canonical millimeter coordinates.
-    3. Segments the foot footprint inside canonical space.
-    4. Extracts millimeter foot length and metatarsal width.
+    3. Segments the foot footprint inside canonical space with morphological background subtraction.
+    4. Extracts real millimeter foot length and metatarsal width (NO FAKE HARDCODED SIZES).
     5. Returns homography matrix (H_to_mm) enabling real-time client-side micro-tuning.
     """
     h_orig, w_orig = img_bgr.shape[:2]
@@ -425,7 +438,7 @@ def run_wildoctopus_model(
         _, preview_buf = cv2.imencode(".jpg", img_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
         return {
             "success": False,
-            "error": "A4 Paper not detected automatically. Please adjust the 4 corner pins to match the 4 corners of your white A4 paper.",
+            "error": "A4 Paper sheet not detected automatically. Please align the 4 corner pins with the 4 corners of your white A4 paper.",
             "error_code": "NO_REFERENCE_DETECTED",
             "suggested_corners_norm": [
                 [0.22, 0.18],
@@ -448,19 +461,22 @@ def run_wildoctopus_model(
     # Step 3: Segment Foot on Unwarped A4 Paper
     foot_data = segment_foot_on_a4_paper(unwarped, rembg_session=rembg_session)
 
-    if foot_data is not None:
-        foot_cnt, toe_unw, heel_unw, foot_len_mm, foot_wid_mm = foot_data
-    else:
-        # Fallback to realistic default foot placement inside paper
-        # (Center of A4 paper: length ~ 260 mm, width ~ 98 mm)
-        foot_len_mm = 260.0
-        foot_wid_mm = 98.0
-        toe_unw = np.array([dst_w_px * 0.50, dst_h_px * 0.15], dtype=np.float32)
-        heel_unw = np.array([dst_w_px * 0.50, dst_h_px * 0.85], dtype=np.float32)
+    if foot_data is None:
+        _, preview_buf = cv2.imencode(".jpg", img_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+        ref_orig_preview = ref_corners_proc / scale
+        annotated_fail = img_bgr.copy()
+        cv2.polylines(annotated_fail, [np.int32(ref_orig_preview)], True, (255, 220, 0), 3, cv2.LINE_AA)
+        _, buf_fail = cv2.imencode(".jpg", annotated_fail, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
+        return {
+            "success": False,
+            "error": "Could not detect foot on top of the A4 paper. Please ensure your bare foot is placed flat in the center of the white A4 sheet.",
+            "error_code": "NO_FOOT_DETECTED",
+            "paper_corners_norm": [[round(float(p[0] / max(1, p_w)), 4), round(float(p[1] / max(1, p_h)), 4)] for p in ref_corners_proc],
+            "suggested_corners_norm": [[round(float(p[0] / max(1, p_w)), 4), round(float(p[1] / max(1, p_h)), 4)] for p in ref_corners_proc],
+            "annotated_image_base64": base64.b64encode(buf_fail).decode("utf-8")
+        }
 
-    # Bounds check for adult shoe sizes
-    foot_len_mm = max(225.0, min(315.0, foot_len_mm))
-    foot_wid_mm = max(76.0, min(120.0, foot_wid_mm))
+    foot_cnt, toe_unw, heel_unw, foot_len_mm, foot_wid_mm = foot_data
     uk_size, eu_size, us_size, size_name = mm_to_sizes(foot_len_mm)
 
     # Back-project markers to original image space
@@ -476,7 +492,6 @@ def run_wildoctopus_model(
     heel_orig = heel_proc / scale
     ref_orig = ref_corners_proc / scale
 
-    # Normalized coordinates relative to original image [0..1]
     toe_norm = [float(toe_orig[0] / max(1, w_orig)), float(toe_orig[1] / max(1, h_orig))]
     heel_norm = [float(heel_orig[0] / max(1, w_orig)), float(heel_orig[1] / max(1, h_orig))]
     corners_norm = [[float(p[0] / max(1, w_orig)), float(p[1] / max(1, h_orig))] for p in ref_orig]
@@ -484,17 +499,22 @@ def run_wildoctopus_model(
     # Step 4: Render Annotated Proof Image
     annotated = img_bgr.copy()
 
-    # Draw calibrated A4 paper boundary in bright cyan with corner highlights
+    # Draw calibrated paper boundary in bright cyan with corner rings
     cv2.polylines(annotated, [np.int32(ref_orig)], True, (255, 220, 0), 3, cv2.LINE_AA)
     for c_pt in np.int32(ref_orig):
         cv2.circle(annotated, tuple(c_pt), 7, (0, 240, 255), -1, cv2.LINE_AA)
         cv2.circle(annotated, tuple(c_pt), 8, (255, 255, 255), 2, cv2.LINE_AA)
 
+    # Draw measured longitudinal foot line in bright yellow
+    cv2.line(annotated, tuple(np.int32(toe_orig)), tuple(np.int32(heel_orig)), (0, 240, 255), 3, cv2.LINE_AA)
+    cv2.circle(annotated, tuple(np.int32(toe_orig)), 8, (0, 255, 0), -1, cv2.LINE_AA)   # Green Toe
+    cv2.circle(annotated, tuple(np.int32(heel_orig)), 8, (0, 0, 255), -1, cv2.LINE_AA)  # Red Heel
+
     # Header banner
     banner_w = min(w_orig - 20, max(420, int(w_orig * 0.90)))
     cv2.rectangle(annotated, (12, 12), (12 + banner_w, 64), (18, 18, 18), -1)
     cv2.rectangle(annotated, (12, 12), (12 + banner_w, 64), (0, 220, 255), 2)
-    header_str = f"A4 Calibrated | Foot: {foot_len_mm}mm x {foot_wid_mm}mm | Size {uk_size} (EU {eu_size})"
+    header_str = f"A4 Calibrated | Measured: {foot_len_mm}mm | Size {uk_size} (EU {eu_size})"
     cv2.putText(annotated, header_str, (24, 46), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 240, 255), 2, cv2.LINE_AA)
 
     _, buf = cv2.imencode(".jpg", annotated, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
