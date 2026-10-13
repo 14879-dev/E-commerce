@@ -391,13 +391,13 @@ export const FootSizeFinderPage: React.FC = () => {
               </div>
             )}
 
-            {/* Step 1.5: CamScanner-style 4-Corner Paper Adjuster (Direct image coordinate binding) */}
+            {/* Step 1.5: CamScanner-style 4-Corner Card Adjuster (Direct image coordinate binding) */}
             {step === 'paper_adjust' && capturedImageB64 && (
               <div className="space-y-4">
                 <div className="bg-[#F7F4EB] p-3 rounded-xl border border-[#A0988A] text-xs text-[#1A1A18] flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Crosshair className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span><strong>Align A4 Paper Corners:</strong> Drag the 4 pins onto the physical corners of the white sheet.</span>
+                    <span><strong>Align Reference Card:</strong> Drag the 4 pins onto the corners of your Credit Card / ID Card.</span>
                   </div>
                 </div>
 
@@ -553,12 +553,22 @@ export const FootSizeFinderPage: React.FC = () => {
                         <span className="text-xs font-semibold text-[#1A1A18]">
                           Calibrated Foot &amp; Reference Card Scan:
                         </span>
+                        {capturedImageB64 && (
+                          <button
+                            type="button"
+                            onClick={() => setStep('paper_adjust')}
+                            className="text-xs text-[#565449] hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                          >
+                            <Crosshair className="w-3.5 h-3.5" />
+                            <span>Fine-tune card corner pins</span>
+                          </button>
+                        )}
                       </div>
 
                       <div className="text-center bg-[#565449]/10 p-2 rounded-xl overflow-hidden border border-[#A0988A] flex items-center justify-center shadow-inner">
                         <img
                           src={`data:image/jpeg;base64,${result.annotated_image_base64}`}
-                          alt="Calibrated A4 Paper Scan"
+                          alt="Calibrated Reference Card Scan"
                           className="max-h-80 w-auto object-contain block mx-auto select-none rounded-lg"
                         />
                       </div>
@@ -601,10 +611,21 @@ export const FootSizeFinderPage: React.FC = () => {
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2 max-w-md mx-auto">
+                  {capturedImageB64 && (
+                    <button
+                      type="button"
+                      onClick={() => setStep('paper_adjust')}
+                      className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer shadow-sm text-xs sm:text-sm"
+                    >
+                      <Crosshair className="w-4 h-4" />
+                      <span>Pinpoint Card Corners Manually</span>
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => startCamera(activeFacingMode)}
-                    className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition border border-[#565449] cursor-pointer"
+                    className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition border border-[#565449] cursor-pointer text-xs sm:text-sm"
                   >
                     <RotateCcw className="w-4 h-4" />
                     <span>Try Camera Again</span>

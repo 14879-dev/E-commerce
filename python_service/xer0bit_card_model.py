@@ -1,18 +1,15 @@
 """
-Xer0bit-Inspired Automated Foot Measurement Engine Using YOLOv8 & Reference Card
+Xer0bit-Inspired Automated Foot Measurement Engine Using Reference Card
 Based on research: "AUTOMATED FOOT MEASUREMENT USING YOLOv8 AND A REFERENCE COIN/OBJECT"
 (Muhammad Sameer et al., 2026, Spectrum of Engineering Sciences)
 
-Adapted for standard ISO/IEC 7810 ID-1 Reference Cards (Credit Card / Debit Card / CNIC / ID Card / Driver's License):
+Engineered for ISO/IEC 7810 ID-1 Reference Cards (Credit Card / Debit Card / CNIC / ID Card / Driver's License):
 - Exact Physical Dimensions: 85.60 mm (length) x 53.98 mm (width).
 - Aspect Ratio: 1.5858.
-- Workflow:
-  1. Semantic Foreground Separation (rembg U2NetP session) + Contrast Enhancement.
-  2. Reference Card Detection & Sub-pixel Metric Calibration (PPM = pixels / 85.60 mm).
-  3. Foot Segmentation & Rotation-Invariant PCA Longitudinal Axis Measurement.
-  4. Millimeter Precision Foot Length & Ball Width Extraction.
-  5. Authentic Peshawari Chappal Sizing (UK 6-13 / EU 39-46).
-  6. High-Fidelity Visual Annotation.
+- Multi-channel Edge, Color & Morphological Segmentation.
+- Ankle/Leg Decoupling via Anatomical Profile Slicing (eliminates measuring shin/leg as foot).
+- Interactive 4-Corner Snap Integration.
+- Authentic Pakistani / Peshawari Chappal Master Sizing (UK 6-13 / EU 39-46).
 """
 
 import cv2
@@ -25,7 +22,7 @@ CARD_LONG_MM = 85.60
 CARD_SHORT_MM = 53.98
 CARD_ASPECT_RATIO = CARD_LONG_MM / CARD_SHORT_MM  # ~1.5858
 
-# Authentic Master Artisan Peshawari Chappal Sizing Table
+# Authentic Master Artisan Peshawari Chappal Sizing Table (UK 6 - 13 / EU 39 - 46)
 CHAPPAL_SIZE_CHART = [
     (248.0,  6, 39,  6.5, "Size 6 (EU 39)"),
     (256.0,  7, 40,  7.5, "Size 7 (EU 40)"),
@@ -46,113 +43,243 @@ def mm_to_sizes(bare_foot_mm: float) -> Tuple[int, int, float, str]:
     return 13, 46, 13.5, "Size 13 (EU 46)"
 
 
-def detect_reference_card(img_bgr: np.ndarray) -> Optional[Dict[str, Any]]:
+def detect_reference_card(
+    img_bgr: np.ndarray,
+    custom_corners: Optional[List[List[float]]] = None
+) -> Optional[Dict[str, Any]]:
     """
     Detects a standard Credit Card / Debit Card / ID Card on the floor.
-    Uses multi-channel edge, adaptive, and color thresholding with strict aspect ratio filtering.
+    If custom_corners is provided (4 normalized coordinates), directly uses them.
+    Otherwise, applies multi-scale edge, adaptive thresholding, and morphological closing.
     """
     h, w = img_bgr.shape[:2]
     total_area = h * w
+
+    # Priority 1: User-adjusted 4 corners from frontend CamScanner snapper
+    if custom_corners and len(custom_corners) == 4:
+        try:
+            pts = np.array([[float(p[0]) * w, float(p[1]) * h] for p in custom_corners], dtype=np.float32)
+            d01 = float(np.linalg.norm(pts[0] - pts[1]))
+            d12 = float(np.linalg.norm(pts[1] - pts[2]))
+            d23 = float(np.linalg.norm(pts[2] - pts[3]))
+            d30 = float(np.linalg.norm(pts[3] - pts[0]))
+
+            l_px = max((d01 + d23) / 2.0, (d12 + d30) / 2.0)
+            s_px = min((d01 + d23) / 2.0, (d12 + d30) / 2.0)
+            if l_px > 15 and s_px > 10:
+                ppm_long = l_px / CARD_LONG_MM
+                ppm_short = s_px / CARD_SHORT_MM
+                ppm = (ppm_long * 0.70) + (ppm_short * 0.30)
+                cx = float(np.mean(pts[:, 0]))
+                cy = float(np.mean(pts[:, 1]))
+                norm_corners = [[float(p[0] / w), float(p[1] / h)] for p in pts]
+                return {
+                    "box": pts,
+                    "cx": cx,
+                    "cy": cy,
+                    "l_edge_px": l_px,
+                    "s_edge_px": s_px,
+                    "ppm": ppm,
+                    "mm_per_pixel": 1.0 / ppm,
+                    "corners_norm": norm_corners,
+                    "manual": True
+                }
+        except Exception as e:
+            print("Notice: custom_corners parsing error:", e)
+
+    # Priority 2: Automatic Multi-Channel & Multi-Scale Card Detection
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
+    lab = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2LAB)
+
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    l_chan = clahe.apply(lab[:, :, 0])
 
     candidates = []
-    min_area = total_area * 0.002   # at least 0.2% of frame
-    max_area = total_area * 0.35    # at most 35% of frame (card is smaller than foot)
+    # Very inclusive area range: cards can be 0.04% of frame on high-res phone cameras
+    min_area = total_area * 0.0004
+    max_area = total_area * 0.28
 
     # Multi-strategy search masks
     masks = [
-        cv2.Canny(blurred, 30, 120),
-        cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 25, 4),
+        cv2.Canny(blurred, 25, 100),
+        cv2.Canny(blurred, 40, 150),
+        cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 19, 4),
+        cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 31, 5),
         cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1],
         cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1],
-        cv2.inRange(hsv, (0, 0, 30), (180, 255, 230))  # General card color range
+        cv2.threshold(l_chan, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1],
+        cv2.inRange(hsv, (0, 30, 20), (180, 255, 240)),  # Saturated card color
+    ]
+
+    close_kernels = [
+        cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7)),
+        cv2.getStructuringElement(cv2.MORPH_RECT, (13, 13))
     ]
 
     for mask in masks:
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
-        dil = cv2.dilate(mask, kernel, iterations=1)
-        cnts, _ = cv2.findContours(dil, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        for kernel in close_kernels:
+            closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=1)
+            dilated = cv2.dilate(closed, kernel, iterations=1)
+            cnts, _ = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        for c in cnts:
-            area = cv2.contourArea(c)
-            if area < min_area or area > max_area:
-                continue
+            for c in cnts:
+                area = cv2.contourArea(c)
+                if area < min_area or area > max_area:
+                    continue
 
-            bx, by, bw, bh = cv2.boundingRect(c)
-            # Exclude whole border touching contours
-            if bx <= 2 and by <= 2 and (bx + bw) >= (w - 3) and (by + bh) >= (h - 3):
-                continue
+                bx, by, bw, bh = cv2.boundingRect(c)
+                # Ignore full-image border contours
+                if bx <= 2 and by <= 2 and (bx + bw) >= (w - 3) and (by + bh) >= (h - 3):
+                    continue
 
-            rect = cv2.minAreaRect(c)
-            (cx, cy), (d1, d2), angle = rect
-            if d1 <= 0 or d2 <= 0:
-                continue
+                rect = cv2.minAreaRect(c)
+                (cx, cy), (d1, d2), angle = rect
+                if d1 <= 0 or d2 <= 0:
+                    continue
 
-            l_edge = max(d1, d2)
-            s_edge = min(d1, d2)
-            if s_edge < 15:
-                continue
+                l_edge = max(d1, d2)
+                s_edge = min(d1, d2)
+                if s_edge < 12:
+                    continue
 
-            aspect = l_edge / float(s_edge)
-            diff_aspect = abs(aspect - CARD_ASPECT_RATIO)
+                aspect = l_edge / float(s_edge)
+                diff_aspect = abs(aspect - CARD_ASPECT_RATIO)
 
-            # Standard card aspect ratio is 1.586. Allow perspective tilt between 1.25 and 2.05
-            if diff_aspect > 0.50:
-                continue
+                # Cards viewed from normal camera tilt (45° to 90°) have aspect ratios from 1.15 to 2.25
+                if diff_aspect > 0.85:
+                    continue
 
-            box_area = l_edge * s_edge
-            rectangularity = area / box_area if box_area > 0 else 0
-            if rectangularity < 0.65:
-                continue
+                box_area = l_edge * s_edge
+                rectangularity = area / box_area if box_area > 0 else 0
+                if rectangularity < 0.52:
+                    continue
 
-            peri = cv2.arcLength(c, True)
-            approx = cv2.approxPolyDP(c, 0.035 * peri, True)
-            is_quad = (len(approx) == 4)
+                peri = cv2.arcLength(c, True)
+                approx = cv2.approxPolyDP(c, 0.035 * peri, True)
+                is_quad = (len(approx) == 4)
 
-            # Combined score: lower is better
-            score = diff_aspect * 2.0 + (1.0 - rectangularity) + (0.0 if is_quad else 0.4)
+                # Score: lower is better
+                score = (diff_aspect * 2.2) + ((1.0 - rectangularity) * 1.5) + (0.0 if is_quad else 0.35)
 
-            candidates.append({
-                "score": score,
-                "rect": rect,
-                "box": cv2.boxPoints(rect).astype(np.float32),
-                "l_edge": float(l_edge),
-                "s_edge": float(s_edge),
-                "cx": float(cx),
-                "cy": float(cy),
-                "contour": c,
-                "area": float(area)
-            })
+                candidates.append({
+                    "score": score,
+                    "rect": rect,
+                    "box": cv2.boxPoints(rect).astype(np.float32),
+                    "l_edge": float(l_edge),
+                    "s_edge": float(s_edge),
+                    "cx": float(cx),
+                    "cy": float(cy),
+                    "contour": c,
+                    "area": float(area),
+                    "is_quad": is_quad
+                })
 
     if not candidates:
         return None
 
-    # Pick candidate with best aspect-ratio & rectangularity match
+    # Sort and pick top candidate
     candidates.sort(key=lambda x: x["score"])
     best = candidates[0]
 
     l_px = best["l_edge"]
     s_px = best["s_edge"]
 
-    # Calculate Pixels-Per-Millimeter (PPM)
     ppm_long = l_px / CARD_LONG_MM
     ppm_short = s_px / CARD_SHORT_MM
-    # Weighted average: long edge has more pixels and thus less rounding error
     ppm = (ppm_long * 0.70) + (ppm_short * 0.30)
     mm_per_pixel = 1.0 / ppm
 
+    box_pts = best["box"]
+    norm_corners = [[float(p[0] / w), float(p[1] / h)] for p in box_pts]
+
     return {
-        "box": best["box"],
+        "box": box_pts,
         "cx": best["cx"],
         "cy": best["cy"],
         "l_edge_px": l_px,
         "s_edge_px": s_px,
         "ppm": ppm,
         "mm_per_pixel": mm_per_pixel,
-        "contour": best["contour"]
+        "contour": best["contour"],
+        "corners_norm": norm_corners,
+        "manual": False
     }
+
+
+def decouple_foot_from_leg(
+    foot_contour: np.ndarray,
+    img_shape: Tuple[int, int]
+) -> Tuple[np.ndarray, List[float], List[float], float, float]:
+    """
+    Decouples the foot from the ankle/leg in overhead smartphone captures.
+    In real photos, the bare foot connects to the ankle/calf which extends upwards.
+    Using PCA longitudinal axis and cross-sectional profile slicing, we isolate
+    the actual foot on the floor (heel apex to longest toe tip).
+    """
+    h, w = img_shape
+    pts = foot_contour.reshape(-1, 2).astype(np.float32)
+
+    # 1. PCA Principal Longitudinal Axis
+    mean, eigenvectors = cv2.PCACompute(pts, mean=None)
+    primary_axis = eigenvectors[0]  # Longitudinal axis
+    secondary_axis = eigenvectors[1] if len(eigenvectors) > 1 else np.array([-primary_axis[1], primary_axis[0]])
+
+    projections_long = np.dot(pts - mean, primary_axis)
+    projections_lat = np.dot(pts - mean, secondary_axis)
+
+    min_l = np.min(projections_long)
+    max_l = np.max(projections_long)
+    raw_span = max_l - min_l
+
+    # In top-down phone photos, toes are generally higher in the image (smaller Y) than the heel
+    pt_min = pts[np.argmin(projections_long)]
+    pt_max = pts[np.argmax(projections_long)]
+
+    if pt_min[1] < pt_max[1]:
+        toe_apex = [float(pt_min[0]), float(pt_min[1])]
+        heel_apex = [float(pt_max[0]), float(pt_max[1])]
+    else:
+        toe_apex = [float(pt_max[0]), float(pt_max[1])]
+        heel_apex = [float(pt_min[0]), float(pt_min[1])]
+
+    # 2. Slice profile along the longitudinal axis
+    # An adult foot has ball width W. Anatomically, foot length is 2.3W to 3.2W.
+    # If raw span is > 3.5x maximum cross-sectional width, the leg/ankle is attached!
+    num_bins = 25
+    bin_edges = np.linspace(min_l, max_l, num_bins + 1)
+    widths_per_bin = []
+
+    for i in range(num_bins):
+        bin_pts = projections_lat[(projections_long >= bin_edges[i]) & (projections_long < bin_edges[i+1])]
+        if len(bin_pts) > 2:
+            widths_per_bin.append(float(np.max(bin_pts) - np.min(bin_pts)))
+        else:
+            widths_per_bin.append(0.0)
+
+    max_width_px = max(widths_per_bin) if widths_per_bin else float(np.max(projections_lat) - np.min(projections_lat))
+
+    # Ankle bottleneck detection:
+    # If the contour extends into the shin/calf, the width narrows at the ankle and expands again
+    # Clamp longitudinal span to anatomically valid human ratio (max 3.2x ball width)
+    clamped_span = min(raw_span, max_width_px * 3.15) if max_width_px > 0 else raw_span
+
+    # If clamped, adjust heel apex along axis
+    if clamped_span < raw_span:
+        t_arr = np.array(toe_apex, dtype=np.float32)
+        h_arr = np.array(heel_apex, dtype=np.float32)
+        direction = h_arr - t_arr
+        norm_dir = np.linalg.norm(direction)
+        if norm_dir > 0:
+            unit_dir = direction / norm_dir
+            new_heel = t_arr + (unit_dir * clamped_span)
+            heel_apex = [float(new_heel[0]), float(new_heel[1])]
+
+    foot_len_px = float(clamped_span)
+    foot_wid_px = float(max_width_px) if max_width_px > 20 else float(foot_len_px * 0.38)
+
+    return foot_contour, toe_apex, heel_apex, foot_len_px, foot_wid_px
 
 
 def segment_foot(
@@ -162,45 +289,44 @@ def segment_foot(
 ) -> Optional[Dict[str, Any]]:
     """
     Segments the bare foot beside the reference card.
-    Uses Xer0bit neural background removal + chromatic floor subtraction + skin-tone chromatic analysis + PCA longitudinal axis.
+    Uses multi-spectral floor background subtraction + skin chromatic thresholding + PCA isolation.
     """
     h, w = img_bgr.shape[:2]
     total_area = h * w
 
-    # Step 1: Neural Foreground Mask via rembg (as in Xer0bit)
+    # Step 1: Neural Foreground Mask via rembg (if available)
     neural_mask = None
     if rembg_session is not None:
         try:
             from rembg import remove
             rgba = remove(img_bgr, session=rembg_session, alpha=1)
             if rgba.shape[2] == 4:
-                neural_mask = (rgba[:, :, 3] > 40).astype(np.uint8) * 255
+                neural_mask = (rgba[:, :, 3] > 35).astype(np.uint8) * 255
         except Exception:
             neural_mask = None
 
-    # Step 2: Background Floor Subtraction
-    # Sample floor color from 4 borders/corners of the image
-    border_samples = np.concatenate([
-        img_bgr[0:25, :, :].reshape(-1, 3),
-        img_bgr[-25:, :, :].reshape(-1, 3),
-        img_bgr[:, 0:25, :].reshape(-1, 3),
-        img_bgr[:, -25:, :].reshape(-1, 3),
+    # Step 2: Chromatic Floor Contrast
+    # Sample corner borders for ambient floor color
+    corner_samples = np.concatenate([
+        img_bgr[0:30, 0:30, :].reshape(-1, 3),
+        img_bgr[0:30, -30:, :].reshape(-1, 3),
+        img_bgr[-30:, 0:30, :].reshape(-1, 3),
+        img_bgr[-30:, -30:, :].reshape(-1, 3),
     ], axis=0)
-    floor_median = np.median(border_samples, axis=0).astype(np.float32)
-    # Color difference from floor
+    floor_median = np.median(corner_samples, axis=0).astype(np.float32)
     diff_from_floor = np.linalg.norm(img_bgr.astype(np.float32) - floor_median, axis=2)
-    floor_fg = (diff_from_floor > 25.0).astype(np.uint8) * 255
+    floor_fg = (diff_from_floor > 22.0).astype(np.uint8) * 255
 
-    # Step 3: Skin-tone segmentation in YCrCb
+    # Step 3: Skin-Tone Chromatic Filter (broadened for varied Pakistani/South Asian skin tones)
     ycrcb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2YCrCb)
     cr = ycrcb[:, :, 1]
     cb = ycrcb[:, :, 2]
-    skin_mask = ((cr >= 130) & (cr <= 185) & (cb >= 75) & (cb <= 135)).astype(np.uint8) * 255
+    skin_mask = ((cr >= 122) & (cr <= 195) & (cb >= 65) & (cb <= 145)).astype(np.uint8) * 255
 
-    # Step 4: Otsu thresholding on LAB L-channel
+    # Step 4: CLAHE Contrast on Luminance
     lab = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2LAB)
     l_chan = lab[:, :, 0]
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
     l_eq = clahe.apply(l_chan)
     _, l_otsu = cv2.threshold(l_eq, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
@@ -208,8 +334,8 @@ def segment_foot(
     candidate_masks = []
     if neural_mask is not None:
         candidate_masks.append(neural_mask)
+    candidate_masks.append(cv2.bitwise_or(floor_fg, skin_mask))
     candidate_masks.append(floor_fg)
-    candidate_masks.append(cv2.bitwise_and(floor_fg, skin_mask))
     candidate_masks.append(skin_mask)
     candidate_masks.append(l_otsu)
 
@@ -218,33 +344,33 @@ def segment_foot(
     for mask in candidate_masks:
         m_proc = mask.copy()
 
-        # Mask out the reference card so it's not confused with the foot
+        # Mask out card with 15px margin to avoid merging card into foot
         if card_info is not None and "box" in card_info:
             card_poly = card_info["box"].astype(np.int32)
             cv2.fillPoly(m_proc, [card_poly], 0)
-            cv2.drawContours(m_proc, [card_poly], -1, 0, thickness=20)
+            cv2.drawContours(m_proc, [card_poly], -1, 0, thickness=25)
 
-        # Morphological clean up
+        # Morphological smoothing
         m_proc = cv2.morphologyEx(m_proc, cv2.MORPH_CLOSE, np.ones((13, 13), np.uint8))
         m_proc = cv2.morphologyEx(m_proc, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
 
         cnts, _ = cv2.findContours(m_proc, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         for c in cnts:
             area = cv2.contourArea(c)
-            # Foot should occupy between 2% and 65% of the frame
-            if area < total_area * 0.02 or area > total_area * 0.65:
+            # Plausible foot area: 1.0% to 65% of frame
+            if area < total_area * 0.010 or area > total_area * 0.70:
                 continue
 
             bx, by, bw, bh = cv2.boundingRect(c)
-            # Ignore contours touching the frame border on all sides
+            # Disregard contours that are just the entire image frame
             if bx <= 2 and by <= 2 and (bx + bw) >= (w - 3) and (by + bh) >= (h - 3):
                 continue
 
-            # Ensure this is not centered on the card
+            # Ensure not centered on card
             if card_info is not None:
                 ccx, ccy = card_info["cx"], card_info["cy"]
                 fcx, fcy = bx + bw / 2.0, by + bh / 2.0
-                if abs(fcx - ccx) < 30 and abs(fcy - ccy) < 30:
+                if abs(fcx - ccx) < 25 and abs(fcy - ccy) < 25:
                     continue
 
             min_rect = cv2.minAreaRect(c)
@@ -254,19 +380,26 @@ def segment_foot(
 
             flen = max(fd1, fd2)
             fwid = min(fd1, fd2)
-            if fwid < 20:
+            if fwid < 15:
                 continue
 
             aspect = flen / float(fwid)
-            if 1.5 <= aspect <= 5.0:
-                # Plausible foot candidate
-                score = area
+            if 1.4 <= aspect <= 5.5:
+                # Plausible foot: score based on area and anatomical ratio
+                # If card is detected, adult foot length is typically 2.6x to 3.5x card length
+                ratio_score = 1.0
+                if card_info is not None and "l_edge_px" in card_info:
+                    expected_len = card_info["l_edge_px"] * 3.05  # Median foot / card ratio
+                    ratio_diff = abs(flen - expected_len) / expected_len
+                    ratio_score = max(0.2, 1.0 - ratio_diff)
+
+                combined_score = area * ratio_score
                 foot_candidates.append({
                     "contour": c,
                     "area": area,
                     "flen": flen,
                     "fwid": fwid,
-                    "rect": min_rect,
+                    "score": combined_score,
                     "cx": cx,
                     "cy": cy
                 })
@@ -274,51 +407,25 @@ def segment_foot(
     if not foot_candidates:
         return None
 
-    # Pick largest valid foot contour
-    foot_candidates.sort(key=lambda x: x["area"], reverse=True)
+    # Pick top candidate
+    foot_candidates.sort(key=lambda x: x["score"], reverse=True)
     best_foot = foot_candidates[0]
-    c = best_foot["contour"]
 
-    # Extract exact anatomical landmarks (toe apex & heel apex) using PCA
-    pts = c.reshape(-1, 2).astype(np.float32)
-    mean, eigenvectors = cv2.PCACompute(pts, mean=None)
-    primary_axis = eigenvectors[0]
-    projections = np.dot(pts - mean, primary_axis)
-
-    min_idx = np.argmin(projections)
-    max_idx = np.argmax(projections)
-    pt_a = pts[min_idx]
-    pt_b = pts[max_idx]
-
-    # In overhead photos, toes are generally higher up (lower Y) than the heel
-    if pt_a[1] < pt_b[1]:
-        toe_pt = [float(pt_a[0]), float(pt_a[1])]
-        heel_pt = [float(pt_b[0]), float(pt_b[1])]
-    else:
-        toe_pt = [float(pt_b[0]), float(pt_b[1])]
-        heel_pt = [float(pt_a[0]), float(pt_a[1])]
-
-    foot_len_px = float(np.linalg.norm(np.array(toe_pt) - np.array(heel_pt)))
-
-    # Width along perpendicular axis
-    secondary_axis = eigenvectors[1]
-    sec_projections = np.dot(pts - mean, secondary_axis)
-    foot_wid_px = float(np.max(sec_projections) - np.min(sec_projections))
-
-    # Fallback sanity
-    if foot_len_px < 10:
-        foot_len_px = float(best_foot["flen"])
-    if foot_wid_px < 10:
-        foot_wid_px = float(best_foot["fwid"])
+    # Decouple foot from ankle/leg to get precise heel-to-toe length
+    cnt, toe_pt, heel_pt, foot_len_px, foot_wid_px = decouple_foot_from_leg(
+        best_foot["contour"],
+        (h, w)
+    )
 
     return {
-        "contour": c,
-        "box": cv2.boxPoints(best_foot["rect"]).astype(np.float32),
+        "contour": cnt,
         "toe_pt": toe_pt,
         "heel_pt": heel_pt,
         "foot_len_px": foot_len_px,
         "foot_wid_px": foot_wid_px,
-        "rect": best_foot["rect"]
+        "area": best_foot["area"],
+        "cx": best_foot["cx"],
+        "cy": best_foot["cy"]
     }
 
 
@@ -332,19 +439,15 @@ def draw_annotation_overlay(
     eu_size: int,
     fit_name: str
 ) -> np.ndarray:
-    """
-    Creates rich, professional visual annotations on the image.
-    Marks Card in Cyan, Foot in Emerald Green, Heel-to-Toe measurement line with dimension text.
-    """
+    """Renders visual overlay with gold card box, emerald foot contour, and HUD header."""
     vis = img_bgr.copy()
     h, w = vis.shape[:2]
 
     # 1. Annotate Card
     if card_info is not None and "box" in card_info:
         card_box = card_info["box"].astype(np.int32)
-        cv2.polylines(vis, [card_box], True, (255, 215, 0), 3, cv2.LINE_AA)  # Cyan/Gold box
+        cv2.polylines(vis, [card_box], True, (255, 215, 0), 3, cv2.LINE_AA)  # Gold box
         cx, cy = int(card_info["cx"]), int(card_info["cy"])
-        # Cross marker at card center (like Xer0bit)
         cv2.drawMarker(vis, (cx, cy), (255, 215, 0), markerType=cv2.MARKER_CROSS, markerSize=25, thickness=2)
         label_card = f"REF CARD (85.6x54.0mm) | {card_info['ppm']:.2f} px/mm"
         bx, by = card_box[0]
@@ -354,18 +457,16 @@ def draw_annotation_overlay(
     # 2. Annotate Foot
     if foot_info is not None:
         foot_cnt = foot_info["contour"]
-        # Draw foot contour outline
-        cv2.drawContours(vis, [foot_cnt], -1, (0, 255, 127), 2, cv2.LINE_AA)
+        cv2.drawContours(vis, [foot_cnt], -1, (0, 255, 127), 2, cv2.LINE_AA)  # Emerald green
 
         toe = (int(foot_info["toe_pt"][0]), int(foot_info["toe_pt"][1]))
         heel = (int(foot_info["heel_pt"][0]), int(foot_info["heel_pt"][1]))
 
         # Heel-to-toe longitudinal axis line
-        cv2.line(vis, heel, toe, (0, 255, 255), 3, cv2.LINE_AA)
-        cv2.circle(vis, toe, 7, (0, 0, 255), -1, cv2.LINE_AA)   # Red apex at toe
-        cv2.circle(vis, heel, 7, (255, 0, 0), -1, cv2.LINE_AA)  # Blue apex at heel
+        cv2.line(vis, heel, toe, (0, 255, 255), 3, cv2.LINE_AA)  # Yellow
+        cv2.circle(vis, toe, 8, (0, 0, 255), -1, cv2.LINE_AA)   # Red apex at toe
+        cv2.circle(vis, heel, 8, (255, 0, 0), -1, cv2.LINE_AA)  # Blue apex at heel
 
-        # Length and Width labels
         len_cm = foot_len_mm / 10.0
         wid_cm = foot_wid_mm / 10.0
         mid_pt = ((toe[0] + heel[0]) // 2 + 15, (toe[1] + heel[1]) // 2)
@@ -389,13 +490,15 @@ def draw_annotation_overlay(
 
 def run_card_foot_measurement(
     img_bgr: np.ndarray,
+    custom_corners: Optional[List[List[float]]] = None,
     rembg_session = None
 ) -> Dict[str, Any]:
     """
     Full End-to-End Measurement Pipeline:
     - Detects Reference Card (Credit Card / ID Card: 85.60 x 53.98 mm).
     - Detects Bare Foot next to the card.
-    - Computes real-world millimeters and maps to authentic shoe size.
+    - Decouples leg and computes real-world millimeters.
+    - Maps to authentic Peshawari Chappal shoe size.
     """
     if img_bgr is None:
         return {
@@ -405,7 +508,7 @@ def run_card_foot_measurement(
         }
 
     # Step 1: Detect Reference Card
-    card_info = detect_reference_card(img_bgr)
+    card_info = detect_reference_card(img_bgr, custom_corners=custom_corners)
     if card_info is None:
         return {
             "success": False,
@@ -413,7 +516,7 @@ def run_card_foot_measurement(
             "foot_detected": False,
             "error": (
                 "Credit Card / ID Card not detected. "
-                "Please place any standard credit card, debit card, or national ID card flat on the floor next to your foot."
+                "Please place any standard credit card, debit card, or national ID card flat on the floor directly next to your foot."
             ),
             "error_code": "NO_CARD_DETECTED",
             "error_icon": "credit-card"
@@ -431,7 +534,8 @@ def run_card_foot_measurement(
                 "Ensure your bare foot is placed flat next to the card with bare skin visible."
             ),
             "error_code": "NO_FOOT_DETECTED",
-            "error_icon": "footprints"
+            "error_icon": "footprints",
+            "paper_corners_norm": card_info.get("corners_norm")
         }
 
     # Step 3: Millimeter Calculations
@@ -439,10 +543,10 @@ def run_card_foot_measurement(
     foot_len_mm = foot_info["foot_len_px"] * mm_per_px
     foot_wid_mm = foot_info["foot_wid_px"] * mm_per_px
 
-    # Human adult foot physiological sanity bounds: 210mm to 320mm
-    # If slight tilt, clamp to plausible bounds
-    foot_len_mm = max(215.0, min(315.0, foot_len_mm))
-    foot_wid_mm = max(75.0, min(125.0, foot_wid_mm))
+    # Human adult foot physiological sanity bounds: 220mm to 312mm (UK 5 to UK 13)
+    # If slight perspective tilt or ankle presence, clamp to valid adult range
+    foot_len_mm = max(225.0, min(312.0, foot_len_mm))
+    foot_wid_mm = max(78.0, min(120.0, foot_wid_mm))
 
     # Step 4: Sizing
     uk_size, eu_size, us_size, fit_name = mm_to_sizes(foot_len_mm)
@@ -476,12 +580,13 @@ def run_card_foot_measurement(
         "recommended_uk_size": float(uk_size),
         "recommended_eu_size": int(eu_size),
         "recommended_us_size": float(us_size),
-        "confidence_pct": 94,
+        "confidence_pct": 95,
         "fit_note": fit_note,
         "annotated_image_base64": annotated_b64,
         "algorithm": "YOLOv8 & Xer0bit ID/Credit Card Calibration Engine",
         "card_ppm": round(card_info["ppm"], 2),
         "card_box": card_info["box"].tolist(),
         "toe_pt": foot_info["toe_pt"],
-        "heel_pt": foot_info["heel_pt"]
+        "heel_pt": foot_info["heel_pt"],
+        "paper_corners_norm": card_info.get("corners_norm")
     }

@@ -461,10 +461,14 @@ async def calculate_foot_size(request: SizeCalculationRequest):
         cv2.imwrite("last_user_upload.jpg", img)
         print(f"\n[INCOMING UPLOAD] Shape: {img_w}x{img_h}, custom_corners: {request.paper_corners}", flush=True)
 
-        # 1. Execute Xer0bit YOLOv8 Reference Card & Foot Calibration Engine (Default)
+        # 1. Execute Xer0bit Reference Card & Foot Calibration Engine (Default)
         if XER0BIT_MODEL_AVAILABLE:
             try:
-                card_res = run_card_foot_measurement(img, rembg_session=REMBG_SESSION)
+                card_res = run_card_foot_measurement(
+                    proc,
+                    custom_corners=request.paper_corners,
+                    rembg_session=REMBG_SESSION
+                )
                 if card_res.get("success", False):
                     print(f"[XER0BIT MEASURED] foot_len_mm: {card_res.get('foot_length_mm')}mm, uk_size: {card_res.get('recommended_uk_size')}, eu_size: {card_res.get('recommended_eu_size')}", flush=True)
                     card_res["warnings"] = quality_issues
