@@ -363,8 +363,11 @@ app.use('/api/orders', createRateLimiter(40, 60000));
 // Proxy /api/py to Python FastAPI microservice (port 8000 or Railway internal service)
 app.use('/api/py', async (req: Request, res: Response) => {
   try {
-    const pyBase = (process.env.PYTHON_SERVICE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
-    const pyUrl = `${pyBase}/api/py${req.url}`;
+    let rawBase = (process.env.PYTHON_SERVICE_URL || 'http://127.0.0.1:8000').trim().replace(/\/+$/, '');
+    if (rawBase && !rawBase.startsWith('http://') && !rawBase.startsWith('https://')) {
+      rawBase = `https://${rawBase}`;
+    }
+    const pyUrl = `${rawBase}/api/py${req.url}`;
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -373,6 +376,7 @@ app.use('/api/py', async (req: Request, res: Response) => {
     const fetchOptions: RequestInit = {
       method: req.method,
       headers,
+      signal: AbortSignal.timeout(60000),
     };
 
     if (req.body && (req.method === 'POST' || req.method === 'PUT')) {
