@@ -1,47 +1,173 @@
-@import url('https://fonts.googleapis.com/css2?family=Forum&display=swap');
+/* ============================================================
+   FONT IMPORTS — Poppins ExtraBold (headings) + Inter (body)
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   CSS CUSTOM PROPERTIES — Font System
+   ============================================================ */
+:root {
+  --font-heading: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body:    'Inter',   -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* ============================================================
+   BASE LAYER
+   ============================================================ */
 @layer base {
+
+  /* Global reset — Inter for all elements by default */
   *, *::before, *::after {
-    font-family: 'Forum', serif !important;
+    font-family: var(--font-body);
+    box-sizing: border-box;
   }
 
   html, body {
-    font-family: 'Forum', serif !important;
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    font-weight: 400;
+    line-height: 1.65;
     background-color: #F7F4EB;
     color: #1A1A18;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   body {
     @apply bg-[#F7F4EB] text-[#1A1A18] antialiased min-h-screen overflow-x-hidden;
     background-color: #F7F4EB !important;
-    background-image: 
+    background-image:
       radial-gradient(circle at 15% 10%, rgba(86, 84, 73, 0.03) 0%, transparent 45%),
       radial-gradient(circle at 85% 65%, rgba(160, 152, 138, 0.05) 0%, transparent 50%),
       radial-gradient(circle at 50% 50%, rgba(247, 244, 235, 0.98) 0%, transparent 90%);
     background-attachment: scroll;
   }
 
+  /* HEADINGS — Poppins ExtraBold (800) */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading) !important;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+    color: #1A1A18;
+  }
+
+  h1 { font-size: 3rem;      letter-spacing: -0.035em; }
+  h2 { font-size: 2.25rem;   letter-spacing: -0.03em;  }
+  h3 { font-size: 1.75rem;   letter-spacing: -0.02em;  }
+  h4 { font-size: 1.375rem;  font-weight: 700;         }
+  h5 { font-size: 1.1875rem; font-weight: 700;         }
+  h6 { font-size: 1.0625rem; font-weight: 700;         }
+
+  /* BODY TEXT — Inter */
+  p, li, td, th, blockquote, caption {
+    font-family: var(--font-body) !important;
+    font-weight: 400;
+    line-height: 1.7;
+  }
+
+  /* Table headers */
+  th {
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* UI ELEMENTS — Inter */
+  button, input, select, textarea, label, a, span, div {
+    font-family: var(--font-body) !important;
+  }
+
+  /* Labels */
+  label { font-weight: 500; }
+
+  /* Buttons — Inter SemiBold */
+  button {
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  /* Code */
+  code, pre, kbd, samp {
+    font-family: 'Fira Code', 'Cascadia Code', 'SF Mono', 'Consolas', monospace !important;
+  }
+
   ::selection {
     background-color: #565449 !important;
     color: #F7F4EB !important;
   }
-
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Forum', serif !important;
-    color: #1A1A18;
-    letter-spacing: -0.01em;
-  }
-
-  button, input, select, textarea, a, p, span, div, label {
-    font-family: 'Forum', serif !important;
-  }
 }
 
+/* ============================================================
+   FONT UTILITY CLASSES
+   ============================================================ */
+.font-heading {
+  font-family: var(--font-heading) !important;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.font-heading-bold {
+  font-family: var(--font-heading) !important;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.font-body {
+  font-family: var(--font-body) !important;
+  font-weight: 400;
+}
+
+.font-body-medium {
+  font-family: var(--font-body) !important;
+  font-weight: 500;
+}
+
+.font-body-semibold {
+  font-family: var(--font-body) !important;
+  font-weight: 600;
+}
+
+.text-eyebrow {
+  font-family: var(--font-body) !important;
+  font-weight: 600;
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.text-metric {
+  font-family: var(--font-heading) !important;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.text-price {
+  font-family: var(--font-heading) !important;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.text-caption {
+  font-family: var(--font-body) !important;
+  font-weight: 400;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: rgba(26, 26, 24, 0.6);
+}
+
+/* ============================================================
+   COMPONENT LAYER
+   ============================================================ */
 @layer components {
+
   /* Warm Bone & Taupe Glass Panel */
   .glass-panel {
     background: rgba(247, 244, 235, 0.92);
@@ -54,7 +180,6 @@
     overflow: hidden;
   }
 
-  /* Inner light highlight on top edge */
   .glass-panel::before {
     content: '';
     position: absolute;
@@ -80,11 +205,7 @@
     box-shadow: 0 12px 40px 0 rgba(86, 84, 73, 0.25);
   }
 
-  /* ==========================================================================
-     Ultra-Refined Frosted Glass Navigation System (Uniform Across iOS, Android & Desktop)
-     ========================================================================== */
-
-  /* Main Navigation Outer Bar — Frosted Glass Float Header */
+  /* Glass Navigation Header */
   .glass-header {
     background: rgba(247, 244, 235, 0.84);
     border-bottom: 1px solid rgba(86, 84, 73, 0.16);
@@ -93,7 +214,7 @@
     box-shadow: 0 4px 24px -2px rgba(86, 84, 73, 0.06);
   }
 
-  /* Inner Navigation Floating Capsule — Sculpted Pill */
+  /* Glass Nav Capsule */
   .glass-nav-capsule {
     background: rgba(160, 152, 138, 0.20);
     backdrop-filter: blur(16px);
@@ -106,7 +227,6 @@
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  /* Subtle Crystal Top Edge Specular Glint */
   .glass-nav-capsule::before {
     content: '';
     position: absolute;
@@ -115,22 +235,25 @@
     right: 8%;
     height: 1px;
     background: linear-gradient(
-      90deg, 
-      transparent 0%, 
-      rgba(247, 244, 235, 0.8) 30%, 
-      rgba(247, 244, 235, 0.95) 50%, 
-      rgba(247, 244, 235, 0.8) 70%, 
+      90deg,
+      transparent 0%,
+      rgba(247, 244, 235, 0.8) 30%,
+      rgba(247, 244, 235, 0.95) 50%,
+      rgba(247, 244, 235, 0.8) 70%,
       transparent 100%
     );
     pointer-events: none;
     z-index: 2;
   }
 
-  /* Glass Capsule Pill - Active */
+  /* Nav Pills */
   .glass-pill-active {
     background: #565449;
     color: #F7F4EB !important;
+    font-family: var(--font-body) !important;
     font-weight: 600;
+    font-size: 0.8125rem;
+    letter-spacing: 0.01em;
     border: 1px solid #565449;
     box-shadow: 0 4px 14px 0 rgba(86, 84, 73, 0.25);
     border-radius: 9999px;
@@ -139,10 +262,12 @@
     transition: all 0.25s ease;
   }
 
-  /* Glass Capsule Pill - Idle / Hover */
   .glass-pill-idle {
     color: #1A1A18;
+    font-family: var(--font-body) !important;
     font-weight: 500;
+    font-size: 0.8125rem;
+    letter-spacing: 0.005em;
     border-radius: 9999px;
     border: 1px solid transparent;
     position: relative;
@@ -158,12 +283,18 @@
     transform: translateY(-0.5px);
   }
 
-  /* Primary Button (Strict Olive Drab with Bone Text everywhere) */
+  /* Primary Button */
   .btn-copper {
-    @apply relative inline-flex items-center justify-center px-6 py-3 rounded-full font-medium text-[#F7F4EB] transition-all duration-300 overflow-hidden cursor-pointer active:scale-95;
+    @apply relative inline-flex items-center justify-center px-6 py-3 rounded-full overflow-hidden cursor-pointer active:scale-95;
+    font-family: var(--font-body) !important;
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: 0.015em;
+    color: #F7F4EB;
     background: #565449;
     box-shadow: 0 4px 16px rgba(86, 84, 73, 0.25);
     border: 1px solid #565449;
+    transition: all 0.3s ease;
   }
 
   .btn-copper:hover {
@@ -176,11 +307,17 @@
 
   /* Secondary Glass Button */
   .btn-glass {
-    @apply relative inline-flex items-center justify-center px-6 py-3 rounded-full font-medium text-[#1A1A18] transition-all duration-300 cursor-pointer active:scale-95;
+    @apply relative inline-flex items-center justify-center px-6 py-3 rounded-full cursor-pointer active:scale-95;
+    font-family: var(--font-body) !important;
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: 0.015em;
+    color: #1A1A18;
     background: rgba(160, 152, 138, 0.25);
     backdrop-filter: blur(12px);
     border: 1px solid #565449;
     box-shadow: 0 4px 14px rgba(86, 84, 73, 0.06);
+    transition: all 0.3s ease;
   }
 
   .btn-glass:hover {
@@ -195,17 +332,30 @@
     background: linear-gradient(135deg, #565449 0%, #6E6B5D 60%, #A0988A 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .gradient-copper {
     background: linear-gradient(135deg, #565449 0%, #6E6B5D 60%, #A0988A 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Admin Cards */
+  .admin-card,
+  .admin-container {
+    font-family: var(--font-body) !important;
+    background-color: #F7F4EB !important;
+    border: 1px solid rgba(86, 84, 73, 0.35) !important;
   }
 }
 
+/* ============================================================
+   MARQUEE ANIMATION
+   ============================================================ */
 @keyframes marquee {
-  0% { transform: translateX(0%); }
+  0%   { transform: translateX(0%); }
   100% { transform: translateX(-50%); }
 }
 
@@ -219,7 +369,9 @@
   animation-play-state: paused;
 }
 
-/* Custom Scrollbar */
+/* ============================================================
+   CUSTOM SCROLLBAR
+   ============================================================ */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -239,15 +391,12 @@
   background: #565449;
 }
 
-/* Hide scrollbar for horizontal swipe areas */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* ==========================================================================
-   Admin Panel & System Elements: Light Cream with Olive Drab Outlining
-   ========================================================================== */
-
-/* All Form Input, Select, and Textarea Fields */
+/* ============================================================
+   FORM INPUTS — Admin Panel & Store
+   ============================================================ */
 input[type="text"],
 input[type="number"],
 input[type="email"],
@@ -257,6 +406,9 @@ input[type="tel"],
 input[type="url"],
 select,
 textarea {
+  font-family: var(--font-body) !important;
+  font-size: 0.9375rem !important;
+  font-weight: 400 !important;
   background-color: #F7F4EB !important;
   border: 1px solid rgba(86, 84, 73, 0.4) !important;
   color: #1A1A18 !important;
@@ -278,18 +430,18 @@ textarea:focus {
 
 input::placeholder,
 textarea::placeholder {
-  color: rgba(26, 26, 24, 0.55) !important;
+  color: rgba(26, 26, 24, 0.45) !important;
+  font-family: var(--font-body) !important;
+  font-weight: 400 !important;
 }
 
-/* Ensure all admin panels, modals, and container cards adhere to light cream and olive drab */
-.admin-card,
-.admin-container {
-  background-color: #F7F4EB !important;
-  border: 1px solid rgba(86, 84, 73, 0.35) !important;
-}
-
-/* Explicit Action & Status Button Styling */
+/* ============================================================
+   ACTION BUTTONS (Admin)
+   ============================================================ */
 .action-btn-edit {
+  font-family: var(--font-body) !important;
+  font-weight: 600 !important;
+  font-size: 0.8125rem !important;
   color: #D97706 !important;
   background-color: #FEF3C7 !important;
   border: 1px solid #FCD34D !important;
@@ -300,6 +452,9 @@ textarea::placeholder {
 }
 
 .action-btn-delete {
+  font-family: var(--font-body) !important;
+  font-weight: 600 !important;
+  font-size: 0.8125rem !important;
   color: #DC2626 !important;
   background-color: #FEE2E2 !important;
   border: 1px solid #FCA5A5 !important;
@@ -308,5 +463,4 @@ textarea::placeholder {
   stroke: #DC2626 !important;
   color: #DC2626 !important;
 }
-
 
