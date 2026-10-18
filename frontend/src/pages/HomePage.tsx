@@ -279,7 +279,7 @@ export const HomePage: React.FC = () => {
                   <h2 className="text-white font-extrabold text-sm sm:text-base tracking-wider uppercase drop-shadow-sm group-hover:text-cyan-200 transition-colors">
                     AI SIZE FINDER
                   </h2>
-                  <p className="text-[11px] sm:text-xs text-slate-200 leading-snug">
+                  <p className="text-[11px] sm:text-xs text-[#F5EEDB] font-medium leading-snug drop-shadow-xs">
                     Take a picture of your foot to find your perfect size.
                   </p>
                 </div>
@@ -302,7 +302,7 @@ export const HomePage: React.FC = () => {
                   <h2 className="text-white font-extrabold text-sm sm:text-base tracking-wider uppercase drop-shadow-sm group-hover:text-cyan-200 transition-colors">
                     AI OUTFIT MATCHER
                   </h2>
-                  <p className="text-[11px] sm:text-xs text-slate-200 leading-snug">
+                  <p className="text-[11px] sm:text-xs text-[#F5EEDB] font-medium leading-snug drop-shadow-xs">
                     Upload your outfit to find matching Peshawari Chappals.
                   </p>
                 </div>
