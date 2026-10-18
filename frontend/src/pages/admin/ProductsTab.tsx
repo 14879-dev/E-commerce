@@ -446,16 +446,13 @@ export const ProductsTab: React.FC = () => {
       if (result.success && result.data) {
         const { name, subtitle, category, detectedColor, colorHex, description, materials, craftingTime, features } = result.data;
 
-        // Auto-register detected color if present
+        // Auto-register detected color into selected variant if present
         let detectedColorSlug = '';
         if (detectedColor && colorHex) {
           detectedColorSlug = detectedColor.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-          const existing = customColors.find(c => c.name.toLowerCase() === detectedColor.toLowerCase() || c.id === detectedColorSlug);
-          if (!existing) {
-            const newColorItem = { id: detectedColorSlug, name: detectedColor, hex: colorHex };
-            const updatedCustom = [...customColors, newColorItem];
-            setCustomColors(updatedCustom);
-            saveStoredCustomColors(updatedCustom);
+          if (variants.length > 0) {
+            const currentIdx = Math.min(selectedVariantIdx, variants.length - 1);
+            setVariants(prev => prev.map((v, i) => i === currentIdx ? { ...v, colorName: detectedColor, colorHex } : v));
           }
         }
 
