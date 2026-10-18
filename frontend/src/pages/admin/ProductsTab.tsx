@@ -7,16 +7,6 @@ import {
 import { apiService } from '../../services/api';
 import type { Product, Category, LeatherColor, ProductVariant } from '../../types';
 
-const LEATHER_COLORS: { id: LeatherColor; name: string; hex: string }[] = [
-  { id: 'saddle-tan', name: 'Saddle Tan', hex: '#7B4A28' },
-  { id: 'espresso', name: 'Espresso', hex: '#2A1708' },
-  { id: 'burnt-copper', name: 'Burnt Copper', hex: '#8C3A18' },
-  { id: 'mustard-gold', name: 'Mustard Gold', hex: '#A07010' },
-  { id: 'midnight-black', name: 'Midnight Black', hex: '#161412' },
-  { id: 'vintage-tan', name: 'Vintage Tan', hex: '#9A5E35' },
-];
-
-const STANDARD_SIZES = [7, 8, 9, 10, 11, 12, 13];
 
 const PRESET_VARIANT_COLORS = [
   { name: 'Black', hex: '#0F0F11' },
@@ -29,26 +19,6 @@ const PRESET_VARIANT_COLORS = [
   { name: 'Pearl Cream', hex: '#FAF8F5' },
 ];
 
-interface CustomColorItem {
-  id: string;
-  name: string;
-  hex: string;
-}
-
-const getStoredCustomColors = (): CustomColorItem[] => {
-  try {
-    const saved = localStorage.getItem('psh_custom_colors');
-    return saved ? JSON.parse(saved) : [];
-  } catch {
-    return [];
-  }
-};
-
-const saveStoredCustomColors = (list: CustomColorItem[]) => {
-  try {
-    localStorage.setItem('psh_custom_colors', JSON.stringify(list));
-  } catch {}
-};
 
 export const ProductsTab: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -65,18 +35,13 @@ export const ProductsTab: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
 
-  // Custom Colors State (for Admin & Manager)
-  const [customColors, setCustomColors] = useState<CustomColorItem[]>(getStoredCustomColors);
-  const [newColorName, setNewColorName] = useState('');
-  const [newColorHex, setNewColorHex] = useState('#2A3A4A');
-
   // Variant Builder State
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [selectedVariantIdx, setSelectedVariantIdx] = useState<number>(0);
 
   // Gemini AI Vision State
   const [isAnalyzingWithAi, setIsAnalyzingWithAi] = useState<boolean>(false);
-  const [aiAnalyzingIndex, setAiAnalyzingIndex] = useState<number>(null);
+  const [aiAnalyzingIndex, setAiAnalyzingIndex] = useState<number | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<{
@@ -215,45 +180,6 @@ export const ProductsTab: React.FC = () => {
   };
 
 
-  // Custom Color Handlers
-  const handleAddCustomColor = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const trimmed = newColorName.trim();
-    if (!trimmed) {
-      showNotification('error', 'Please enter a color name.');
-      return;
-    }
-    const colorId = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const existing = customColors.find(c => c.id === colorId || c.name.toLowerCase() === trimmed.toLowerCase());
-    if (!existing) {
-      const newColor: CustomColorItem = {
-        id: colorId,
-        name: trimmed,
-        hex: newColorHex || '#334155',
-      };
-      const updatedList = [...customColors, newColor];
-      setCustomColors(updatedList);
-      saveStoredCustomColors(updatedList);
-    }
-    if (!formData.availableColors.includes(colorId)) {
-      setFormData(prev => ({
-        ...prev,
-        availableColors: [...prev.availableColors, colorId],
-      }));
-    }
-    setNewColorName('');
-    showNotification('success', `Color "${trimmed}" added!`);
-  };
-
-  const handleRemoveCustomColorDefinition = (colorId: string) => {
-    const updated = customColors.filter(c => c.id !== colorId);
-    setCustomColors(updated);
-    saveStoredCustomColors(updated);
-    setFormData(prev => ({
-      ...prev,
-      availableColors: prev.availableColors.filter(c => c !== colorId),
-    }));
-  };
 
   // Variant Management Handlers
   const handleAddVariant = () => {
@@ -583,25 +509,6 @@ export const ProductsTab: React.FC = () => {
     }));
   };
 
-  // Size toggle helper
-  const toggleSize = (size: number) => {
-    setFormData(prev => ({
-      ...prev,
-      availableSizes: prev.availableSizes.includes(size)
-        ? prev.availableSizes.filter(s => s !== size)
-        : [...prev.availableSizes, size].sort((a, b) => a - b),
-    }));
-  };
-
-  // Color toggle helper
-  const toggleColor = (colorId: LeatherColor | string) => {
-    setFormData(prev => ({
-      ...prev,
-      availableColors: prev.availableColors.includes(colorId)
-        ? prev.availableColors.filter(c => c !== colorId)
-        : [...prev.availableColors, colorId],
-    }));
-  };
 
   // Filtered Products
   const filteredProducts = useMemo(() => {

@@ -5,7 +5,7 @@ import { ProductCard } from '../components/product/ProductCard';
 import { SEOHelmet } from '../components/common/SEOHelmet';
 import { PageHero } from '../components/common/PageHero';
 import { apiService } from '../services/api';
-import type { Product, LeatherColor, Category } from '../types';
+import type { Product, Category } from '../types';
 
 import { useStoreSettings } from '../context/StoreSettingsContext';
 
