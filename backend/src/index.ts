@@ -127,9 +127,18 @@ function writeBothDirs(filename: string, content: string) {
   try { if (p3 !== p1 && fs.existsSync(SRC_DATA_DIR)) fs.writeFileSync(p3, content, 'utf-8'); } catch (_) {}
 }
 
-// Helper to save store settings to disk
+// Helper to save store settings to disk and MongoDB Atlas
 export function saveSettingsToDisk() {
   writeBothDirs('settings.json', JSON.stringify(inMemorySettings, null, 2));
+  try {
+    if (useMongoDb && typeof SettingsModel !== 'undefined') {
+      SettingsModel.findOneAndUpdate(
+        { id: 'global_store_settings' },
+        { $set: { id: 'global_store_settings', data: inMemorySettings } },
+        { upsert: true }
+      ).catch((err: any) => console.warn('Could not sync settings to MongoDB Atlas:', err.message));
+    }
+  } catch {}
 }
 
 // Load store settings on startup
@@ -169,9 +178,18 @@ export function saveAdminsToDisk() {
   writeBothDirs('admins.json', JSON.stringify(inMemoryAdmins, null, 2));
 }
 
-// Helper to save operational & packaging investments to disk
+// Helper to save operational & packaging investments to disk and MongoDB Atlas
 export function saveInvestmentsToDisk() {
   writeBothDirs('investments.json', JSON.stringify(inMemoryInvestments, null, 2));
+  try {
+    if (useMongoDb && typeof InvestmentModel !== 'undefined') {
+      InvestmentModel.deleteMany({}).then(() => {
+        if (inMemoryInvestments.length > 0) {
+          InvestmentModel.insertMany(inMemoryInvestments);
+        }
+      }).catch((err: any) => console.warn('Could not sync investments to MongoDB Atlas:', err.message));
+    }
+  } catch {}
 }
 
 // Load saved categories from disk on startup if available
@@ -529,6 +547,23 @@ export const HeritageMemberSchema = new Schema({
   status: { type: String, default: 'active' }
 }, { timestamps: true });
 
+// Store Settings Schema (Persistent across all redeployments and cloud providers)
+export const SettingsSchema = new Schema({
+  id: { type: String, default: 'global_store_settings', unique: true },
+  data: { type: Schema.Types.Mixed, required: true },
+}, { timestamps: true });
+
+// Operational & Packaging Investments Schema
+export const InvestmentSchema = new Schema({
+  id: { type: String, unique: true },
+  title: String,
+  category: String,
+  amount: Number,
+  date: String,
+  supplierOrVendor: String,
+  notes: String,
+}, { timestamps: true });
+
 export const ProductModel = model('Product', ProductSchema);
 export const OrderModel = model('Order', OrderSchema);
 export const ReviewModel = model('Review', ReviewSchema);
@@ -537,6 +572,8 @@ export const CategoryModel = model('Category', CategorySchema);
 export const AdminUserModel = model('AdminUser', AdminUserSchema);
 export const CustomerModel = model('Customer', CustomerSchema);
 export const HeritageMemberModel = model('HeritageMember', HeritageMemberSchema);
+export const SettingsModel = model('StoreSettings', SettingsSchema);
+export const InvestmentModel = model('Investment', InvestmentSchema);
 
 let useMongoDb = false;
 
@@ -633,6 +670,36 @@ export async function syncMongoWithDisk() {
       inMemoryCustomers.length = 0;
       inMemoryCustomers.push(...(liveCustomers as any));
       saveCustomersToDisk();
+    }
+
+    // Sync Store Settings (Logo, Favicon, Hero Slides, Promos, Config)
+    const settingsDoc = await SettingsModel.findOne({ id: 'global_store_settings' }).lean();
+    if (!settingsDoc) {
+      if (Object.keys(inMemorySettings).length > 0) {
+        await SettingsModel.findOneAndUpdate(
+          { id: 'global_store_settings' },
+          { $set: { id: 'global_store_settings', data: inMemorySettings } },
+          { upsert: true }
+        );
+        console.log('✅ Seeded store settings to MongoDB Atlas.');
+      }
+    } else if (settingsDoc && (settingsDoc as any).data) {
+      Object.assign(inMemorySettings, (settingsDoc as any).data);
+      writeBothDirs('settings.json', JSON.stringify(inMemorySettings, null, 2));
+      console.log('✅ Preserved live store settings from MongoDB Atlas.');
+    }
+
+    // Sync Operational & Packaging Investments
+    const investmentCount = await InvestmentModel.countDocuments();
+    if (investmentCount === 0 && inMemoryInvestments.length > 0) {
+      for (const inv of inMemoryInvestments) {
+        await InvestmentModel.findOneAndUpdate({ id: inv.id }, { $set: inv }, { upsert: true });
+      }
+    } else if (investmentCount > 0) {
+      const liveInvestments = await InvestmentModel.find().lean();
+      inMemoryInvestments.length = 0;
+      inMemoryInvestments.push(...(liveInvestments as any));
+      writeBothDirs('investments.json', JSON.stringify(inMemoryInvestments, null, 2));
     }
 
     console.log(`✅ All ${inMemoryProducts.length} products & catalog records successfully uploaded and synced to MongoDB Atlas!`);
