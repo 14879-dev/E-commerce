@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, HelpCircle, Flame, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, HelpCircle, Flame, ChevronLeft, ChevronRight, ShoppingCart, Sparkles } from "lucide-react";
 import { ProductCard } from "../components/product/ProductCard";
 import { SEOHelmet } from "../components/common/SEOHelmet";
 import { useStoreSettings } from "../context/StoreSettingsContext";
@@ -218,139 +218,202 @@ export const HomePage: React.FC = () => {
 
       {/* Hero Section: Interactive Slider with smooth cross-fade */}
       <section
-        className="psh-hero relative w-full overflow-hidden min-h-[540px] sm:min-h-[560px] lg:min-h-[580px] select-none flex items-center"
+        className="psh-hero relative w-full overflow-hidden select-none bg-[#ECE6DA]"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <style>{`@media(min-width:1024px){.psh-hero{min-height:580px!important}}`}</style>
-
         {/* Slides Media Layer */}
         {slides.map((slide, idx) => {
           const isCurrent = idx === currentSlideIndex;
+          const isFirstSlide = idx === 0;
+
           return (
             <div
               key={slide.id || idx}
-              className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${
-                isCurrent ? "opacity-100 z-0" : "opacity-0 pointer-events-none -z-10"
+              className={`transition-opacity duration-1000 ease-in-out ${
+                isCurrent ? "opacity-100 relative z-0" : "opacity-0 absolute inset-0 pointer-events-none -z-10"
               }`}
             >
-              {slide.type === "video" ? (
-                <video
-                  src={normalizeAssetUrl(slide.url)}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  className="w-full h-full object-cover object-[78%_center] sm:object-center"
-                />
+              {isFirstSlide ? (
+                /* Slide 1: User-Designed Banner with Interactive Containers & Buttons */
+                <div>
+                  {/* Desktop / Tablet View (Preserves exact design aspect ratio with live interactive hover hotspots) */}
+                  <div className="hidden md:block relative w-full aspect-[1024/402] max-h-[620px] overflow-hidden">
+                    <img
+                      src="/uploads/hero.webp"
+                      alt="Khyber Sole Authentic Handcrafted Peshawari Chappals with AI Sizing & Outfit Matcher"
+                      className="w-full h-full object-cover object-center pointer-events-none select-none"
+                    />
+
+                    {/* Container 1: AI SIZE FINDER (Interactive & Clickable with Hover) */}
+                    <Link
+                      to="/size-finder"
+                      className="absolute left-[4.1%] top-[10.5%] w-[27.6%] h-[51.5%] rounded-[18px] sm:rounded-[22px] lg:rounded-[26px] cursor-pointer transition-all duration-300 ease-out hover:scale-[1.025] hover:-translate-y-1 hover:shadow-[0_12px_36px_rgba(40,45,30,0.6),0_0_24px_rgba(234,179,8,0.35)] hover:ring-2 hover:ring-amber-300/80 active:scale-[0.98] z-20 group overflow-hidden"
+                      title="AI Size Finder - Take a picture of your foot to find your perfect size"
+                    >
+                      <img
+                        src="/images/ai-size-finder-card.png"
+                        alt="AI Size Finder - Camera foot calibration"
+                        className="w-full h-full object-contain drop-shadow-md group-hover:brightness-105 transition-all duration-300"
+                      />
+                      <div className="absolute inset-0 rounded-[18px] sm:rounded-[22px] lg:rounded-[26px] bg-amber-400/0 group-hover:bg-amber-300/5 transition-colors pointer-events-none" />
+                    </Link>
+
+                    {/* Container 2: AI OUTFIT MATCHER (Interactive & Clickable with Hover) */}
+                    <Link
+                      to="/outfit-matcher"
+                      className="absolute left-[32.2%] top-[10.5%] w-[31.4%] h-[51.5%] rounded-[18px] sm:rounded-[22px] lg:rounded-[26px] cursor-pointer transition-all duration-300 ease-out hover:scale-[1.025] hover:-translate-y-1 hover:shadow-[0_12px_36px_rgba(40,45,30,0.6),0_0_24px_rgba(234,179,8,0.35)] hover:ring-2 hover:ring-amber-300/80 active:scale-[0.98] z-20 group overflow-hidden"
+                      title="AI Outfit Matcher - Upload your outfit to find matching Peshawari Chappals"
+                    >
+                      <img
+                        src="/images/ai-outfit-matcher-card.png"
+                        alt="AI Outfit Matcher - Find matching Peshawari Chappals"
+                        className="w-full h-full object-contain drop-shadow-md group-hover:brightness-105 transition-all duration-300"
+                      />
+                      <div className="absolute inset-0 rounded-[18px] sm:rounded-[22px] lg:rounded-[26px] bg-amber-400/0 group-hover:bg-amber-300/5 transition-colors pointer-events-none" />
+                    </Link>
+
+                    {/* Button 1: Shop Collection (Interactive & Clickable with Hover) */}
+                    <Link
+                      to="/products"
+                      className="absolute left-[4.2%] top-[65.4%] w-[18.6%] h-[8.8%] rounded-full cursor-pointer z-20 transition-all duration-300 ease-out hover:scale-[1.04] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.25)] hover:brightness-105 active:scale-[0.97] group flex items-center justify-center bg-[#F7F4EB] hover:bg-white text-[#2B2823] border border-[#DDD5C5]"
+                      title="Shop Authentic Peshawari Chappal Collection"
+                    >
+                      <div className="flex items-center justify-center gap-1.5 sm:gap-2 px-2 w-full text-[10px] sm:text-xs lg:text-sm font-semibold tracking-wide">
+                        <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-4.5 lg:h-4.5 shrink-0 text-[#2B2823] group-hover:-translate-x-0.5 transition-transform" />
+                        <span className="truncate">Shop Collection</span>
+                        <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-[#2B2823] group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </Link>
+
+                    {/* Button 2: How Do Our AI Tools Work? (Interactive & Clickable with Hover) */}
+                    <Link
+                      to="/how-ai-models-work"
+                      className="absolute left-[23.9%] top-[65.4%] w-[22.5%] h-[8.8%] rounded-full cursor-pointer z-20 transition-all duration-300 ease-out hover:scale-[1.04] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(40,45,30,0.4)] hover:bg-[#4a503a] active:scale-[0.97] group flex items-center justify-center bg-[#383D2D] text-[#F7F4EB] border border-[#5A6348]"
+                      title="Learn How Our AI Foot Scanner & Outfit Matcher Work"
+                    >
+                      <div className="flex items-center justify-center gap-1.5 sm:gap-2 px-2 w-full text-[10px] sm:text-xs lg:text-sm font-semibold tracking-wide">
+                        <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-4.5 lg:h-4.5 shrink-0 text-amber-300 group-hover:rotate-12 transition-transform" />
+                        <span className="truncate">How Do Our AI Tools Work?</span>
+                        <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-[#F7F4EB] group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </Link>
+                  </div>
+
+                  {/* Mobile View (Stacked, responsive cards with full clarity and touch accessibility) */}
+                  <div className="block md:hidden w-full bg-[#EFE9DF] pb-6 pt-4 px-4 space-y-4">
+                    {/* Visual Header Image */}
+                    <div className="rounded-2xl overflow-hidden shadow-sm border border-[#DDD5C5]">
+                      <img
+                        src="/uploads/hero.webp"
+                        alt="Khyber Sole Banner"
+                        className="w-full h-auto object-cover"
+                      />
+                    </div>
+
+                    {/* Mobile Interactive Cards */}
+                    <div className="grid grid-cols-1 gap-3.5">
+                      <Link
+                        to="/size-finder"
+                        className="block rounded-2xl overflow-hidden shadow-md hover:shadow-xl border border-amber-300/40 active:scale-98 transition-all"
+                        title="AI Size Finder"
+                      >
+                        <img
+                          src="/images/ai-size-finder-card.png"
+                          alt="AI Size Finder"
+                          className="w-full h-auto"
+                        />
+                      </Link>
+
+                      <Link
+                        to="/outfit-matcher"
+                        className="block rounded-2xl overflow-hidden shadow-md hover:shadow-xl border border-amber-300/40 active:scale-98 transition-all"
+                        title="AI Outfit Matcher"
+                      >
+                        <img
+                          src="/images/ai-outfit-matcher-card.png"
+                          alt="AI Outfit Matcher"
+                          className="w-full h-auto"
+                        />
+                      </Link>
+                    </div>
+
+                    {/* Mobile Interactive Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
+                      <Link
+                        to="/products"
+                        className="h-11 px-5 rounded-full inline-flex items-center justify-center gap-2 text-xs font-semibold text-[#2B2823] bg-[#F7F4EB] hover:bg-white border border-[#DDD5C5] shadow-sm active:scale-95 transition-all"
+                      >
+                        <ShoppingCart className="w-4 h-4 text-[#2B2823]" />
+                        <span>Shop Collection</span>
+                        <ArrowRight className="w-4 h-4 text-[#2B2823]" />
+                      </Link>
+
+                      <Link
+                        to="/how-ai-models-work"
+                        className="h-11 px-5 rounded-full inline-flex items-center justify-center gap-2 text-xs font-semibold text-[#F7F4EB] bg-[#383D2D] hover:bg-[#4a503a] border border-[#5A6348] shadow-sm active:scale-95 transition-all"
+                      >
+                        <Sparkles className="w-4 h-4 text-amber-300" />
+                        <span>How Do Our AI Tools Work?</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
               ) : (
-                <img
-                  src={normalizeAssetUrl(slide.url) || '/uploads/hero.webp'}
-                  alt={slide.title || "Hero Slide"}
-                  className="w-full h-full object-cover object-[78%_center] sm:object-center"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    if (!target.src.endsWith('/uploads/hero.webp')) {
-                      target.src = '/uploads/hero.webp';
-                    }
-                  }}
-                />
+                /* Additional Carousel Slides (if configured) */
+                <div className="relative w-full min-h-[500px] sm:min-h-[540px] flex items-center">
+                  {slide.type === "video" ? (
+                    <video
+                      src={normalizeAssetUrl(slide.url)}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <img
+                      src={normalizeAssetUrl(slide.url)}
+                      alt={slide.title || "Slide"}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
+                  <div className="relative z-10 max-w-xl mx-auto px-6 py-12 text-left space-y-4">
+                    {slide.badge && (
+                      <span className="px-3.5 py-1 rounded-full bg-white/20 text-[#F7F4EB] text-xs font-bold uppercase tracking-wider backdrop-blur-xs">
+                        {slide.badge}
+                      </span>
+                    )}
+                    <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-white">
+                      {slide.title}
+                    </h2>
+                    {slide.subtitle && (
+                      <p className="text-sm sm:text-base text-slate-200">
+                        {slide.subtitle}
+                      </p>
+                    )}
+                    {slide.description && (
+                      <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                        {slide.description}
+                      </p>
+                    )}
+                    {slide.linkUrl && (
+                      <Link
+                        to={slide.linkUrl}
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#F5EEDB] text-[#1A1A18] font-bold text-xs uppercase tracking-wider hover:bg-white transition-all shadow-md active:scale-95"
+                      >
+                        <span>{slide.linkText || "Explore"}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           );
         })}
-
-        {/* Contrast overlay: subtle dark atmospheric gradient on left */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-transparent pointer-events-none z-[1]" />
-
-        {/* Slide Content Layer */}
-        <div className="relative z-10 h-full flex items-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-6 sm:py-8">
-          <div className="max-w-xl flex flex-col items-start text-left space-y-4 sm:space-y-4.5">
-            
-            {/* Dual AI Model Showcase Containers matching Reference Image */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 max-w-xl w-full">
-              {/* Container 1: AI SIZE FINDER */}
-              <Link
-                to="/size-finder"
-                className="group relative rounded-2xl sm:rounded-3xl border-2 border-cyan-400/60 hover:border-cyan-300 shadow-[0_0_22px_rgba(56,189,248,0.3)] hover:shadow-[0_0_32px_rgba(56,189,248,0.55)] bg-black/45 hover:bg-black/55 backdrop-blur-md p-3.5 sm:p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden transform-gpu hover:-translate-y-0.5"
-                title="AI Size Finder - Camera foot calibration"
-              >
-                <div className="space-y-1">
-                  <h2 className="text-white font-extrabold text-sm sm:text-base tracking-wider uppercase drop-shadow-sm group-hover:text-cyan-200 transition-colors">
-                    AI SIZE FINDER
-                  </h2>
-                  <p className="text-[11px] sm:text-xs text-[#F5EEDB] font-medium leading-snug drop-shadow-xs">
-                    Take a picture of your foot to find your perfect size.
-                  </p>
-                </div>
-                <div className="mt-2.5 flex items-center justify-center">
-                  <img
-                    src="/images/ai-foot-scanner-visual.png"
-                    alt="AI Foot Size Finder camera scanning foot"
-                    className="w-full h-24 sm:h-28 object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-              </Link>
-
-              {/* Container 2: AI OUTFIT MATCHER */}
-              <Link
-                to="/outfit-matcher"
-                className="group relative rounded-2xl sm:rounded-3xl border-2 border-cyan-400/60 hover:border-cyan-300 shadow-[0_0_22px_rgba(56,189,248,0.3)] hover:shadow-[0_0_32px_rgba(56,189,248,0.55)] bg-black/45 hover:bg-black/55 backdrop-blur-md p-3.5 sm:p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden transform-gpu hover:-translate-y-0.5"
-                title="AI Outfit Matcher - Find matching Peshawari Chappals"
-              >
-                <div className="space-y-1">
-                  <h2 className="text-white font-extrabold text-sm sm:text-base tracking-wider uppercase drop-shadow-sm group-hover:text-cyan-200 transition-colors">
-                    AI OUTFIT MATCHER
-                  </h2>
-                  <p className="text-[11px] sm:text-xs text-[#F5EEDB] font-medium leading-snug drop-shadow-xs">
-                    Upload your outfit to find matching Peshawari Chappals.
-                  </p>
-                </div>
-                <div className="mt-2.5 flex items-center justify-center">
-                  <img
-                    src="/images/ai-outfit-matcher-visual.png"
-                    alt="AI Outfit Matcher matching clothing to chappal"
-                    className="w-full h-24 sm:h-28 object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-              </Link>
-            </div>
-
-            {/* Action Buttons: Shop Collection + How AI models work! */}
-            <div className="pt-1 flex items-center justify-start gap-3 w-auto flex-wrap">
-              <Link
-                to="/products"
-                className="h-10 sm:h-11 px-5 sm:px-6 rounded-full inline-flex items-center justify-center gap-2 text-xs sm:text-sm font-medium text-[#F7F4EB] bg-white/10 hover:bg-white/20 border border-white/30 backdrop-blur-xs shadow-md transition-all cursor-pointer active:scale-98 whitespace-nowrap"
-              >
-                <span>Shop Collection</span>
-                <ArrowRight className="w-4 h-4 shrink-0" />
-              </Link>
-
-              <Link
-                to="/how-ai-models-work"
-                className="h-10 sm:h-11 px-5 sm:px-6 rounded-full inline-flex items-center justify-center gap-2 text-xs sm:text-sm font-bold text-[#1A1A18] bg-[#F5EEDB] hover:bg-[#EAE1CC] shadow-md transition-all cursor-pointer active:scale-98 whitespace-nowrap"
-              >
-                <span>How AI models work!</span>
-              </Link>
-            </div>
-
-            {/* Feature Highlights Metrics */}
-            <div className="pt-2.5 border-t border-white/20 grid grid-cols-3 gap-3 sm:gap-6 max-w-lg w-full">
-              <div>
-                <span className="font-bold text-lg sm:text-2xl text-white block leading-tight">100%</span>
-                <span className="text-[10px] sm:text-xs text-white/80 font-medium block leading-tight">Pure Leather</span>
-              </div>
-              <div>
-                <span className="font-bold text-lg sm:text-2xl text-white block leading-tight">AI Size</span>
-                <span className="text-[10px] sm:text-xs text-white/80 font-medium block leading-tight">Camera Calibration</span>
-              </div>
-              <div>
-                <span className="font-bold text-lg sm:text-2xl text-white block leading-tight">Nationwide</span>
-                <span className="text-[10px] sm:text-xs text-white/80 font-medium block leading-tight">Fast COD Delivery</span>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Slider Navigation Arrows (shown if >1 slide) */}
         {slides.length > 1 && (

@@ -96,7 +96,7 @@ export const Footer: React.FC = () => {
               <img
                 src={normalizeAssetUrl(settings.footerLogoUrl || settings.logoUrl)}
                 alt={settings.storeName || 'Peshawari'}
-                className="h-14 w-auto max-w-[200px] object-contain mb-4"
+                className="h-16 sm:h-20 w-auto max-w-[240px] object-contain mb-4 filter drop-shadow-xs"
               />
             ) : (
               <span className="font-serif text-2xl font-bold tracking-wider text-[#F7F4EB] uppercase block mb-4">
