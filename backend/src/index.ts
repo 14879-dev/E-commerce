@@ -423,6 +423,7 @@ export const ProductSchema = new Schema({
   images: Schema.Types.Mixed,
   availableSizes: [Number],
   availableColors: [String],
+  variants: [Schema.Types.Mixed],
   averageRating: { type: Number, default: 0 },
   reviewCount: { type: Number, default: 0 },
   featured: { type: Boolean, default: false },

@@ -126,6 +126,7 @@ export const CatalogPage: React.FC = () => {
         if (selectedColor === 'All') return true;
         const target = selectedColor.toLowerCase();
         const hasVariantColor = Array.isArray(product.variants) && product.variants.some(v =>
+          (v.colorCategory && v.colorCategory.toLowerCase() === target) ||
           (v.colorName && v.colorName.toLowerCase().includes(target)) ||
           (v.title && v.title.toLowerCase().includes(target))
         );

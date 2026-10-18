@@ -28,7 +28,8 @@ export interface ProductVariant {
   title: string;       // e.g. "Sable Cloister", "Camel Brown"
   colorHex: string;    // e.g. "#7B4A28"
   colorName: string;   // e.g. "Camel"
-  images: string[];    // image URLs for this variant
+  colorCategory?: 'Camel' | 'Black' | 'Grey' | 'Brown' | string;
+  images: string[];    // image URLs for this variant (up to 5)
   inventory?: Record<number, number>; // size -> stock count (e.g. { 7: 20, 8: 20 })
   price?: number;
 }

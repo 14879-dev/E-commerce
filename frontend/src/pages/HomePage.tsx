@@ -26,6 +26,34 @@ export const HomePage: React.FC = () => {
   const [isHovered, setIsHovered] = useState(false);
   const trendingScrollRef = useRef<HTMLDivElement>(null);
 
+  // Mouse drag-to-swipe for horizontal products grid
+  const [isDraggingTrending, setIsDraggingTrending] = useState(false);
+  const [dragStartX, setDragStartX] = useState(0);
+  const [dragScrollLeft, setDragScrollLeft] = useState(0);
+
+  const handleMouseDownTrending = (e: React.MouseEvent) => {
+    if (!trendingScrollRef.current) return;
+    setIsDraggingTrending(true);
+    setDragStartX(e.pageX - trendingScrollRef.current.offsetLeft);
+    setDragScrollLeft(trendingScrollRef.current.scrollLeft);
+  };
+
+  const handleMouseLeaveTrending = () => {
+    setIsDraggingTrending(false);
+  };
+
+  const handleMouseUpTrending = () => {
+    setIsDraggingTrending(false);
+  };
+
+  const handleMouseMoveTrending = (e: React.MouseEvent) => {
+    if (!isDraggingTrending || !trendingScrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - trendingScrollRef.current.offsetLeft;
+    const walk = (x - dragStartX) * 1.5;
+    trendingScrollRef.current.scrollLeft = dragScrollLeft - walk;
+  };
+
   const scrollTrending = (direction: 'left' | 'right') => {
     if (trendingScrollRef.current) {
       const scrollAmount = direction === 'left' ? -340 : 340;
@@ -389,10 +417,10 @@ export const HomePage: React.FC = () => {
                 <span>Trending Right Now</span>
               </div>
               <h2 className="font-serif text-xl sm:text-3xl lg:text-4xl font-bold text-[#1A1A18]">
-                Most In-Demand Chappals
+                Best Sellers
               </h2>
               <p className="text-xs sm:text-sm text-[#1A1A18]/80 mt-0.5">
-                Silhouettes with highest visitor interest, customer engagement, and fast-moving sales.
+                Our most sought-after silhouettes, handcrafted with supreme leather and time-honored artistry.
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -439,7 +467,13 @@ export const HomePage: React.FC = () => {
           ) : (
             <div
               ref={trendingScrollRef}
-              className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory scrollbar-thin scroll-smooth"
+              onMouseDown={handleMouseDownTrending}
+              onMouseLeave={handleMouseLeaveTrending}
+              onMouseUp={handleMouseUpTrending}
+              onMouseMove={handleMouseMoveTrending}
+              className={`flex gap-4 sm:gap-6 overflow-x-auto pb-4 pt-1 snap-x sm:snap-none scrollbar-thin select-none ${
+                isDraggingTrending ? 'cursor-grabbing' : 'cursor-grab'
+              }`}
             >
               {trendingProducts.map(p => (
                 <div key={p.id} className="w-[260px] sm:w-[280px] md:w-[310px] shrink-0 snap-start relative group flex flex-col">

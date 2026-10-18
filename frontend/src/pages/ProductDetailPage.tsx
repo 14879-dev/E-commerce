@@ -39,6 +39,8 @@ export const ProductDetailPage: React.FC = () => {
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [isDraggingImage, setIsDraggingImage] = useState(false);
+  const [dragStartX, setDragStartX] = useState<number | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
   const [addedNotice, setAddedNotice] = useState(false);
 
@@ -123,6 +125,31 @@ export const ProductDetailPage: React.FC = () => {
     setTouchStartX(null);
   };
 
+  // Mouse drag-to-swipe handlers for big main image
+  const handleMouseDownImage = (e: React.MouseEvent) => {
+    setIsDraggingImage(true);
+    setDragStartX(e.clientX);
+  };
+
+  const handleMouseMoveImage = (e: React.MouseEvent) => {
+    if (!isDraggingImage || dragStartX === null) return;
+    const diff = e.clientX - dragStartX;
+    if (Math.abs(diff) > 45) {
+      if (diff > 45) {
+        handlePrevImage();
+      } else {
+        handleNextImage();
+      }
+      setIsDraggingImage(false);
+      setDragStartX(null);
+    }
+  };
+
+  const handleMouseUpImage = () => {
+    setIsDraggingImage(false);
+    setDragStartX(null);
+  };
+
   const handleSelectVariant = (variant: ProductVariant) => {
     setSelectedVariant(variant);
     setCurrentImageIndex(0);
@@ -172,43 +199,55 @@ export const ProductDetailPage: React.FC = () => {
         product={product}
       />
 
+      {/* Breadcrumb Navigation matching Image 3 */}
+      <nav className="flex items-center gap-2 text-xs sm:text-sm text-[#1A1A18]/70">
+        <Link to="/" className="hover:text-[#1A1A18] transition-colors">Home</Link>
+        <span className="text-[#A0988A]">&gt;</span>
+        <Link
+          to={`/products?category=${encodeURIComponent(product.category || 'All')}`}
+          className="hover:text-[#1A1A18] transition-colors"
+        >
+          {product.category && product.category !== 'None' ? product.category : 'Classic Sandals'}
+        </Link>
+        <span className="text-[#A0988A]">&gt;</span>
+        <span className="font-semibold text-[#1A1A18]">{product.name}</span>
+      </nav>
+
       {/* Main Product Showcase Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-start">
         
-        {/* Left Column: Image Gallery with Variants on the Side */}
+        {/* Left Column: Mini Photo Variants on Left (desktop) or Below (mobile) + Big Swipable Main Image */}
         <div className="lg:col-span-7 space-y-3">
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start">
             
-            {/* Variants Shown on the Side of Main Image */}
+            {/* Mini Photo Thumbnails Representing Variants (Matching Image 3) */}
             {Array.isArray(product.variants) && product.variants.length > 0 && (
-              <div className="order-2 sm:order-1 flex sm:flex-col gap-2 shrink-0 overflow-x-auto sm:overflow-y-auto sm:max-h-[460px] pb-1 sm:pb-0 scrollbar-none sm:w-32">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-[#1A1A18]/60 hidden sm:block px-1">
-                  Variants ({product.variants.length})
-                </span>
+              <div className="order-2 sm:order-1 flex sm:flex-col gap-2.5 sm:gap-3 shrink-0 overflow-x-auto sm:overflow-y-auto sm:max-h-[460px] pb-1 sm:pb-0 scrollbar-none w-full sm:w-auto">
                 {product.variants.map((v, idx) => {
                   const isSelected = selectedVariant?.id === v.id;
+                  const thumbImg = (Array.isArray(v.images) && v.images[0]) || product.images?.front || '';
                   return (
                     <button
                       key={v.id || idx}
                       type="button"
                       onClick={() => handleSelectVariant(v)}
-                      className={`flex items-center gap-2 p-2 rounded-xl border transition-all text-left cursor-pointer ${
+                      className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden transition-all cursor-pointer p-1 bg-[#F7F4EB] shrink-0 ${
                         isSelected
-                          ? 'bg-[#565449] text-[#F7F4EB] border-[#565449] shadow-xs ring-2 ring-[#565449]/30'
-                          : 'bg-[#F7F4EB] text-[#1A1A18] border-[#A0988A]/60 hover:bg-[#A0988A]/20'
+                          ? 'border-2 border-[#8C3A18] ring-2 ring-[#8C3A18]/30 shadow-sm scale-102'
+                          : 'border border-[#A0988A]/40 hover:border-[#565449] hover:scale-102 opacity-85 hover:opacity-100'
                       }`}
-                      title={v.title}
+                      title={v.title || `Variant ${idx + 1}`}
                     >
+                      <img
+                        src={thumbImg}
+                        alt={v.title || `Variant ${idx + 1}`}
+                        className="w-full h-full object-contain rounded-xl pointer-events-none"
+                      />
+                      {/* Color indicator pip */}
                       <span
-                        className="w-4 h-4 rounded-full border border-black/20 shrink-0 shadow-2xs"
+                        className="absolute bottom-1.5 right-1.5 w-3.5 h-3.5 rounded-full border border-white shadow-2xs"
                         style={{ backgroundColor: v.colorHex || '#565449' }}
                       />
-                      <div className="min-w-0 flex-1">
-                        <span className="text-xs font-bold block truncate">{v.title}</span>
-                        <span className={`text-[10px] block truncate ${isSelected ? 'text-[#F7F4EB]/70' : 'text-[#A0988A]'}`}>
-                          {v.colorName || 'Variant'}
-                        </span>
-                      </div>
                     </button>
                   );
                 })}
@@ -216,74 +255,76 @@ export const ProductDetailPage: React.FC = () => {
             )}
 
             {/* Main Swipable Image Container */}
-            <div
-              className="order-1 sm:order-2 relative flex-1 h-72 sm:h-96 lg:h-[460px] w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-[#A0988A]/20 border border-[#A0988A] flex items-center justify-center shadow-xs select-none touch-pan-y"
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
-            >
-              <img
-                src={activeImageUrl}
-                alt={product.name}
-                className="max-h-full max-w-full object-contain p-3 sm:p-5 transition-transform duration-300 pointer-events-none"
-              />
+            <div className="order-1 sm:order-2 flex-1 w-full space-y-2">
+              <div
+                className={`relative h-72 sm:h-96 lg:h-[460px] w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-[#A0988A]/20 border border-[#A0988A] flex items-center justify-center shadow-xs select-none touch-pan-y ${
+                  isDraggingImage ? 'cursor-grabbing' : 'cursor-grab'
+                }`}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                onMouseDown={handleMouseDownImage}
+                onMouseMove={handleMouseMoveImage}
+                onMouseUp={handleMouseUpImage}
+                onMouseLeave={handleMouseUpImage}
+              >
+                <img
+                  src={activeImageUrl}
+                  alt={product.name}
+                  className="max-h-full max-w-full object-contain p-3 sm:p-5 transition-transform duration-300 pointer-events-none"
+                />
 
-              {/* Prev Button */}
-              {activeVariantImages.length > 1 && (
-                <button
-                  type="button"
-                  onClick={handlePrevImage}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#F7F4EB]/90 hover:bg-[#F7F4EB] text-[#1A1A18] shadow-md flex items-center justify-center transition-all cursor-pointer z-10 hover:scale-110 active:scale-95"
-                  aria-label="Previous photo"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-              )}
+                {/* Left Chevron Button */}
+                {activeVariantImages.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={handlePrevImage}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#F7F4EB]/90 hover:bg-[#F7F4EB] text-[#1A1A18] shadow-md flex items-center justify-center transition-all cursor-pointer z-10 hover:scale-110 active:scale-95"
+                    aria-label="Previous photo"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                )}
 
-              {/* Next Button */}
-              {activeVariantImages.length > 1 && (
-                <button
-                  type="button"
-                  onClick={handleNextImage}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#F7F4EB]/90 hover:bg-[#F7F4EB] text-[#1A1A18] shadow-md flex items-center justify-center transition-all cursor-pointer z-10 hover:scale-110 active:scale-95"
-                  aria-label="Next photo"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              )}
+                {/* Right Chevron Button */}
+                {activeVariantImages.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={handleNextImage}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#F7F4EB]/90 hover:bg-[#F7F4EB] text-[#1A1A18] shadow-md flex items-center justify-center transition-all cursor-pointer z-10 hover:scale-110 active:scale-95"
+                    aria-label="Next photo"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                )}
 
-              {/* Swipable Indicator Badge */}
+                {/* Swipable Counter Badge */}
+                {activeVariantImages.length > 1 && (
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xs text-white text-[11px] font-semibold flex items-center gap-1.5 z-10">
+                    <span>{currentImageIndex + 1} / {activeVariantImages.length}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Active Variant Multiple Photos Pagination Dots */}
               {activeVariantImages.length > 1 && (
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xs text-white text-[11px] font-semibold flex items-center gap-1.5 z-10">
-                  <span>{currentImageIndex + 1} / {activeVariantImages.length}</span>
+                <div className="flex items-center justify-center gap-2 pt-1">
+                  {activeVariantImages.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setCurrentImageIndex(i)}
+                      className={`h-2 rounded-full transition-all cursor-pointer ${
+                        currentImageIndex === i
+                          ? 'w-6 bg-[#8C3A18]'
+                          : 'w-2 bg-[#A0988A]/50 hover:bg-[#A0988A]'
+                      }`}
+                      aria-label={`Go to photo ${i + 1}`}
+                    />
+                  ))}
                 </div>
               )}
             </div>
           </div>
-
-          {/* Variant Image Thumbnails */}
-          {activeVariantImages.length > 1 && (
-            <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto pb-1 scrollbar-hide">
-              {activeVariantImages.map((url, idx) => (
-                <button
-                  key={`${url}-${idx}`}
-                  type="button"
-                  onClick={() => setCurrentImageIndex(idx)}
-                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 border transition-all cursor-pointer bg-[#A0988A]/20 ${
-                    currentImageIndex === idx
-                      ? 'ring-2 ring-[#565449] border-transparent shadow-xs'
-                      : 'border-[#A0988A] opacity-70 hover:opacity-100'
-                  }`}
-                  aria-label={`View photo ${idx + 1}`}
-                >
-                  <img
-                    src={url}
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Right Column: Product Details */}

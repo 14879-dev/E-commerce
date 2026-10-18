@@ -10,6 +10,27 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const { formatPrice } = useStoreSettings();
   const navigate = useNavigate();
   const [justAdded, setJustAdded] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [selectedVariantIdx, setSelectedVariantIdx] = useState(0);
+
+  const variants = Array.isArray(product.variants) && product.variants.length > 0
+    ? product.variants
+    : [];
+
+  const activeVariant = variants[selectedVariantIdx] || variants[0] || null;
+
+  // 1st / Primary Image
+  const primaryImage = (activeVariant && Array.isArray(activeVariant.images) && activeVariant.images[0])
+    || product.images?.front
+    || (Array.isArray(product.images?.gallery) && product.images.gallery[0])
+    || '';
+
+  // 2nd / Secondary Image for Hover Flip
+  const secondaryImage = (activeVariant && Array.isArray(activeVariant.images) && activeVariant.images[1])
+    || (Array.isArray(product.images?.gallery) && product.images.gallery[1])
+    || (variants.length > 1 && variants[1]?.images?.[0])
+    || product.images?.back
+    || null;
 
   const getDefaults = (): { size: number; color: LeatherColor } => {
     const sizes = Array.isArray(product.availableSizes) && product.availableSizes.length > 0
@@ -19,7 +40,7 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
       ? product.availableColors
       : ['saddle-tan'];
     const size = sizes[Math.floor(sizes.length / 2)] || 9;
-    const color = (colors[0] || 'saddle-tan') as LeatherColor;
+    const color = (activeVariant?.colorName?.toLowerCase() || colors[0] || 'saddle-tan') as LeatherColor;
     return { size, color };
   };
 
@@ -41,7 +62,11 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   };
 
   return (
-    <div className="bg-[#F7F4EB] rounded-2xl border border-[#A0988A]/40 shadow-xs hover:shadow-md hover:border-[#565449] transition-all duration-200 group flex flex-col justify-between overflow-hidden h-full transform-gpu">
+    <div
+      className="bg-[#F7F4EB] rounded-2xl border border-[#A0988A]/40 shadow-xs hover:shadow-md hover:border-[#565449] transition-all duration-200 group flex flex-col justify-between overflow-hidden h-full transform-gpu"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* Image Container with Link */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#A0988A]/15 p-2 sm:p-3">
 
@@ -52,29 +77,47 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
           </div>
         )}
 
-        {/* Product Image Link */}
+        {/* Product Image Link with 2nd Image Hover Flip */}
         <Link
           to={`/products/${product.slug}`}
-          className="w-full h-full block cursor-pointer"
+          className="w-full h-full block cursor-pointer relative"
           title={`View ${product.name}`}
         >
+          {/* Primary Front Image */}
           <img
-            src={product.images.front}
+            src={primaryImage}
             alt={`Authentic Pure Leather ${product.name} Peshawari Chappal`}
             title={`${product.name} - Handcrafted Peshawari Chappal`}
             loading="lazy"
             decoding="async"
-            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 rounded-xl will-change-transform"
+            className={`w-full h-full object-contain rounded-xl transition-all duration-300 will-change-transform ${
+              isHovered && secondaryImage ? 'opacity-0 scale-95' : 'opacity-100 group-hover:scale-105'
+            }`}
           />
+
+          {/* Secondary Alternate Image shown on Mouse Hover */}
+          {secondaryImage && (
+            <img
+              src={secondaryImage}
+              alt={`${product.name} alternate angle`}
+              title={`${product.name} - Alternate view`}
+              loading="lazy"
+              decoding="async"
+              className={`absolute inset-0 w-full h-full object-contain rounded-xl transition-all duration-300 will-change-transform ${
+                isHovered ? 'opacity-100 scale-105' : 'opacity-0 pointer-events-none'
+              }`}
+            />
+          )}
         </Link>
       </div>
 
-      {/* Product Card Content */}
+      {/* Product Card Content matching Image 2 */}
       <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between">
         <div>
+          {/* Category Top Label */}
           <div className="flex items-center justify-between gap-1 mb-1">
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider font-semibold text-[#1A1A18]">
-              {product.category && product.category !== 'None' ? product.category : 'Handcrafted'}
+            <span className="text-[10px] sm:text-xs uppercase tracking-wider font-semibold text-[#8C3A18]">
+              {product.category && product.category !== 'None' ? product.category : 'CLASSIC SANDALS'}
             </span>
             <div className="flex items-center gap-0.5 text-[11px] sm:text-xs font-semibold text-[#1A1A18]">
               <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
@@ -83,69 +126,67 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
             </div>
           </div>
 
+          {/* Product Title (No description below as requested) */}
           <Link to={`/products/${product.slug}`} className="block group-hover:text-[#45433A] transition-colors">
-            <h3 className="font-serif font-bold text-xs sm:text-base text-[#1A1A18] line-clamp-1 leading-snug">
+            <h3 className="font-serif font-bold text-sm sm:text-base text-[#1A1A18] line-clamp-1 leading-snug">
               {product.name}
             </h3>
           </Link>
-
-          {/* Variant Color Dots (Directly below name as in Image 5) */}
-          {Array.isArray(product.variants) && product.variants.length > 0 && (
-            <div className="flex items-center gap-1.5 mt-2 mb-1" title={`${product.variants.length} variant${product.variants.length > 1 ? 's' : ''} available`}>
-              {product.variants.slice(0, 6).map((variant) => (
-                <span
-                  key={variant.id}
-                  title={`${variant.title || variant.colorName} (${variant.colorHex})`}
-                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border border-black/20 shadow-xs shrink-0 ring-1 ring-white transition-transform hover:scale-125 cursor-pointer"
-                  style={{ backgroundColor: variant.colorHex || '#565449' }}
-                />
-              ))}
-              {product.variants.length > 6 && (
-                <span className="text-[10px] text-[#1A1A18]/70 font-bold ml-0.5">+{product.variants.length - 6}</span>
-              )}
-            </div>
-          )}
-
-          <p className="hidden sm:block text-xs text-[#1A1A18]/80 line-clamp-1 mt-0.5 mb-2 leading-relaxed">
-            {product.subtitle}
-          </p>
         </div>
 
-        {/* Price & Action Buttons */}
-        <div className="pt-2 border-t border-[#A0988A]/40 mt-auto space-y-2">
-          {/* Price Stack & Variant Dots */}
-          <div className="flex items-center justify-between min-h-[36px]">
+        {/* Divider & Price Row matching Image 2 */}
+        <div className="pt-2 border-t border-[#A0988A]/30 mt-3 space-y-2.5">
+          {/* Price Stack on Left & Variant Colors on Right (Image 2) */}
+          <div className="flex items-end justify-between gap-2 min-h-[38px]">
             <div className="flex flex-col items-start justify-center">
-              {Array.isArray(product.variants) && product.variants.length > 0 && (
-                <span className="text-[10px] text-[#A0988A] font-medium leading-none mb-0.5">Starting from</span>
-              )}
-              <span className="font-serif font-bold text-sm sm:text-base text-[#1A1A18] leading-tight">
-                {formatPrice(product.price)}
+              <span className="text-[10px] sm:text-[11px] text-[#A0988A] font-medium leading-none mb-0.5">
+                Starting from
               </span>
-              {Boolean(product.originalPrice && product.originalPrice > product.price) && (
-                <span className="text-[10px] sm:text-xs text-[#A0988A] line-through leading-tight">
-                  {formatPrice(product.originalPrice)}
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-serif font-bold text-sm sm:text-base text-[#1A1A18] leading-tight">
+                  {formatPrice(activeVariant?.price || product.price)}
                 </span>
-              )}
+                {Boolean(product.originalPrice && product.originalPrice > product.price) && (
+                  <span className="text-[10px] sm:text-xs text-[#A0988A] line-through leading-tight">
+                    {formatPrice(product.originalPrice)}
+                  </span>
+                )}
+              </div>
             </div>
 
-            {/* Quick color indicator on right side of price row matching Image 5 */}
-            {Array.isArray(product.variants) && product.variants.length > 0 && (
-              <div className="flex items-center gap-1">
-                {product.variants.slice(0, 3).map((v) => (
-                  <span
-                    key={`pill-${v.id}`}
-                    className="w-3 h-3 rounded-full border border-black/15 shadow-2xs shrink-0"
-                    style={{ backgroundColor: v.colorHex || '#565449' }}
-                    title={v.title}
-                  />
-                ))}
+            {/* Variant Color Circles on the Right Side of Price Row (Image 2) */}
+            {variants.length > 0 && (
+              <div
+                className="flex items-center gap-1.5 shrink-0"
+                title={`${variants.length} variant${variants.length > 1 ? 's' : ''} available`}
+              >
+                {variants.map((v, idx) => {
+                  const isCurrent = selectedVariantIdx === idx;
+                  return (
+                    <button
+                      key={v.id || idx}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedVariantIdx(idx);
+                      }}
+                      className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border shadow-2xs transition-transform cursor-pointer hover:scale-125 ${
+                        isCurrent
+                          ? 'ring-2 ring-[#8C3A18] ring-offset-1 scale-110 border-white'
+                          : 'border-black/25'
+                      }`}
+                      style={{ backgroundColor: v.colorHex || '#565449' }}
+                      title={`${v.title || v.colorName} (${v.colorHex})`}
+                    />
+                  );
+                })}
               </div>
             )}
           </div>
 
-          {/* Action Buttons Row: Add to Bag (Warm Taupe with Olive border) & Direct Buy Now (Olive Drab) */}
-          <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
+          {/* Action Buttons Row: Add to Bag & Direct Buy Now */}
+          <div className="grid grid-cols-2 gap-1.5">
             <button
               type="button"
               onClick={handleAddToCart}

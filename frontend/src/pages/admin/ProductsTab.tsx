@@ -189,7 +189,8 @@ export const ProductsTab: React.FC = () => {
       title: `Variant ${nextNum}`,
       colorHex: '#C19A6B',
       colorName: 'Camel',
-      images: [...galleryImages],
+      colorCategory: 'Camel',
+      images: [],
       inventory: { 7: 20, 8: 20, 9: 20, 10: 20, 11: 20, 12: 20 },
     };
     setVariants(prev => [...prev, newV]);
@@ -244,6 +245,7 @@ export const ProductsTab: React.FC = () => {
         title: 'Classic',
         colorHex: '#0F0F11',
         colorName: 'Black',
+        colorCategory: 'Black',
         images: [],
         inventory: { 7: 20, 8: 20, 9: 20, 10: 20, 11: 20, 12: 20 },
       },
@@ -294,7 +296,11 @@ export const ProductsTab: React.FC = () => {
     setGalleryImages(extracted);
 
     if (Array.isArray(p.variants) && p.variants.length > 0) {
-      setVariants(p.variants);
+      setVariants(p.variants.map(v => ({
+        ...v,
+        colorCategory: v.colorCategory || (['Camel', 'Black', 'Grey', 'Brown'].find(c => c.toLowerCase() === (v.colorName || '').toLowerCase())) || 'Camel',
+        images: Array.isArray(v.images) && v.images.length > 0 ? v.images : (extracted.length > 0 ? extracted : []),
+      })));
       setSelectedVariantIdx(0);
     } else {
       setVariants([
@@ -303,6 +309,7 @@ export const ProductsTab: React.FC = () => {
           title: p.name || 'Classic',
           colorHex: '#7B4A28',
           colorName: 'Camel',
+          colorCategory: 'Camel',
           images: extracted,
           inventory: { 7: 20, 8: 20, 9: 20, 10: 20, 11: 20, 12: 20 },
         },
@@ -325,19 +332,21 @@ export const ProductsTab: React.FC = () => {
     }
 
     setFormSubmitting(true);
-    const primaryFront = galleryImages[coverIndex] || galleryImages[0] || '';
+    const allVariantImages = variants.flatMap(v => v.images || []).filter(Boolean);
+    const primaryFront = galleryImages[coverIndex] || galleryImages[0] || (variants[0]?.images && variants[0].images[0]) || allVariantImages[0] || '';
+    const mergedGallery = galleryImages.length > 0 ? galleryImages : allVariantImages;
     const imagesPayload = {
       front: primaryFront,
-      gallery: galleryImages,
-      back: galleryImages[1] || '',
-      left: galleryImages[2] || '',
-      right: galleryImages[3] || '',
-      top: galleryImages[4] || '',
-      sole: galleryImages[5] || '',
+      gallery: mergedGallery.length > 0 ? mergedGallery : (primaryFront ? [primaryFront] : []),
+      back: mergedGallery[1] || '',
+      left: mergedGallery[2] || '',
+      right: mergedGallery[3] || '',
+      top: mergedGallery[4] || '',
+      sole: mergedGallery[5] || '',
     };
 
     const cleanSizes = (formData.availableSizes || []).map(Number).filter(s => s >= 7 && s <= 13);
-    const allVariantColors = Array.from(new Set(variants.map(v => (v.colorName || v.title || 'camel').toLowerCase())));
+    const allVariantColors = Array.from(new Set(variants.map(v => (v.colorCategory || v.colorName || v.title || 'camel').toLowerCase())));
 
     const sanitizedPayload = {
       ...formData,
@@ -890,11 +899,11 @@ export const ProductsTab: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Article Code / Tag Input (Internal for finding & inventory) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {/* Article Code / Tag Input */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                      Internal Article Tag / Code * <span className="text-slate-400 font-normal lowercase">(for staff tracking)</span>
+                    <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 truncate">
+                      Internal Tag / Article Code *
                     </label>
                     <input
                       type="text"
@@ -908,17 +917,14 @@ export const ProductsTab: React.FC = () => {
                           articleTag: val,
                         }));
                       }}
-                      className="w-full px-3.5 py-2 text-xs font-mono font-bold text-slate-900 bg-white rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 uppercase"
+                      className="w-full px-3 py-1.5 text-xs font-mono font-bold text-slate-900 bg-white rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500 uppercase h-9"
                     />
-                    <p className="text-[10px] text-slate-500 mt-1">
-                      Used by admin and manager to search and find this chappal in inventory.
-                    </p>
                   </div>
 
                   {/* Customer-Facing Product Title Input */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                      Customer-Facing Product Title *
+                    <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 truncate">
+                      Product Title *
                     </label>
                     <input
                       type="text"
@@ -926,42 +932,36 @@ export const ProductsTab: React.FC = () => {
                       placeholder="e.g. Kaptaan Signature Pure Leather Chappal"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-3.5 py-2 text-xs font-semibold text-slate-900 bg-white rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-1.5 text-xs font-semibold text-slate-900 bg-white rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500 h-9"
                     />
-                    <p className="text-[10px] text-slate-500 mt-1">
-                      The product title displayed to customers across the public storefront.
-                    </p>
                   </div>
                 </div>
 
                 {/* Customer-Facing Subtitle Input */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Customer-Facing Subtitle / Tagline
+                  <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 truncate">
+                    Subtitle / Tagline (Optional)
                   </label>
                   <input
                     type="text"
                     placeholder="e.g. Handcrafted from pure full-grain cowhide leather with durable tire sole"
                     value={formData.subtitle}
                     onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
-                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 h-9"
                   />
-                  <p className="text-[10px] text-slate-500 mt-1">
-                    Shown directly below the title for public customers.
-                  </p>
                 </div>
               </div>
 
-              {/* ── 2. Pricing & Category Grid ── */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* ── 2. Pricing & Category Grid (Symmetrical 4 Columns) ── */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Category <span className="text-slate-400 font-normal lowercase">(optional)</span>
+                  <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 truncate">
+                    Category
                   </label>
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 h-9"
                   >
                     <option value="None">None / General</option>
                     {categories.map((c) => (
@@ -973,7 +973,7 @@ export const ProductsTab: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 truncate">
                     Selling Price (Rs.) *
                   </label>
                   <input
@@ -982,14 +982,13 @@ export const ProductsTab: React.FC = () => {
                     min={0}
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) || 0 })}
-                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-semibold"
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-semibold h-9"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-emerald-800 uppercase tracking-wider mb-1 flex items-center justify-between">
-                    <span>Supplier Buy Price (Rs.) *</span>
-                    <span className="text-[10px] text-emerald-600 font-medium lowercase">dashboard only</span>
+                  <label className="block text-[10px] font-bold text-emerald-800 uppercase tracking-wider mb-1 truncate" title="Supplier Cost Price (Dashboard Only)">
+                    Supplier Cost (Rs.) *
                   </label>
                   <input
                     type="number"
@@ -997,24 +996,21 @@ export const ProductsTab: React.FC = () => {
                     value={formData.costPrice > 0 ? formData.costPrice : ''}
                     onChange={(e) => setFormData({ ...formData, costPrice: e.target.value === '' ? 0 : Number(e.target.value) || 0 })}
                     placeholder="e.g. 1500"
-                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-emerald-300 bg-emerald-50/40 text-emerald-950 font-semibold focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-emerald-300 bg-emerald-50/40 text-emerald-950 font-semibold focus:outline-none focus:border-emerald-600 h-9"
                   />
-                  <span className="text-[10px] text-slate-400 mt-0.5 block">
-                    Confidential: for inventory investment & net profit calc
-                  </span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Original / Strike Price (Rs.)
+                  <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 truncate">
+                    Original / Strike (Rs.)
                   </label>
                   <input
                     type="number"
                     min={0}
                     value={formData.originalPrice || ''}
                     onChange={(e) => setFormData({ ...formData, originalPrice: Number(e.target.value) || undefined })}
-                    placeholder="Optional for discount"
-                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500"
+                    placeholder="Optional discount"
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 h-9"
                   />
                 </div>
               </div>
@@ -1145,11 +1141,12 @@ export const ProductsTab: React.FC = () => {
                 {/* Current Variant Fields */}
                 {variants[selectedVariantIdx] && (() => {
                   const curr = variants[selectedVariantIdx];
+                  const variantImages = Array.isArray(curr.images) ? curr.images : [];
                   return (
                     <div className="space-y-4">
                       {/* VARIANT TITLE / STYLE NAME */}
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">
                           Variant Title / Style Name
                         </label>
                         <input
@@ -1161,14 +1158,14 @@ export const ProductsTab: React.FC = () => {
                         />
                       </div>
 
-                      {/* VARIANT COLOR (shown on product card & storefront) */}
+                      {/* VARIANT COLOR CODE & PICKER (shown on product card & storefront) */}
                       <div>
                         <div className="flex flex-wrap items-baseline justify-between gap-1 mb-2">
-                          <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                            Variant Color <span className="font-normal text-slate-400 normal-case">(shown on product card &amp; storefront)</span>
+                          <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider">
+                            Variant Color Code <span className="font-normal text-slate-400 normal-case">(Color dot shown alongside price in product grid)</span>
                           </label>
                           <span className="text-[10px] text-slate-400">
-                            Preset, Dropper, or Hex Code (e.g. #61ccee)
+                            Preset, Dropper, or Hex (e.g. #7B4A28)
                           </span>
                         </div>
 
@@ -1238,10 +1235,159 @@ export const ProductsTab: React.FC = () => {
                         </div>
                       </div>
 
+                      {/* COLOR CATEGORY (For Leather Filter Area: Black, Brown, Camel, Grey) */}
+                      <div>
+                        <div className="flex items-center justify-between gap-1 mb-1.5">
+                          <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider">
+                            Color Category <span className="font-normal text-slate-400 normal-case">(For Leather Filters on Catalog Page)</span>
+                          </label>
+                          <span className="text-[10px] text-slate-500 font-semibold">
+                            Active Category: <strong className="text-slate-900">{curr.colorCategory || 'Camel'}</strong>
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {[
+                            { name: 'Camel', hex: '#C19A6B' },
+                            { name: 'Black', hex: '#1A1A1A' },
+                            { name: 'Grey', hex: '#808080' },
+                            { name: 'Brown', hex: '#7B4A28' },
+                          ].map((cat) => {
+                            const isCatActive = (curr.colorCategory || 'Camel').toLowerCase() === cat.name.toLowerCase();
+                            return (
+                              <button
+                                key={cat.name}
+                                type="button"
+                                onClick={() => handleUpdateCurrentVariant({ colorCategory: cat.name })}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 border transition-all cursor-pointer ${
+                                  isCatActive
+                                    ? 'bg-slate-900 text-white border-slate-900 shadow-xs ring-2 ring-slate-900/20'
+                                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                                }`}
+                              >
+                                <span
+                                  className="w-3.5 h-3.5 rounded-full border border-black/15 shrink-0"
+                                  style={{ backgroundColor: cat.hex }}
+                                />
+                                <span>{cat.name}</span>
+                                {isCatActive && <CheckCircle2 className="w-3 h-3 text-amber-400 ml-0.5" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* VARIANT PHOTOS (UP TO 5 PHOTOS - 1st is mini thumbnail) */}
+                      <div className="space-y-2 pt-2 border-t border-slate-200/80">
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider">
+                            Variant Photos <span className="font-normal text-slate-400 normal-case">(Up to 5 images for this variant. 1st photo is used as the variant thumbnail on storefront)</span>
+                          </label>
+                          <span className="text-[10px] font-bold text-blue-600">
+                            {variantImages.length} / 5 photos
+                          </span>
+                        </div>
+
+                        {/* Grid of uploaded photos for this variant */}
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                          {variantImages.map((imgUrl, imgIdx) => (
+                            <div key={imgIdx} className="relative aspect-square rounded-xl border border-slate-200 bg-white overflow-hidden group p-1">
+                              <img src={imgUrl} alt={`Photo ${imgIdx + 1}`} className="w-full h-full object-contain rounded-lg" />
+                              <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/70 text-white text-[9px] font-bold">
+                                {imgIdx === 0 ? '★ 1st Mini' : `#${imgIdx + 1}`}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = variantImages.filter((_, idx) => idx !== imgIdx);
+                                  handleUpdateCurrentVariant({ images: updated });
+                                }}
+                                className="absolute top-1.5 right-1.5 p-1 rounded-md bg-red-600 text-white hover:bg-red-700 transition-all cursor-pointer shadow-xs"
+                                title="Remove photo"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+
+                          {/* Add Photo Slot if less than 5 */}
+                          {variantImages.length < 5 && (
+                            <div className="aspect-square rounded-xl border-2 border-dashed border-slate-300 hover:border-blue-500 bg-white flex flex-col items-center justify-center p-2 text-center transition-colors">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                id={`var-file-upload-${selectedVariantIdx}`}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  const reader = new FileReader();
+                                  reader.onload = (evt) => {
+                                    const base64Data = evt.target?.result as string;
+                                    if (base64Data) {
+                                      const updated = [...variantImages, base64Data].slice(0, 5);
+                                      handleUpdateCurrentVariant({ images: updated });
+                                      showNotification('success', 'Photo added to variant.');
+                                    }
+                                  };
+                                  reader.readAsDataURL(file);
+                                  e.target.value = '';
+                                }}
+                              />
+                              <label
+                                htmlFor={`var-file-upload-${selectedVariantIdx}`}
+                                className="cursor-pointer flex flex-col items-center justify-center w-full h-full"
+                              >
+                                <Upload className="w-5 h-5 text-blue-600 mb-1" />
+                                <span className="text-[10px] font-bold text-blue-600">+ Upload Photo</span>
+                                <span className="text-[9px] text-slate-400">Up to 5</span>
+                              </label>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Or Paste URL */}
+                        {variantImages.length < 5 && (
+                          <div className="flex items-center gap-2 pt-1">
+                            <input
+                              type="url"
+                              placeholder="Or paste an image web URL for this variant..."
+                              id={`var-url-input-${selectedVariantIdx}`}
+                              className="flex-1 px-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  const input = e.currentTarget;
+                                  const url = input.value.trim();
+                                  if (url) {
+                                    const updated = [...variantImages, url].slice(0, 5);
+                                    handleUpdateCurrentVariant({ images: updated });
+                                    input.value = '';
+                                  }
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const input = document.getElementById(`var-url-input-${selectedVariantIdx}`) as HTMLInputElement;
+                                if (input && input.value.trim()) {
+                                  const updated = [...variantImages, input.value.trim()].slice(0, 5);
+                                  handleUpdateCurrentVariant({ images: updated });
+                                  input.value = '';
+                                }
+                              }}
+                              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all shrink-0 cursor-pointer"
+                            >
+                              Add URL
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
                       {/* INVENTORY FOR THIS VARIANT */}
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">
-                          Inventory For This Variant
+                        <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-2">
+                          Inventory For This Variant (Sizes 7 to 12)
                         </label>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
                           {[7, 8, 9, 10, 11, 12].map((size) => (
