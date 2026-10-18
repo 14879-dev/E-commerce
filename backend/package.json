@@ -4,7 +4,7 @@
   "description": "Node.js REST API server for Peshawari Chappal E-Commerce Website",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc && node -e \"const fs=require('fs'),path=require('path');const s=path.join('src','data'),d=path.join('dist','data');if(fs.existsSync(s)){fs.mkdirSync(d,{recursive:true});fs.readdirSync(s).forEach(f=>{const sp=path.join(s,f),dp=path.join(d,f);if(fs.statSync(sp).isFile())fs.copyFileSync(sp,dp);});}\"",
+    "build": "tsc && node -e \"const fs=require('fs'),path=require('path');const s=path.join('src','data'),d=path.join('dist','data');if(fs.existsSync(s)){fs.cpSync(s,d,{recursive:true});}\"",
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "seed": "ts-node src/data/seed.ts",

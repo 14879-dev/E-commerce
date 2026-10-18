@@ -104,6 +104,12 @@ export const StoreSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
+        if (!parsed.logoUrl || parsed.logoUrl.includes('asset_1790946826902') || parsed.logoUrl.includes('asset_1789685216898') || parsed.logoUrl.endsWith('.jpg')) {
+          parsed.logoUrl = DEFAULT_SETTINGS.logoUrl;
+        }
+        if (!parsed.footerLogoUrl || parsed.footerLogoUrl.endsWith('.jpg')) {
+          parsed.footerLogoUrl = DEFAULT_SETTINGS.footerLogoUrl;
+        }
         if (parsed.logoUrl) parsed.logoUrl = normalizeAssetUrl(parsed.logoUrl);
         if (parsed.footerLogoUrl) parsed.footerLogoUrl = normalizeAssetUrl(parsed.footerLogoUrl);
         if (parsed.faviconUrl) parsed.faviconUrl = normalizeAssetUrl(parsed.faviconUrl);

@@ -2518,8 +2518,19 @@ const heroUpload = multer({
   },
 });
 
-// Serve uploaded hero media and brand files as static with 7-day browser caching
-app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '7d', etag: true }));
+// Serve uploaded hero media and brand files as static with fallback paths
+app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '1h', etag: true }));
+const extraUploadDirs = [
+  path.join(process.cwd(), 'backend', 'src', 'data', 'uploads'),
+  path.join(process.cwd(), 'frontend', 'public', 'uploads'),
+  path.join(__dirname, '..', '..', 'frontend', 'public', 'uploads'),
+  path.join(__dirname, '..', 'src', 'data', 'uploads'),
+];
+extraUploadDirs.forEach(dir => {
+  if (fs.existsSync(dir)) {
+    app.use('/uploads', express.static(dir, { maxAge: '1h', etag: true }));
+  }
+});
 
 // Get current hero media and slides info
 app.get('/api/hero-media', (_req: Request, res: Response) => {
