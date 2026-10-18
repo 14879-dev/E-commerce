@@ -5,7 +5,7 @@ import {
   Layers, CheckCircle2, Star, Image as ImageIcon, Download
 } from 'lucide-react';
 import { apiService } from '../../services/api';
-import type { Product, Category, LeatherColor } from '../../types';
+import type { Product, Category, LeatherColor, ProductVariant } from '../../types';
 
 const LEATHER_COLORS: { id: LeatherColor; name: string; hex: string }[] = [
   { id: 'saddle-tan', name: 'Saddle Tan', hex: '#7B4A28' },
@@ -17,6 +17,17 @@ const LEATHER_COLORS: { id: LeatherColor; name: string; hex: string }[] = [
 ];
 
 const STANDARD_SIZES = [7, 8, 9, 10, 11, 12, 13];
+
+const PRESET_VARIANT_COLORS = [
+  { name: 'Black', hex: '#0F0F11' },
+  { name: 'Brown', hex: '#7B4A28' },
+  { name: 'Slate Grey', hex: '#3E5664' },
+  { name: 'Sky Blue', hex: '#75B8D8' },
+  { name: 'Crimson Maroon', hex: '#801323' },
+  { name: 'Wine', hex: '#58111A' },
+  { name: 'Desert Sand', hex: '#F5E6CA' },
+  { name: 'Pearl Cream', hex: '#FAF8F5' },
+];
 
 interface CustomColorItem {
   id: string;
@@ -59,9 +70,13 @@ export const ProductsTab: React.FC = () => {
   const [newColorName, setNewColorName] = useState('');
   const [newColorHex, setNewColorHex] = useState('#2A3A4A');
 
+  // Variant Builder State
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [selectedVariantIdx, setSelectedVariantIdx] = useState<number>(0);
+
   // Gemini AI Vision State
   const [isAnalyzingWithAi, setIsAnalyzingWithAi] = useState<boolean>(false);
-  const [aiAnalyzingIndex, setAiAnalyzingIndex] = useState<number | null>(null);
+  const [aiAnalyzingIndex, setAiAnalyzingIndex] = useState<number>(null);
 
   // Form State
   const [formData, setFormData] = useState<{
@@ -240,6 +255,42 @@ export const ProductsTab: React.FC = () => {
     }));
   };
 
+  // Variant Management Handlers
+  const handleAddVariant = () => {
+    const nextNum = variants.length + 1;
+    const newV: ProductVariant = {
+      id: `var-${Date.now()}-${nextNum}`,
+      title: `Variant ${nextNum}`,
+      colorHex: '#C19A6B',
+      colorName: 'Camel',
+      images: [...galleryImages],
+      inventory: { 7: 20, 8: 20, 9: 20, 10: 20, 11: 20, 12: 20 },
+    };
+    setVariants(prev => [...prev, newV]);
+    setSelectedVariantIdx(variants.length);
+  };
+
+  const handleDeleteVariant = (idx: number) => {
+    if (variants.length <= 1) return;
+    const updated = variants.filter((_, i) => i !== idx);
+    setVariants(updated);
+    if (selectedVariantIdx >= updated.length) {
+      setSelectedVariantIdx(updated.length - 1);
+    }
+  };
+
+  const handleUpdateCurrentVariant = (updates: Partial<ProductVariant>) => {
+    setVariants(prev => prev.map((v, i) => (i === selectedVariantIdx ? { ...v, ...updates } : v)));
+  };
+
+  const handleUpdateVariantInventory = (size: number, qty: number) => {
+    setVariants(prev => prev.map((v, i) => {
+      if (i !== selectedVariantIdx) return v;
+      const inv = { ...(v.inventory || { 7: 20, 8: 20, 9: 20, 10: 20, 11: 20, 12: 20 }), [size]: qty };
+      return { ...v, inventory: inv };
+    }));
+  };
+
   // Open Add Product Modal with auto-generated internal tag & customer-facing title
   const handleOpenAddModal = () => {
     const nextTag = generateNextTag(products);
@@ -261,6 +312,17 @@ export const ProductsTab: React.FC = () => {
       availableSizes: [7, 8, 9, 10, 11, 12, 13],
       availableColors: ['saddle-tan', 'espresso'],
     });
+    setVariants([
+      {
+        id: `var-${Date.now()}-1`,
+        title: 'Classic',
+        colorHex: '#0F0F11',
+        colorName: 'Black',
+        images: [],
+        inventory: { 7: 20, 8: 20, 9: 20, 10: 20, 11: 20, 12: 20 },
+      },
+    ]);
+    setSelectedVariantIdx(0);
     setGalleryImages([]);
     setCoverIndex(0);
     setNewImageUrl('');
@@ -304,6 +366,24 @@ export const ProductsTab: React.FC = () => {
       }
     }
     setGalleryImages(extracted);
+
+    if (Array.isArray(p.variants) && p.variants.length > 0) {
+      setVariants(p.variants);
+      setSelectedVariantIdx(0);
+    } else {
+      setVariants([
+        {
+          id: `var-${p.id}-1`,
+          title: p.name || 'Classic',
+          colorHex: '#7B4A28',
+          colorName: 'Camel',
+          images: extracted,
+          inventory: { 7: 20, 8: 20, 9: 20, 10: 20, 11: 20, 12: 20 },
+        },
+      ]);
+      setSelectedVariantIdx(0);
+    }
+
     setCoverIndex(0);
     setNewImageUrl('');
     setFeatureInput('');
@@ -331,8 +411,12 @@ export const ProductsTab: React.FC = () => {
     };
 
     const cleanSizes = (formData.availableSizes || []).map(Number).filter(s => s >= 7 && s <= 13);
+    const allVariantColors = Array.from(new Set(variants.map(v => (v.colorName || v.title || 'camel').toLowerCase())));
+
     const sanitizedPayload = {
       ...formData,
+      variants,
+      availableColors: allVariantColors.length > 0 ? allVariantColors : formData.availableColors,
       articleTag: (formData.articleTag || '').trim(),
       costPrice: Number(formData.costPrice) || 0,
       category: formData.category?.trim() || 'None',
@@ -1102,149 +1186,178 @@ export const ProductsTab: React.FC = () => {
                 </div>
               </div>
 
-              {/* Sizes Selection (7 to 13) */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Available Sizes (7 to 13) *
-                  </label>
-                  <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
-                    {formData.availableSizes.length} Selected
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {STANDARD_SIZES.map((size) => {
-                    const isSelected = formData.availableSizes.includes(size);
-                    return (
-                      <button
-                        type="button"
-                        key={size}
-                        onClick={() => toggleSize(size)}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-                          isSelected
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-500/20 ring-1 ring-blue-600'
-                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                        }`}
-                      >
-                        Size {size}
-                        {isSelected && <span className="ml-1 text-blue-200">✓</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* ── 3. Selected Colours (Presets + Admin/Manager Manual Adder) ── */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      Selected Leather Colours / Shades *
-                    </label>
-                    <p className="text-[11px] text-slate-500">
-                      Choose from standard shades or add custom colors manually (Admin &amp; Manager).
-                    </p>
-                  </div>
-                  <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
-                    {formData.availableColors.length} Selected
-                  </span>
-                </div>
-
-                {/* Predefined Colors List */}
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {LEATHER_COLORS.map((c) => {
-                    const isSelected = formData.availableColors.includes(c.id);
-                    return (
-                      <button
-                        type="button"
-                        key={c.id}
-                        onClick={() => toggleColor(c.id)}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
-                          isSelected
-                            ? 'bg-white text-slate-900 border-blue-600 shadow-xs ring-1 ring-blue-600'
-                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                        }`}
-                      >
-                        <span className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: c.hex }} />
-                        {c.name}
-                        {isSelected && <span className="text-blue-600 font-bold ml-0.5">✓</span>}
-                      </button>
-                    );
-                  })}
-
-                  {/* Custom Added Colors */}
-                  {customColors.map((c) => {
-                    const isSelected = formData.availableColors.includes(c.id);
-                    return (
-                      <div key={c.id} className="relative inline-flex items-center group">
+              {/* ── Product Variant Builder (Matching Image 4) ── */}
+              <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200 space-y-4">
+                {/* Variant Header & Switcher */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {variants.map((v, i) => {
+                      const isSelected = selectedVariantIdx === i;
+                      return (
                         <button
+                          key={v.id || i}
                           type="button"
-                          onClick={() => toggleColor(c.id)}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                          onClick={() => setSelectedVariantIdx(i)}
+                          className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer ${
                             isSelected
-                              ? 'bg-white text-slate-900 border-purple-600 shadow-xs ring-1 ring-purple-600'
-                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                              ? 'bg-[#111827] text-white shadow-xs'
+                              : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
                           }`}
                         >
-                          <span className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: c.hex }} />
-                          {c.name}
-                          {isSelected && <span className="text-purple-600 font-bold ml-0.5">✓</span>}
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs"
+                            style={{ backgroundColor: v.colorHex || '#0F0F11' }}
+                          />
+                          <span>{v.title || `Variant ${i + 1}`}</span>
+                          <span className={`px-1.5 py-0.2 rounded text-[10px] font-semibold ${isSelected ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'}`}>
+                            {i + 1}/{variants.length}
+                          </span>
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveCustomColorDefinition(c.id)}
-                          className="opacity-0 group-hover:opacity-100 -ml-2 mr-1 p-0.5 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-all cursor-pointer"
-                          title={`Delete ${c.name} color`}
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+
+                    {variants.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteVariant(selectedVariantIdx)}
+                        className="p-1.5 rounded-xl text-red-500 hover:bg-red-50 hover:text-red-700 transition-all border border-red-200 cursor-pointer"
+                        title="Delete this variant"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* + Add New Variant Button */}
+                  <button
+                    type="button"
+                    onClick={handleAddVariant}
+                    className="bg-black hover:bg-slate-800 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all active:scale-95 ml-auto"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add New Variant
+                  </button>
                 </div>
 
-                {/* Manual Custom Color Addition Row */}
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/90 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                      <Plus className="w-3.5 h-3.5 text-blue-600" />
-                      Add Colour Manually
-                    </span>
-                    <span className="text-[10px] font-semibold text-slate-400">Available to Admin &amp; Manager</span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shrink-0">
-                      <input
-                        type="color"
-                        value={newColorHex}
-                        onChange={(e) => setNewColorHex(e.target.value)}
-                        className="w-6 h-6 rounded cursor-pointer border-0 bg-transparent p-0"
-                        title="Pick color swatch hex"
-                      />
-                      <span className="text-[10px] font-mono text-slate-500 uppercase">{newColorHex}</span>
+                {/* Current Variant Fields */}
+                {variants[selectedVariantIdx] && (() => {
+                  const curr = variants[selectedVariantIdx];
+                  return (
+                    <div className="space-y-4">
+                      {/* VARIANT TITLE / STYLE NAME */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                          Variant Title / Style Name
+                        </label>
+                        <input
+                          type="text"
+                          value={curr.title}
+                          onChange={(e) => handleUpdateCurrentVariant({ title: e.target.value })}
+                          placeholder="e.g. Sable Cloister, Camel Brown, Midnight Black"
+                          className="w-full px-3.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-600"
+                        />
+                      </div>
+
+                      {/* VARIANT COLOR (shown on product card & storefront) */}
+                      <div>
+                        <div className="flex flex-wrap items-baseline justify-between gap-1 mb-2">
+                          <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                            Variant Color <span className="font-normal text-slate-400 normal-case">(shown on product card &amp; storefront)</span>
+                          </label>
+                          <span className="text-[10px] text-slate-400">
+                            Preset, Dropper, or Hex Code (e.g. #61ccee)
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3">
+                          {/* Presets Row */}
+                          <div className="flex items-center gap-1.5 bg-white p-1.5 rounded-full border border-slate-200 shadow-2xs">
+                            {PRESET_VARIANT_COLORS.map((pc) => {
+                              const isActive = curr.colorHex.toLowerCase() === pc.hex.toLowerCase();
+                              return (
+                                <button
+                                  key={pc.hex}
+                                  type="button"
+                                  onClick={() => handleUpdateCurrentVariant({ colorHex: pc.hex, colorName: pc.name })}
+                                  className={`w-6 h-6 rounded-full border transition-transform cursor-pointer relative shadow-2xs ${
+                                    isActive ? 'ring-2 ring-blue-600 ring-offset-1 scale-110 border-white' : 'border-black/10 hover:scale-110'
+                                  }`}
+                                  style={{ backgroundColor: pc.hex }}
+                                  title={`${pc.name} (${pc.hex})`}
+                                />
+                              );
+                            })}
+
+                            {/* Color Dropper / Picker */}
+                            <label
+                              className="relative w-6 h-6 rounded-full bg-gradient-to-tr from-rose-400 via-amber-300 to-teal-400 border border-slate-300 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-2xs"
+                              title="Pick custom color"
+                            >
+                              <input
+                                type="color"
+                                value={curr.colorHex || '#0F0F11'}
+                                onChange={(e) => handleUpdateCurrentVariant({ colorHex: e.target.value, colorName: 'Custom' })}
+                                className="sr-only"
+                              />
+                              <span className="text-[10px] select-none">🎨</span>
+                            </label>
+                          </div>
+
+                          {/* Selected Color Pill & Hex Input */}
+                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 bg-white shadow-2xs">
+                            <span
+                              className="w-5 h-5 rounded-full border border-black/15 shrink-0 shadow-2xs"
+                              style={{ backgroundColor: curr.colorHex || '#0F0F11' }}
+                            />
+                            <div className="flex items-center gap-1 font-mono text-xs font-bold text-slate-800">
+                              <span>#</span>
+                              <input
+                                type="text"
+                                value={(curr.colorHex || '#0F0F11').replace(/^#/, '')}
+                                onChange={(e) => {
+                                  const cleanHex = '#' + e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
+                                  handleUpdateCurrentVariant({ colorHex: cleanHex });
+                                }}
+                                className="w-16 outline-none bg-transparent uppercase font-mono text-xs"
+                                maxLength={6}
+                                placeholder="0F0F11"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateCurrentVariant({ colorHex: '#0F0F11', colorName: 'Black' })}
+                              className="text-red-400 hover:text-red-600 cursor-pointer font-bold text-xs ml-1"
+                              title="Reset color"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* INVENTORY FOR THIS VARIANT */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">
+                          Inventory For This Variant
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
+                          {[7, 8, 9, 10, 11, 12].map((size) => (
+                            <div key={size} className="p-3 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-1">
+                              <span className="text-xs font-bold text-slate-800 block">Size {size}</span>
+                              <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Stock Qty</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={curr.inventory?.[size] ?? 20}
+                                onChange={(e) => handleUpdateVariantInventory(size, Math.max(0, parseInt(e.target.value, 10) || 0))}
+                                className="w-full text-center py-1.5 px-1 text-xs font-bold rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                    <input
-                      type="text"
-                      placeholder="Color name (e.g. Royal Navy, Dark Maroon, Olive Green, Smoke Grey)"
-                      value={newColorName}
-                      onChange={(e) => setNewColorName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddCustomColor();
-                        }
-                      }}
-                      className="flex-1 min-w-[200px] px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-blue-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleAddCustomColor()}
-                      className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer shrink-0"
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Add Color
-                    </button>
-                  </div>
-                </div>
+                  );
+                })()}
               </div>
 
               {/* Bullet Features */}

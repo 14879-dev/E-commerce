@@ -14,7 +14,8 @@ interface StoreSettingsContextType {
 
 const DEFAULT_SETTINGS: StoreSettings = {
   storeName: 'Peshawari Chappal Co.',
-  logoUrl: '/uploads/asset_1790946826902.png',
+  logoUrl: '/uploads/khybersole-header-logo.png',
+  footerLogoUrl: '/uploads/khybersole-footer-logo.png',
   faviconUrl: '/uploads/asset_1790946835970.png',
   socialLinks: {
     whatsapp: '+923001234567',
@@ -104,6 +105,7 @@ export const StoreSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         const parsed = JSON.parse(stored);
         if (parsed.logoUrl) parsed.logoUrl = normalizeAssetUrl(parsed.logoUrl);
+        if (parsed.footerLogoUrl) parsed.footerLogoUrl = normalizeAssetUrl(parsed.footerLogoUrl);
         if (parsed.faviconUrl) parsed.faviconUrl = normalizeAssetUrl(parsed.faviconUrl);
         if (parsed.heroMediaUrl) parsed.heroMediaUrl = normalizeAssetUrl(parsed.heroMediaUrl);
         if (Array.isArray(parsed.heroSlides)) {
@@ -124,6 +126,7 @@ export const StoreSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
           const normalized: Partial<StoreSettings> = {
             ...data,
             logoUrl: normalizeAssetUrl(data.logoUrl),
+            footerLogoUrl: normalizeAssetUrl(data.footerLogoUrl),
             faviconUrl: normalizeAssetUrl(data.faviconUrl) || '/favicon.ico',
             heroMediaUrl: normalizeAssetUrl(data.heroMediaUrl),
             heroSlides: Array.isArray(data.heroSlides)
@@ -158,6 +161,7 @@ export const StoreSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     const clean: StoreSettings = {
       ...s,
       logoUrl: normalizeAssetUrl(s.logoUrl),
+      footerLogoUrl: normalizeAssetUrl(s.footerLogoUrl),
       faviconUrl: normalizeAssetUrl(s.faviconUrl),
       heroMediaUrl: normalizeAssetUrl(s.heroMediaUrl),
       heroSlides: Array.isArray(s.heroSlides)

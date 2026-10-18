@@ -23,6 +23,16 @@ export interface Category {
   productCount?: number;
 }
 
+export interface ProductVariant {
+  id: string;
+  title: string;       // e.g. "Sable Cloister", "Camel Brown"
+  colorHex: string;    // e.g. "#7B4A28"
+  colorName: string;   // e.g. "Camel"
+  images: string[];    // image URLs for this variant
+  inventory?: Record<number, number>; // size -> stock count (e.g. { 7: 20, 8: 20 })
+  price?: number;
+}
+
 export interface Product {
   id: string;
   articleTag?: string; // e.g. KDM-00001 (Article code / tag)
@@ -49,6 +59,7 @@ export interface Product {
   };
   availableSizes: number[]; // Standard sizes: 7, 8, 9, 10, 11, 12, 13
   availableColors: (LeatherColor | string)[];
+  variants?: ProductVariant[]; // Color/style variants with their own images
   averageRating: number;
   reviewCount: number;
   featured?: boolean;

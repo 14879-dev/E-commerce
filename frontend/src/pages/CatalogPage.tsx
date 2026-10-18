@@ -21,8 +21,7 @@ export const CatalogPage: React.FC = () => {
   // Filters State
   const [searchTerm, setSearchTerm] = useState(queryParam);
   const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam || 'All');
-  const [selectedSize, setSelectedSize] = useState<number | null>(null);
-  const [selectedColor, setSelectedColor] = useState<LeatherColor | 'All'>('All');
+  const [selectedColor, setSelectedColor] = useState<string>('All');
   const [maxPrice, setMaxPrice] = useState<number>(25000);
   const [sortBy, setSortBy] = useState<'featured' | 'price-low' | 'price-high' | 'rating'>('featured');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -84,14 +83,17 @@ export const CatalogPage: React.FC = () => {
     return ['All', ...categories.map(c => c.name)];
   }, [categories]);
 
-  const sizes = [7, 8, 9, 10, 11, 12, 13];
-  const colors: { label: string; value: LeatherColor | 'All' }[] = [
-    { label: 'All Colors', value: 'All' },
-    { label: 'Saddle Tan', value: 'saddle-tan' },
-    { label: 'Espresso', value: 'espresso' },
-    { label: 'Burnt Copper', value: 'burnt-copper' },
-    { label: 'Mustard Gold', value: 'mustard-gold' },
-  ];
+  // Color filters: All Colors, Camel, Black, Grey, Brown + any other product variants
+  const colorOptions = useMemo(() => {
+    const base: { label: string; value: string; hex?: string }[] = [
+      { label: 'All Colors', value: 'All' },
+      { label: 'Camel', value: 'camel', hex: '#C19A6B' },
+      { label: 'Black', value: 'black', hex: '#111111' },
+      { label: 'Grey', value: 'grey', hex: '#5A6065' },
+      { label: 'Brown', value: 'brown', hex: '#7B4A28' },
+    ];
+    return base;
+  }, []);
 
   const handleSelectCategory = (catName: string) => {
     setSelectedCategory(catName);
@@ -121,12 +123,16 @@ export const CatalogPage: React.FC = () => {
         return (product.category || '').toLowerCase() === selectedCategory.toLowerCase();
       })
       .filter(product => {
-        if (!selectedSize) return true;
-        return Array.isArray(product.availableSizes) && product.availableSizes.includes(selectedSize);
-      })
-      .filter(product => {
         if (selectedColor === 'All') return true;
-        return Array.isArray(product.availableColors) && product.availableColors.includes(selectedColor);
+        const target = selectedColor.toLowerCase();
+        const hasVariantColor = Array.isArray(product.variants) && product.variants.some(v =>
+          (v.colorName && v.colorName.toLowerCase().includes(target)) ||
+          (v.title && v.title.toLowerCase().includes(target))
+        );
+        const hasAvailableColor = Array.isArray(product.availableColors) && product.availableColors.some(c =>
+          c.toLowerCase().includes(target)
+        );
+        return hasVariantColor || hasAvailableColor;
       })
       .filter(product => {
         return product.price <= maxPrice;
@@ -137,12 +143,11 @@ export const CatalogPage: React.FC = () => {
         if (sortBy === 'rating') return b.averageRating - a.averageRating;
         return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
       });
-  }, [products, searchTerm, selectedCategory, selectedSize, selectedColor, maxPrice, sortBy]);
+  }, [products, searchTerm, selectedCategory, selectedColor, maxPrice, sortBy]);
 
   const resetFilters = () => {
     setSearchTerm('');
     setSelectedCategory('All');
-    setSelectedSize(null);
     setSelectedColor('All');
     setMaxPrice(25000);
     setSortBy('featured');
@@ -260,47 +265,37 @@ export const CatalogPage: React.FC = () => {
               </div>
             )}
 
-            {/* Size Filter */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#1A1A18]/80 mb-3">
-                Foot Size (7 to 13)
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {sizes.map(size => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(selectedSize === size ? null : size)}
-                    className={`py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                      selectedSize === size
-                        ? 'bg-[#565449] text-[#F7F4EB] border-[#565449]'
-                        : 'bg-[#F7F4EB] border-[#A0988A] text-[#1A1A18] hover:border-[#565449]'
-                    }`}
-                  >
-                    Size {size}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Color Filter */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-[#1A1A18]/80 mb-3">
-                Leather Shade
+                Leather Color
               </label>
               <div className="space-y-1.5">
-                {colors.map(col => (
-                  <button
-                    key={col.value}
-                    onClick={() => setSelectedColor(col.value)}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                      selectedColor === col.value
-                        ? 'bg-[#565449] text-[#F7F4EB] font-bold border border-[#565449]'
-                        : 'text-[#1A1A18] hover:bg-[#A0988A]/30'
-                    }`}
-                  >
-                    {col.label}
-                  </button>
-                ))}
+                {colorOptions.map(col => {
+                  const isSelected = selectedColor.toLowerCase() === col.value.toLowerCase();
+                  return (
+                    <button
+                      key={col.value}
+                      onClick={() => setSelectedColor(col.value)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#565449] text-[#F7F4EB] font-bold border border-[#565449]'
+                          : 'text-[#1A1A18] hover:bg-[#A0988A]/30'
+                      }`}
+                    >
+                      {col.hex ? (
+                        <span
+                          className="w-4 h-4 rounded-full border border-black/20 shrink-0 shadow-xs"
+                          style={{ backgroundColor: col.hex }}
+                        />
+                      ) : (
+                        <span className="w-4 h-4 rounded-full border border-[#565449]/40 bg-gradient-to-tr from-[#7B4A28] via-[#C19A6B] to-[#111111] shrink-0" />
+                      )}
+                      <span>{col.label}</span>
+                      {isSelected && <span className="ml-auto text-xs">✓</span>}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -369,47 +364,34 @@ export const CatalogPage: React.FC = () => {
                 </button>
               </div>
 
-              {/* Size Filter on Mobile */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#1A1A18]/80 mb-2">
-                  Foot Size (7 to 13)
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {sizes.map(size => (
-                    <button
-                      key={size}
-                      onClick={() => setSelectedSize(selectedSize === size ? null : size)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                        selectedSize === size
-                          ? 'bg-[#565449] text-[#F7F4EB] border-[#565449]'
-                          : 'bg-[#F7F4EB] border-[#A0988A] text-[#1A1A18]'
-                      }`}
-                    >
-                      Size {size}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Color Filter on Mobile */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[#1A1A18]/80 mb-2">
-                  Leather Shade
+                  Leather Color
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {colors.map(col => (
-                    <button
-                      key={col.value}
-                      onClick={() => setSelectedColor(col.value)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                        selectedColor === col.value
-                          ? 'bg-[#565449] text-[#F7F4EB] border-[#565449]'
-                          : 'bg-[#F7F4EB] border-[#A0988A] text-[#1A1A18]'
-                      }`}
-                    >
-                      {col.label}
-                    </button>
-                  ))}
+                  {colorOptions.map(col => {
+                    const isSelected = selectedColor.toLowerCase() === col.value.toLowerCase();
+                    return (
+                      <button
+                        key={col.value}
+                        onClick={() => setSelectedColor(col.value)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#565449] text-[#F7F4EB] border-[#565449]'
+                            : 'bg-[#F7F4EB] border-[#A0988A] text-[#1A1A18]'
+                        }`}
+                      >
+                        {col.hex && (
+                          <span
+                            className="w-3 h-3 rounded-full border border-black/20 shrink-0"
+                            style={{ backgroundColor: col.hex }}
+                          />
+                        )}
+                        <span>{col.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

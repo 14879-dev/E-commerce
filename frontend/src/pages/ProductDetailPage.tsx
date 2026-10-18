@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Ruler, Star, CheckCircle, Minus, Plus } from 'lucide-react';
+import { ShoppingBag, Ruler, Star, CheckCircle, Minus, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ProductReviews } from '../components/product/ProductReviews';
 import { ProductCard } from '../components/product/ProductCard';
 import { SEOHelmet } from '../components/common/SEOHelmet';
 import { apiService } from '../services/api';
-import type { Product, LeatherColor } from '../types';
+import type { Product, LeatherColor, ProductVariant } from '../types';
 import { useCart } from '../context/CartContext';
 import { useStoreSettings } from '../context/StoreSettingsContext';
 
@@ -16,6 +16,11 @@ const COLOR_HEX_MAP: Record<string, string> = {
   'mustard-gold': '#A07010',
   'midnight-black': '#161412',
   'vintage-tan': '#9A5E35',
+  'camel': '#C19A6B',
+  'black': '#1A1A1A',
+  'grey': '#808080',
+  'brown': '#7B4A28',
+  'white': '#F5F5F0',
 };
 
 export const ProductDetailPage: React.FC = () => {
@@ -31,14 +36,18 @@ export const ProductDetailPage: React.FC = () => {
   // Selection States
   const [selectedSize, setSelectedSize] = useState<number>(9);
   const [selectedColor, setSelectedColor] = useState<LeatherColor>('saddle-tan');
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
-  const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
   const [addedNotice, setAddedNotice] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
     setLoading(true);
     setQuantity(1);
+    setSelectedVariant(null);
+    setCurrentImageIndex(0);
     apiService.getProductBySlug(slug).then(data => {
       if (data) {
         setProduct(data);
@@ -47,8 +56,13 @@ export const ProductDetailPage: React.FC = () => {
         const defColor = (Array.isArray(data.availableColors) && data.availableColors[0]) || 'saddle-tan';
         setSelectedSize(defSize);
         setSelectedColor(defColor);
-        // Reset active image on product switch
-        setSelectedImageUrl(data.images?.front || '');
+        // Auto-select first variant if exists
+        if (Array.isArray(data.variants) && data.variants.length > 0) {
+          setSelectedVariant(data.variants[0]);
+          if (data.variants[0].colorName) {
+            setSelectedColor(data.variants[0].colorName.toLowerCase() as LeatherColor);
+          }
+        }
         // Fetch recommended products
         apiService.getProducts().then(all => {
           const others = all.filter(p => p.id !== data.id);
@@ -63,39 +77,59 @@ export const ProductDetailPage: React.FC = () => {
     });
   }, [slug]);
 
-  const allImages = useMemo(() => {
+  // Images for the currently selected variant (or the product's own gallery)
+  const activeVariantImages = useMemo(() => {
+    if (selectedVariant && Array.isArray(selectedVariant.images) && selectedVariant.images.length > 0) {
+      return selectedVariant.images.filter(Boolean);
+    }
+    // Fallback: use product images
     if (!product || !product.images) return [];
     const set = new Set<string>();
     const list: string[] = [];
-
-    // Front image first
-    if (product.images.front && typeof product.images.front === 'string') {
-      set.add(product.images.front);
-      list.push(product.images.front);
-    }
-
-    // Gallery array if present
+    if (product.images.front) { set.add(product.images.front); list.push(product.images.front); }
     if (Array.isArray(product.images.gallery)) {
-      product.images.gallery.forEach(url => {
-        if (url && typeof url === 'string' && !set.has(url)) {
-          set.add(url);
-          list.push(url);
-        }
-      });
+      product.images.gallery.forEach(url => { if (url && !set.has(url)) { set.add(url); list.push(url); } });
     }
-
-    // Standard angle keys or any custom keys
     const standardAngles = ['back', 'left', 'right', 'top', 'sole'];
     standardAngles.forEach(k => {
       const u = (product.images as any)[k];
-      if (u && typeof u === 'string' && !set.has(u)) {
-        set.add(u);
-        list.push(u);
-      }
+      if (u && typeof u === 'string' && !set.has(u)) { set.add(u); list.push(u); }
     });
-
     return list;
-  }, [product]);
+  }, [selectedVariant, product]);
+
+  const handlePrevImage = () => {
+    if (activeVariantImages.length <= 1) return;
+    setCurrentImageIndex(prev => (prev === 0 ? activeVariantImages.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = () => {
+    if (activeVariantImages.length <= 1) return;
+    setCurrentImageIndex(prev => (prev === activeVariantImages.length - 1 ? 0 : prev + 1));
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const diff = e.changedTouches[0].clientX - touchStartX;
+    if (diff > 40) {
+      handlePrevImage();
+    } else if (diff < -40) {
+      handleNextImage();
+    }
+    setTouchStartX(null);
+  };
+
+  const handleSelectVariant = (variant: ProductVariant) => {
+    setSelectedVariant(variant);
+    setCurrentImageIndex(0);
+    if (variant.colorName) {
+      setSelectedColor(variant.colorName.toLowerCase() as LeatherColor);
+    }
+  };
 
   if (loading) {
     return (
@@ -127,7 +161,7 @@ export const ProductDetailPage: React.FC = () => {
     navigate('/checkout');
   };
 
-  const activeImageUrl = selectedImageUrl || allImages[0] || product.images?.front || '';
+  const activeImageUrl = activeVariantImages[currentImageIndex] || activeVariantImages[0] || product.images?.front || '';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 sm:space-y-12">
@@ -141,27 +175,101 @@ export const ProductDetailPage: React.FC = () => {
       {/* Main Product Showcase Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-start">
         
-        {/* Left Column: Clean Image Gallery */}
+        {/* Left Column: Image Gallery with Variants on the Side */}
         <div className="lg:col-span-7 space-y-3">
-          {/* Main Active Photo */}
-          <div className="h-72 sm:h-96 lg:h-[460px] w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-[#A0988A]/20 border border-[#A0988A] flex items-center justify-center shadow-xs">
-            <img
-              src={activeImageUrl}
-              alt={product.name}
-              className="max-h-full max-w-full object-contain p-3 sm:p-5 hover:scale-105 transition-transform duration-500"
-            />
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch">
+            
+            {/* Variants Shown on the Side of Main Image */}
+            {Array.isArray(product.variants) && product.variants.length > 0 && (
+              <div className="order-2 sm:order-1 flex sm:flex-col gap-2 shrink-0 overflow-x-auto sm:overflow-y-auto sm:max-h-[460px] pb-1 sm:pb-0 scrollbar-none sm:w-32">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[#1A1A18]/60 hidden sm:block px-1">
+                  Variants ({product.variants.length})
+                </span>
+                {product.variants.map((v, idx) => {
+                  const isSelected = selectedVariant?.id === v.id;
+                  return (
+                    <button
+                      key={v.id || idx}
+                      type="button"
+                      onClick={() => handleSelectVariant(v)}
+                      className={`flex items-center gap-2 p-2 rounded-xl border transition-all text-left cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#565449] text-[#F7F4EB] border-[#565449] shadow-xs ring-2 ring-[#565449]/30'
+                          : 'bg-[#F7F4EB] text-[#1A1A18] border-[#A0988A]/60 hover:bg-[#A0988A]/20'
+                      }`}
+                      title={v.title}
+                    >
+                      <span
+                        className="w-4 h-4 rounded-full border border-black/20 shrink-0 shadow-2xs"
+                        style={{ backgroundColor: v.colorHex || '#565449' }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs font-bold block truncate">{v.title}</span>
+                        <span className={`text-[10px] block truncate ${isSelected ? 'text-[#F7F4EB]/70' : 'text-[#A0988A]'}`}>
+                          {v.colorName || 'Variant'}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Main Swipable Image Container */}
+            <div
+              className="order-1 sm:order-2 relative flex-1 h-72 sm:h-96 lg:h-[460px] w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-[#A0988A]/20 border border-[#A0988A] flex items-center justify-center shadow-xs select-none touch-pan-y"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
+              <img
+                src={activeImageUrl}
+                alt={product.name}
+                className="max-h-full max-w-full object-contain p-3 sm:p-5 transition-transform duration-300 pointer-events-none"
+              />
+
+              {/* Prev Button */}
+              {activeVariantImages.length > 1 && (
+                <button
+                  type="button"
+                  onClick={handlePrevImage}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#F7F4EB]/90 hover:bg-[#F7F4EB] text-[#1A1A18] shadow-md flex items-center justify-center transition-all cursor-pointer z-10 hover:scale-110 active:scale-95"
+                  aria-label="Previous photo"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              )}
+
+              {/* Next Button */}
+              {activeVariantImages.length > 1 && (
+                <button
+                  type="button"
+                  onClick={handleNextImage}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#F7F4EB]/90 hover:bg-[#F7F4EB] text-[#1A1A18] shadow-md flex items-center justify-center transition-all cursor-pointer z-10 hover:scale-110 active:scale-95"
+                  aria-label="Next photo"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              )}
+
+              {/* Swipable Indicator Badge */}
+              {activeVariantImages.length > 1 && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xs text-white text-[11px] font-semibold flex items-center gap-1.5 z-10">
+                  <span>{currentImageIndex + 1} / {activeVariantImages.length}</span>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Clean Image Thumbnails */}
-          {allImages.length > 1 && (
+          {/* Variant Image Thumbnails */}
+          {activeVariantImages.length > 1 && (
             <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto pb-1 scrollbar-hide">
-              {allImages.map((url, idx) => (
+              {activeVariantImages.map((url, idx) => (
                 <button
                   key={`${url}-${idx}`}
                   type="button"
-                  onClick={() => setSelectedImageUrl(url)}
+                  onClick={() => setCurrentImageIndex(idx)}
                   className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 border transition-all cursor-pointer bg-[#A0988A]/20 ${
-                    activeImageUrl === url
+                    currentImageIndex === idx
                       ? 'ring-2 ring-[#565449] border-transparent shadow-xs'
                       : 'border-[#A0988A] opacity-70 hover:opacity-100'
                   }`}
@@ -203,7 +311,7 @@ export const ProductDetailPage: React.FC = () => {
           {/* Pricing Stack */}
           <div className="flex items-baseline gap-3 pb-3 border-b border-[#A0988A]/40">
             <span className="font-serif font-bold text-3xl sm:text-4xl text-[#1A1A18]">
-              {formatPrice(product.price)}
+              {formatPrice(selectedVariant?.price ?? product.price)}
             </span>
             {Boolean(product.originalPrice && product.originalPrice > product.price) && (
               <span className="text-sm sm:text-base text-[#A0988A] line-through">
@@ -212,39 +320,71 @@ export const ProductDetailPage: React.FC = () => {
             )}
           </div>
 
-          {/* Color Selection */}
-          <div className="space-y-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#1A1A18] block">
-              Leather Shade:
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {(Array.isArray(product.availableColors) && product.availableColors.length > 0
-                ? product.availableColors
-                : ['saddle-tan']
-              ).map(color => {
-                const hex = COLOR_HEX_MAP[color] || '#565449';
-                const isSelected = selectedColor === color;
-                return (
-                  <button
-                    key={color}
-                    type="button"
-                    onClick={() => setSelectedColor(color as LeatherColor)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-all border cursor-pointer ${
-                      isSelected
-                        ? 'border-[#565449] bg-[#565449] text-[#F7F4EB] shadow-xs'
-                        : 'border-[#A0988A] bg-[#F7F4EB] text-[#1A1A18] hover:bg-[#A0988A]/20'
-                    }`}
-                  >
-                    <span
-                      className="w-3 h-3 rounded-full border border-black/20 shrink-0"
-                      style={{ backgroundColor: hex }}
-                    />
-                    {color.replace(/-/g, ' ')}
-                  </button>
-                );
-              })}
+          {/* Variant Selection in Right Details Column */}
+          {Array.isArray(product.variants) && product.variants.length > 0 ? (
+            <div className="space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#1A1A18] block">
+                Select Variant / Color: {selectedVariant?.title && <span className="font-normal text-[#1A1A18]/80">({selectedVariant.title})</span>}
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {product.variants.map((v) => {
+                  const isSelected = selectedVariant?.id === v.id;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => handleSelectVariant(v)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-all border cursor-pointer ${
+                        isSelected
+                          ? 'border-[#565449] bg-[#565449] text-[#F7F4EB] shadow-xs'
+                          : 'border-[#A0988A] bg-[#F7F4EB] text-[#1A1A18] hover:bg-[#A0988A]/20'
+                      }`}
+                    >
+                      <span
+                        className="w-3.5 h-3.5 rounded-full border border-black/20 shrink-0"
+                        style={{ backgroundColor: v.colorHex || '#565449' }}
+                      />
+                      <span>{v.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Fallback Color Selection */
+            <div className="space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#1A1A18] block">
+                Leather Shade:
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {(Array.isArray(product.availableColors) && product.availableColors.length > 0
+                  ? product.availableColors
+                  : ['saddle-tan']
+                ).map(color => {
+                  const hex = COLOR_HEX_MAP[color] || '#565449';
+                  const isSelected = selectedColor === color;
+                  return (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setSelectedColor(color as LeatherColor)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-all border cursor-pointer ${
+                        isSelected
+                          ? 'border-[#565449] bg-[#565449] text-[#F7F4EB] shadow-xs'
+                          : 'border-[#A0988A] bg-[#F7F4EB] text-[#1A1A18] hover:bg-[#A0988A]/20'
+                      }`}
+                    >
+                      <span
+                        className="w-3 h-3 rounded-full border border-black/20 shrink-0"
+                        style={{ backgroundColor: hex }}
+                      />
+                      {color.replace(/-/g, ' ')}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Size Selection */}
           <div className="space-y-2">

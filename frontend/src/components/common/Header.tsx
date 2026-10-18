@@ -83,13 +83,13 @@ export const Header: React.FC = () => {
           {/* Brand Logo */}
           <Link to="/" className="flex items-center group shrink-0" aria-label="Home">
             <img
-              src={normalizeAssetUrl(settings.logoUrl) || '/uploads/asset_1790946826902.png'}
+              src={normalizeAssetUrl(settings.logoUrl) || '/uploads/khybersole-header-logo.png'}
               alt={settings.storeName || 'Store Logo'}
               className="h-10 sm:h-12 w-auto max-w-[180px] sm:max-w-[220px] object-contain group-hover:scale-105 transition-all"
               onError={(e) => {
                 const target = e.currentTarget;
-                if (!target.src.endsWith('/logo.png')) {
-                  target.src = '/logo.png';
+                if (!target.src.endsWith('/uploads/khybersole-header-logo.png')) {
+                  target.src = '/uploads/khybersole-header-logo.png';
                 }
               }}
             />

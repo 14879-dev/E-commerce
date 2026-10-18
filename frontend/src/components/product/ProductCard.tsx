@@ -89,6 +89,23 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
             </h3>
           </Link>
 
+          {/* Variant Color Dots (Directly below name as in Image 5) */}
+          {Array.isArray(product.variants) && product.variants.length > 0 && (
+            <div className="flex items-center gap-1.5 mt-2 mb-1" title={`${product.variants.length} variant${product.variants.length > 1 ? 's' : ''} available`}>
+              {product.variants.slice(0, 6).map((variant) => (
+                <span
+                  key={variant.id}
+                  title={`${variant.title || variant.colorName} (${variant.colorHex})`}
+                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border border-black/20 shadow-xs shrink-0 ring-1 ring-white transition-transform hover:scale-125 cursor-pointer"
+                  style={{ backgroundColor: variant.colorHex || '#565449' }}
+                />
+              ))}
+              {product.variants.length > 6 && (
+                <span className="text-[10px] text-[#1A1A18]/70 font-bold ml-0.5">+{product.variants.length - 6}</span>
+              )}
+            </div>
+          )}
+
           <p className="hidden sm:block text-xs text-[#1A1A18]/80 line-clamp-1 mt-0.5 mb-2 leading-relaxed">
             {product.subtitle}
           </p>
@@ -96,15 +113,34 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
 
         {/* Price & Action Buttons */}
         <div className="pt-2 border-t border-[#A0988A]/40 mt-auto space-y-2">
-          {/* Price Stack */}
-          <div className="flex flex-col items-start min-h-[36px] justify-center">
-            <span className="font-serif font-bold text-sm sm:text-base text-[#1A1A18] leading-tight">
-              {formatPrice(product.price)}
-            </span>
-            {Boolean(product.originalPrice && product.originalPrice > product.price) && (
-              <span className="text-[10px] sm:text-xs text-[#A0988A] line-through leading-tight">
-                {formatPrice(product.originalPrice)}
+          {/* Price Stack & Variant Dots */}
+          <div className="flex items-center justify-between min-h-[36px]">
+            <div className="flex flex-col items-start justify-center">
+              {Array.isArray(product.variants) && product.variants.length > 0 && (
+                <span className="text-[10px] text-[#A0988A] font-medium leading-none mb-0.5">Starting from</span>
+              )}
+              <span className="font-serif font-bold text-sm sm:text-base text-[#1A1A18] leading-tight">
+                {formatPrice(product.price)}
               </span>
+              {Boolean(product.originalPrice && product.originalPrice > product.price) && (
+                <span className="text-[10px] sm:text-xs text-[#A0988A] line-through leading-tight">
+                  {formatPrice(product.originalPrice)}
+                </span>
+              )}
+            </div>
+
+            {/* Quick color indicator on right side of price row matching Image 5 */}
+            {Array.isArray(product.variants) && product.variants.length > 0 && (
+              <div className="flex items-center gap-1">
+                {product.variants.slice(0, 3).map((v) => (
+                  <span
+                    key={`pill-${v.id}`}
+                    className="w-3 h-3 rounded-full border border-black/15 shadow-2xs shrink-0"
+                    style={{ backgroundColor: v.colorHex || '#565449' }}
+                    title={v.title}
+                  />
+                ))}
+              </div>
             )}
           </div>
 

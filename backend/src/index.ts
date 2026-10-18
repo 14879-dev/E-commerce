@@ -44,7 +44,8 @@ export const inMemoryInvestments: any[] = [];
 
 export const inMemorySettings: any = {
   storeName: 'Peshawari Chappal Co.',
-  logoUrl: '/uploads/asset_1789685216898.png',
+  logoUrl: '/uploads/khybersole-header-logo.png',
+  footerLogoUrl: '/uploads/khybersole-footer-logo.png',
   faviconUrl: '/favicon.ico',
   heroMediaUrl: '/uploads/hero.webp',
   heroMediaType: 'image',
@@ -1233,6 +1234,7 @@ app.post('/api/products', authenticateAdmin, async (req: Request, res: Response)
       ? body.availableSizes.map(Number).filter((s: number) => s >= 7 && s <= 13)
       : [7, 8, 9, 10, 11, 12, 13],
     availableColors: body.availableColors || ['saddle-tan', 'espresso'],
+    variants: Array.isArray(body.variants) ? body.variants : [],
     averageRating: 0,
     reviewCount: 0,
     featured: body.featured ?? false,

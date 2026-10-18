@@ -32,6 +32,10 @@ export const SettingsTab: React.FC<{
   const [faviconError, setFaviconError] = useState<string | null>(null);
   const faviconFileRef = useRef<HTMLInputElement>(null);
 
+  const [footerLogoUploading, setFooterLogoUploading] = useState(false);
+  const [footerLogoError, setFooterLogoError] = useState<string | null>(null);
+  const footerLogoFileRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     loadSettings();
     // Also load hero media info from backend
@@ -55,26 +59,31 @@ export const SettingsTab: React.FC<{
     return sessionStorage.getItem('psh_admin_token') || localStorage.getItem('psh_admin_token') || apiService.getAdminToken() || '';
   };
 
-  const handleBrandAssetUpload = async (file: File, assetType: 'logo' | 'favicon') => {
+  const handleBrandAssetUpload = async (file: File, assetType: 'logo' | 'favicon' | 'footer-logo') => {
     if (assetType === 'logo') {
       setLogoUploading(true);
       setLogoError(null);
-    } else {
+    } else if (assetType === 'favicon') {
       setFaviconUploading(true);
       setFaviconError(null);
+    } else {
+      setFooterLogoUploading(true);
+      setFooterLogoError(null);
     }
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('assetType', assetType);
+    formData.append('assetType', assetType === 'footer-logo' ? 'logo' : assetType);
 
     const token = getAdminToken();
     if (!token) {
       const err = 'No admin token found. Please log in.';
       if (assetType === 'logo') setLogoError(err);
-      else setFaviconError(err);
+      else if (assetType === 'favicon') setFaviconError(err);
+      else setFooterLogoError(err);
       setLogoUploading(false);
       setFaviconUploading(false);
+      setFooterLogoUploading(false);
       return;
     }
 
@@ -92,6 +101,10 @@ export const SettingsTab: React.FC<{
         const updated = { ...settings!, logoUrl: cleanUrl };
         setSettings(updated);
         syncToPublicSite(updated);
+      } else if (assetType === 'footer-logo') {
+        const updated = { ...settings!, footerLogoUrl: cleanUrl };
+        setSettings(updated);
+        syncToPublicSite(updated);
       } else {
         const updated = { ...settings!, faviconUrl: cleanUrl };
         setSettings(updated);
@@ -99,11 +112,15 @@ export const SettingsTab: React.FC<{
       }
     } catch (err: any) {
       if (assetType === 'logo') setLogoError(err.message || 'Logo upload failed');
+      else if (assetType === 'footer-logo') setFooterLogoError(err.message || 'Footer logo upload failed');
       else setFaviconError(err.message || 'Favicon upload failed');
     } finally {
       if (assetType === 'logo') {
         setLogoUploading(false);
         if (logoFileRef.current) logoFileRef.current.value = '';
+      } else if (assetType === 'footer-logo') {
+        setFooterLogoUploading(false);
+        if (footerLogoFileRef.current) footerLogoFileRef.current.value = '';
       } else {
         setFaviconUploading(false);
         if (faviconFileRef.current) faviconFileRef.current.value = '';
@@ -114,6 +131,13 @@ export const SettingsTab: React.FC<{
   const handleLogoDelete = () => {
     if (!settings) return;
     const updated = { ...settings, logoUrl: '' };
+    setSettings(updated);
+    syncToPublicSite(updated);
+  };
+
+  const handleFooterLogoDelete = () => {
+    if (!settings) return;
+    const updated = { ...settings, footerLogoUrl: '' };
     setSettings(updated);
     syncToPublicSite(updated);
   };
@@ -411,12 +435,12 @@ export const SettingsTab: React.FC<{
         <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-6 shadow-sm">
           <div>
             <h3 className="font-serif font-bold text-lg text-slate-900 flex items-center gap-2">
-              <Globe className="w-5 h-5 text-blue-600" /> Brand Identity: Store Logo & Browser Favicon
+              <Globe className="w-5 h-5 text-blue-600" /> Brand Identity: Store Logos & Browser Favicon
             </h3>
-            <p className="text-xs text-slate-500 mt-1">Upload your official store logo for headers & footers, and a custom favicon for the browser tab.</p>
+            <p className="text-xs text-slate-500 mt-1">Upload your header logo, dark footer logo, and custom favicon for the browser tab.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Logo Upload Card */}
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
               <div className="flex items-center justify-between">
@@ -536,6 +560,65 @@ export const SettingsTab: React.FC<{
                 )}
               </div>
               <p className="text-[10px] text-slate-400">Supported formats: .ico, .png, or .svg (32×32 or 64×64 square).</p>
+            </div>
+
+            {/* Footer Logo Upload Card */}
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs text-slate-700">Footer Logo</span>
+                {settings.footerLogoUrl && (
+                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    Custom Footer Logo Active
+                  </span>
+                )}
+              </div>
+
+              {/* Preview Box - dark background to simulate footer */}
+              <div className="h-24 rounded-lg bg-[#565449] border border-slate-200 flex items-center justify-center p-3 relative overflow-hidden shadow-xs">
+                {settings.footerLogoUrl ? (
+                  <img src={normalizeAssetUrl(settings.footerLogoUrl)} alt="Footer Logo" className="max-h-full max-w-full object-contain" />
+                ) : (
+                  <div className="flex items-center gap-2 text-slate-300">
+                    <div className="w-8 h-8 rounded-lg bg-slate-600 text-white font-serif font-bold flex items-center justify-center text-sm">F</div>
+                    <span className="text-xs font-semibold text-slate-300">Footer logo (white/light version)</span>
+                  </div>
+                )}
+              </div>
+
+              {footerLogoError && <p className="text-[11px] text-red-600 font-semibold">{footerLogoError}</p>}
+
+              <div className="flex items-center gap-2">
+                <label className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                  currentRole !== 'superadmin' ? 'opacity-50 cursor-not-allowed bg-slate-200 text-slate-500' : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer shadow-xs'
+                }`}>
+                  <Upload className="w-3.5 h-3.5" />
+                  {footerLogoUploading ? 'Uploading...' : 'Upload Footer Logo'}
+                  <input
+                    ref={footerLogoFileRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    className="hidden"
+                    disabled={currentRole !== 'superadmin' || footerLogoUploading}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleBrandAssetUpload(f, 'footer-logo');
+                    }}
+                  />
+                </label>
+
+                {settings.footerLogoUrl && (
+                  <button
+                    type="button"
+                    onClick={handleFooterLogoDelete}
+                    disabled={currentRole !== 'superadmin'}
+                    className="p-2 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-all disabled:opacity-50"
+                    title="Remove footer logo"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <p className="text-[10px] text-slate-400">Use a light/white version for dark footer background. Transparent PNG recommended.</p>
             </div>
           </div>
         </div>

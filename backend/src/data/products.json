@@ -37,14 +37,51 @@
       12
     ],
     "availableColors": [
-      "slate-blue"
+      "brown",
+      "camel"
     ],
     "averageRating": 0,
     "reviewCount": 0,
     "featured": true,
     "freeShipping": false,
     "inStock": true,
-    "stockCount": 10
+    "stockCount": 10,
+    "variants": [
+      {
+        "id": "prod-1789928811451-var-1",
+        "title": "Espresso Brown",
+        "colorHex": "#7B4A28",
+        "colorName": "Brown",
+        "images": [
+          "/uploads/products/prod_prod-1789928811451_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      },
+      {
+        "id": "prod-1789928811451-var-2",
+        "title": "Camel Brown",
+        "colorHex": "#C19A6B",
+        "colorName": "Camel",
+        "images": [
+          "/uploads/products/prod_prod-1789928811451_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      }
+    ]
   },
   {
     "id": "prod-1789928258342",
@@ -85,14 +122,69 @@
       12
     ],
     "availableColors": [
-      "mocha-brown"
+      "camel",
+      "black",
+      "grey"
     ],
     "averageRating": 0,
     "reviewCount": 0,
     "featured": true,
     "freeShipping": false,
     "inStock": true,
-    "stockCount": 10
+    "stockCount": 10,
+    "variants": [
+      {
+        "id": "prod-1789928258342-var-1",
+        "title": "Camel Brown",
+        "colorHex": "#C19A6B",
+        "colorName": "Camel",
+        "images": [
+          "/uploads/products/prod_prod-1789928258342_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      },
+      {
+        "id": "prod-1789928258342-var-2",
+        "title": "Midnight Black",
+        "colorHex": "#111111",
+        "colorName": "Black",
+        "images": [
+          "/uploads/products/prod_prod-1789928258342_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      },
+      {
+        "id": "prod-1789928258342-var-3",
+        "title": "Slate Grey",
+        "colorHex": "#5A6065",
+        "colorName": "Grey",
+        "images": [
+          "/uploads/products/prod_prod-1789928258342_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      }
+    ]
   },
   {
     "id": "prod-1789927441758",
@@ -133,14 +225,69 @@
       12
     ],
     "availableColors": [
-      "mustard-camel"
+      "grey",
+      "camel",
+      "brown"
     ],
     "averageRating": 0,
     "reviewCount": 0,
     "featured": true,
     "freeShipping": false,
     "inStock": true,
-    "stockCount": 10
+    "stockCount": 10,
+    "variants": [
+      {
+        "id": "prod-1789927441758-var-1",
+        "title": "Slate Grey",
+        "colorHex": "#5A6065",
+        "colorName": "Grey",
+        "images": [
+          "/uploads/products/prod_prod-1789927441758_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      },
+      {
+        "id": "prod-1789927441758-var-2",
+        "title": "Camel Brown",
+        "colorHex": "#C19A6B",
+        "colorName": "Camel",
+        "images": [
+          "/uploads/products/prod_prod-1789927441758_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      },
+      {
+        "id": "prod-1789927441758-var-3",
+        "title": "Espresso Brown",
+        "colorHex": "#7B4A28",
+        "colorName": "Brown",
+        "images": [
+          "/uploads/products/prod_prod-1789927441758_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      }
+    ]
   },
   {
     "id": "prod-1789926290969",
@@ -181,14 +328,51 @@
       12
     ],
     "availableColors": [
-      "mustard-camel"
+      "maroon",
+      "camel"
     ],
     "averageRating": 0,
     "reviewCount": 0,
     "featured": true,
     "freeShipping": false,
     "inStock": true,
-    "stockCount": 10
+    "stockCount": 10,
+    "variants": [
+      {
+        "id": "prod-1789926290969-var-1",
+        "title": "Imperial Maroon",
+        "colorHex": "#801323",
+        "colorName": "Maroon",
+        "images": [
+          "/uploads/products/prod_prod-1789926290969_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      },
+      {
+        "id": "prod-1789926290969-var-2",
+        "title": "Camel Brown",
+        "colorHex": "#C19A6B",
+        "colorName": "Camel",
+        "images": [
+          "/uploads/products/prod_prod-1789926290969_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      }
+    ]
   },
   {
     "id": "prod-1789925844704",
@@ -229,14 +413,51 @@
       12
     ],
     "availableColors": [
-      "espresso-mocha-brown"
+      "navy",
+      "brown"
     ],
     "averageRating": 0,
     "reviewCount": 0,
     "featured": true,
     "freeShipping": false,
     "inStock": true,
-    "stockCount": 10
+    "stockCount": 10,
+    "variants": [
+      {
+        "id": "prod-1789925844704-var-1",
+        "title": "Royal Navy",
+        "colorHex": "#1B2A47",
+        "colorName": "Navy",
+        "images": [
+          "/uploads/products/prod_prod-1789925844704_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      },
+      {
+        "id": "prod-1789925844704-var-2",
+        "title": "Espresso Brown",
+        "colorHex": "#7B4A28",
+        "colorName": "Brown",
+        "images": [
+          "/uploads/products/prod_prod-1789925844704_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      }
+    ]
   },
   {
     "id": "prod-1789925608037",
@@ -277,14 +498,51 @@
       12
     ],
     "availableColors": [
-      "vintage-tan"
+      "navy",
+      "black"
     ],
     "averageRating": 0,
     "reviewCount": 0,
     "featured": true,
     "freeShipping": false,
     "inStock": true,
-    "stockCount": 10
+    "stockCount": 10,
+    "variants": [
+      {
+        "id": "prod-1789925608037-var-1",
+        "title": "Royal Navy",
+        "colorHex": "#1B2A47",
+        "colorName": "Navy",
+        "images": [
+          "/uploads/products/prod_prod-1789925608037_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      },
+      {
+        "id": "prod-1789925608037-var-2",
+        "title": "Midnight Black",
+        "colorHex": "#111111",
+        "colorName": "Black",
+        "images": [
+          "/uploads/products/prod_prod-1789925608037_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      }
+    ]
   },
   {
     "id": "prod-1789925027372",
@@ -325,14 +583,51 @@
       12
     ],
     "availableColors": [
-      "sand-beige"
+      "camel",
+      "grey"
     ],
     "averageRating": 0,
     "reviewCount": 0,
     "featured": true,
     "freeShipping": false,
     "inStock": true,
-    "stockCount": 10
+    "stockCount": 10,
+    "variants": [
+      {
+        "id": "prod-1789925027372-var-1",
+        "title": "Camel Brown",
+        "colorHex": "#C19A6B",
+        "colorName": "Camel",
+        "images": [
+          "/uploads/products/prod_prod-1789925027372_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      },
+      {
+        "id": "prod-1789925027372-var-2",
+        "title": "Slate Grey",
+        "colorHex": "#5A6065",
+        "colorName": "Grey",
+        "images": [
+          "/uploads/products/prod_prod-1789925027372_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      }
+    ]
   },
   {
     "id": "prod-1789924663531",
@@ -373,14 +668,51 @@
       12
     ],
     "availableColors": [
-      "saddle-tan"
+      "brown",
+      "navy"
     ],
     "averageRating": 0,
     "reviewCount": 0,
     "featured": true,
     "freeShipping": false,
     "inStock": true,
-    "stockCount": 10
+    "stockCount": 10,
+    "variants": [
+      {
+        "id": "prod-1789924663531-var-1",
+        "title": "Espresso Brown",
+        "colorHex": "#7B4A28",
+        "colorName": "Brown",
+        "images": [
+          "/uploads/products/prod_prod-1789924663531_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      },
+      {
+        "id": "prod-1789924663531-var-2",
+        "title": "Royal Navy",
+        "colorHex": "#1B2A47",
+        "colorName": "Navy",
+        "images": [
+          "/uploads/products/prod_prod-1789924663531_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      }
+    ]
   },
   {
     "id": "prod-1789923673048",
@@ -421,14 +753,69 @@
       12
     ],
     "availableColors": [
-      "slate-blue"
+      "maroon",
+      "camel",
+      "black"
     ],
     "averageRating": 0,
     "reviewCount": 0,
     "featured": true,
     "freeShipping": false,
     "inStock": true,
-    "stockCount": 10
+    "stockCount": 10,
+    "variants": [
+      {
+        "id": "prod-1789923673048-var-1",
+        "title": "Imperial Maroon",
+        "colorHex": "#801323",
+        "colorName": "Maroon",
+        "images": [
+          "/uploads/products/prod_prod-1789923673048_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      },
+      {
+        "id": "prod-1789923673048-var-2",
+        "title": "Camel Brown",
+        "colorHex": "#C19A6B",
+        "colorName": "Camel",
+        "images": [
+          "/uploads/products/prod_prod-1789923673048_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      },
+      {
+        "id": "prod-1789923673048-var-3",
+        "title": "Midnight Black",
+        "colorHex": "#111111",
+        "colorName": "Black",
+        "images": [
+          "/uploads/products/prod_prod-1789923673048_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      }
+    ]
   },
   {
     "id": "prod-1789837311849",
@@ -469,13 +856,86 @@
       12
     ],
     "availableColors": [
-      "midnight-jet-black"
+      "navy",
+      "tan",
+      "camel",
+      "maroon"
     ],
     "averageRating": 0,
     "reviewCount": 0,
     "featured": true,
     "freeShipping": false,
     "inStock": true,
-    "stockCount": 15
+    "stockCount": 15,
+    "variants": [
+      {
+        "id": "prod-1789837311849-var-1",
+        "title": "Royal Navy",
+        "colorHex": "#1B2A47",
+        "colorName": "Navy",
+        "images": [
+          "/uploads/products/prod_prod-1789837311849_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      },
+      {
+        "id": "prod-1789837311849-var-2",
+        "title": "Vintage Tan",
+        "colorHex": "#9A5E35",
+        "colorName": "Tan",
+        "images": [
+          "/uploads/products/prod_prod-1789837311849_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      },
+      {
+        "id": "prod-1789837311849-var-3",
+        "title": "Camel Brown",
+        "colorHex": "#C19A6B",
+        "colorName": "Camel",
+        "images": [
+          "/uploads/products/prod_prod-1789837311849_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      },
+      {
+        "id": "prod-1789837311849-var-4",
+        "title": "Imperial Maroon",
+        "colorHex": "#801323",
+        "colorName": "Maroon",
+        "images": [
+          "/uploads/products/prod_prod-1789837311849_front.png"
+        ],
+        "inventory": {
+          "7": 20,
+          "8": 20,
+          "9": 20,
+          "10": 20,
+          "11": 20,
+          "12": 20
+        }
+      }
+    ]
   }
 ]

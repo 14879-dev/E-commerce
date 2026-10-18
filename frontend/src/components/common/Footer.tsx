@@ -92,11 +92,11 @@ export const Footer: React.FC = () => {
         {/* Links Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
           <div>
-            {settings.logoUrl ? (
+            {(settings.footerLogoUrl || settings.logoUrl) ? (
               <img
-                src={normalizeAssetUrl(settings.logoUrl)}
+                src={normalizeAssetUrl(settings.footerLogoUrl || settings.logoUrl)}
                 alt={settings.storeName || 'Peshawari'}
-                className="h-10 w-auto max-w-[170px] object-contain mb-4"
+                className="h-14 w-auto max-w-[200px] object-contain mb-4"
               />
             ) : (
               <span className="font-serif text-2xl font-bold tracking-wider text-[#F7F4EB] uppercase block mb-4">

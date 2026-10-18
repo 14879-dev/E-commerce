@@ -85,6 +85,7 @@ export interface HeroSlide {
 export interface StoreSettings {
   storeName: string;
   logoUrl: string;
+  footerLogoUrl?: string;
   faviconUrl?: string;
   socialLinks?: SocialLinks;
   supportEmail: string;
