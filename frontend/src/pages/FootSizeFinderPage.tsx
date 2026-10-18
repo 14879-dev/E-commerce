@@ -480,7 +480,7 @@ export const FootSizeFinderPage: React.FC = () => {
                   Computing Planar Homography...
                 </h2>
                 <p className="text-xs sm:text-sm text-[#1A1A18]/80 max-w-sm mx-auto">
-                  Unwarping A4 paper perspective into canonical millimeter space and isolating foot dimensions.
+                  Unwarping reference card perspective into canonical millimeter space and isolating foot dimensions.
                 </p>
               </div>
             )}

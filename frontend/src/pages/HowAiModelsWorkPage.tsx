@@ -48,7 +48,7 @@ export const HowAiModelsWorkPage: React.FC = () => {
       <SEOHelmet
         title="How AI Models Work | AI Foot Size Finder & Traditional Outfit Matcher"
         description="Learn how our dual AI models work: AI Camera Foot Size Calibration for millimeter-accurate Peshawari Chappal fit and AI Cultural Outfit Matcher for leather harmony."
-        keywords="how ai size finder works, camera foot measurement, a4 paper calibration, ai outfit matcher, peshawari chappal size guide"
+        keywords="how ai size finder works, camera foot measurement, credit card calibration, ai outfit matcher, peshawari chappal size guide"
       />
 
       {/* Hero Header matching Product and other pages */}
@@ -84,7 +84,7 @@ export const HowAiModelsWorkPage: React.FC = () => {
 
         <div className="relative max-w-5xl mx-auto text-center space-y-4">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#F7F4EB]/15 border border-[#F7F4EB]/30 backdrop-blur-xs text-xs font-semibold text-[#F7F4EB] uppercase tracking-wider">
-            <Sparkles className="w-4 h-4 text-cyan-300" />
+            <Sparkles className="w-4 h-4 text-[#EDE3CF]" />
             <span>Computer Vision For Artisanal Footwear</span>
           </div>
 
@@ -104,8 +104,8 @@ export const HowAiModelsWorkPage: React.FC = () => {
               onClick={() => setActiveTab('size')}
               className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md ${
                 activeTab === 'size'
-                  ? 'bg-cyan-400 text-slate-950 shadow-[0_0_20px_rgba(34,211,238,0.4)] scale-105'
-                  : 'bg-black/30 text-white hover:bg-black/50 border border-white/20'
+                  ? 'bg-[#EDE3CF] text-[#1A1A18] shadow-md border border-[#EDE3CF] scale-105'
+                  : 'bg-white/15 text-[#F7F4EB] hover:bg-white/25 border border-white/20'
               }`}
             >
               <Ruler className="w-4 h-4" />
@@ -117,8 +117,8 @@ export const HowAiModelsWorkPage: React.FC = () => {
               onClick={() => setActiveTab('outfit')}
               className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md ${
                 activeTab === 'outfit'
-                  ? 'bg-cyan-400 text-slate-950 shadow-[0_0_20px_rgba(34,211,238,0.4)] scale-105'
-                  : 'bg-black/30 text-white hover:bg-black/50 border border-white/20'
+                  ? 'bg-[#EDE3CF] text-[#1A1A18] shadow-md border border-[#EDE3CF] scale-105'
+                  : 'bg-white/15 text-[#F7F4EB] hover:bg-white/25 border border-white/20'
               }`}
             >
               <Palette className="w-4 h-4" />
@@ -135,8 +135,8 @@ export const HowAiModelsWorkPage: React.FC = () => {
         <div id="ai-size-finder-section" className={`space-y-10 transition-all ${activeTab === 'outfit' ? 'opacity-85' : 'opacity-100'}`}>
           <div className="flex flex-col lg:flex-row items-center justify-between gap-8 bg-white rounded-3xl p-6 sm:p-10 border border-[#A0988A]/40 shadow-sm">
             <div className="space-y-4 lg:w-3/5">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-800 text-xs font-bold uppercase tracking-wider">
-                <Scan className="w-3.5 h-3.5 text-cyan-600" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EDE3CF]/70 border border-[#DDD3BF] text-[#565449] text-xs font-bold uppercase tracking-wider">
+                <Scan className="w-3.5 h-3.5 text-[#565449]" />
                 <span>Model 01 • Calibration Engine</span>
               </div>
 
@@ -146,7 +146,7 @@ export const HowAiModelsWorkPage: React.FC = () => {
 
               <p className="text-sm sm:text-base text-[#1A1A18]/80 leading-relaxed">
                 Traditional Peshawari Chappals are handcrafted around solid wooden lasts that do not bend like sports sneakers. 
-                Our camera calibration model uses a standard international <strong>A4 sheet of paper (210mm × 297mm)</strong> as a known physical reference anchor to calculate your foot’s true dimensions with sub-millimeter precision.
+                Our camera calibration model uses a standard physical <strong>Credit Card, Debit Card, or ID Card (85.6mm × 53.98mm)</strong> as a known reference anchor to calculate your foot’s true dimensions with sub-millimeter precision.
               </p>
 
               <div className="flex items-center gap-3 pt-2">
@@ -157,21 +157,21 @@ export const HowAiModelsWorkPage: React.FC = () => {
                   <span>Launch AI Size Finder</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
-                <span className="text-xs text-[#A0988A]">Requires smartphone camera & A4 paper</span>
+                <span className="text-xs text-[#A0988A]">Requires smartphone camera & Credit Card / ID Card</span>
               </div>
             </div>
 
             <div className="lg:w-2/5 flex items-center justify-center">
-              <div className="relative rounded-2xl border-2 border-cyan-400/70 shadow-[0_0_25px_rgba(56,189,248,0.25)] bg-slate-950 p-4 max-w-xs w-full text-center">
+              <div className="relative rounded-2xl border border-[#A0988A]/40 shadow-md bg-[#1A1A18] p-4 max-w-xs w-full text-center">
                 <img
                   src="/images/ai-foot-scanner-visual.png"
                   alt="AI Foot Scanning Camera Visualization"
                   className="w-full h-44 object-contain mx-auto"
                 />
-                <div className="mt-3 pt-3 border-t border-cyan-500/30 text-left">
-                  <div className="flex items-center justify-between text-[11px] text-cyan-300 font-mono">
+                <div className="mt-3 pt-3 border-t border-[#EDE3CF]/20 text-left">
+                  <div className="flex items-center justify-between text-[11px] text-[#EDE3CF] font-mono">
                     <span>ACCURACY: ±1.5mm</span>
-                    <span>CALIBRATED: A4 REF</span>
+                    <span>CALIBRATED: CARD REF</span>
                   </div>
                 </div>
               </div>
@@ -188,40 +188,40 @@ export const HowAiModelsWorkPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Step 1 */}
               <div className="bg-white p-5 rounded-2xl border border-[#A0988A]/30 space-y-2 shadow-2xs hover:shadow-md transition-shadow">
-                <div className="w-9 h-9 rounded-xl bg-cyan-100 text-cyan-800 flex items-center justify-center font-bold text-sm">
+                <div className="w-9 h-9 rounded-xl bg-[#EDE3CF] text-[#565449] flex items-center justify-center font-bold text-sm">
                   01
                 </div>
-                <h4 className="font-bold text-sm text-[#1A1A18]">Place A4 Paper</h4>
+                <h4 className="font-bold text-sm text-[#1A1A18]">Place Credit Card Flat</h4>
                 <p className="text-xs text-[#1A1A18]/75 leading-relaxed">
-                  Put a clean, unwrinkled white A4 paper flat on a hard, even floor against a wall or baseboard.
+                  Place a standard Credit Card, Debit Card, or ID Card flat on a hard, even floor next to your foot.
                 </p>
               </div>
 
               {/* Step 2 */}
               <div className="bg-white p-5 rounded-2xl border border-[#A0988A]/30 space-y-2 shadow-2xs hover:shadow-md transition-shadow">
-                <div className="w-9 h-9 rounded-xl bg-cyan-100 text-cyan-800 flex items-center justify-center font-bold text-sm">
+                <div className="w-9 h-9 rounded-xl bg-[#EDE3CF] text-[#565449] flex items-center justify-center font-bold text-sm">
                   02
                 </div>
                 <h4 className="font-bold text-sm text-[#1A1A18]">Step On Barefoot</h4>
                 <p className="text-xs text-[#1A1A18]/75 leading-relaxed">
-                  Place your bare foot firmly in the center of the sheet with your heel lightly touching the back edge.
+                  Place your bare foot firmly on the floor parallel to the card with a 2–3 cm distance.
                 </p>
               </div>
 
               {/* Step 3 */}
               <div className="bg-white p-5 rounded-2xl border border-[#A0988A]/30 space-y-2 shadow-2xs hover:shadow-md transition-shadow">
-                <div className="w-9 h-9 rounded-xl bg-cyan-100 text-cyan-800 flex items-center justify-center font-bold text-sm">
+                <div className="w-9 h-9 rounded-xl bg-[#EDE3CF] text-[#565449] flex items-center justify-center font-bold text-sm">
                   03
                 </div>
                 <h4 className="font-bold text-sm text-[#1A1A18]">Capture 90° Angle</h4>
                 <p className="text-xs text-[#1A1A18]/75 leading-relaxed">
-                  Hold your phone level directly above your foot so all four corners of the A4 paper are visible in frame.
+                  Hold your phone level directly above your foot so your entire foot and the card are both visible in frame.
                 </p>
               </div>
 
               {/* Step 4 */}
               <div className="bg-white p-5 rounded-2xl border border-[#A0988A]/30 space-y-2 shadow-2xs hover:shadow-md transition-shadow">
-                <div className="w-9 h-9 rounded-xl bg-cyan-100 text-cyan-800 flex items-center justify-center font-bold text-sm">
+                <div className="w-9 h-9 rounded-xl bg-[#EDE3CF] text-[#565449] flex items-center justify-center font-bold text-sm">
                   04
                 </div>
                 <h4 className="font-bold text-sm text-[#1A1A18]">Instant Size Match</h4>
@@ -238,7 +238,7 @@ export const HowAiModelsWorkPage: React.FC = () => {
             <div className="space-y-1 text-xs sm:text-sm text-[#1A1A18]/90">
               <span className="font-bold block text-[#1A1A18]">Tips for 100% Sizing Precision:</span>
               <p>
-                Ensure uniform room lighting without harsh shadows across the paper edge. 
+                Ensure uniform room lighting without harsh shadows across the card edge. 
                 Do not wear socks while scanning. If your measurements fall between two sizes, our artisan sizing algorithm will advise you on whether a standard or wide bridge cut is optimal.
               </p>
             </div>
@@ -269,7 +269,7 @@ export const HowAiModelsWorkPage: React.FC = () => {
 
               <div className="flex items-center gap-3 pt-2">
                 <Link
-                  to="/outfit-matcher"
+                  to="/outfit-match"
                   className="px-6 py-3 rounded-full bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] text-xs sm:text-sm font-bold inline-flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-98"
                 >
                   <span>Launch AI Outfit Matcher</span>
@@ -280,14 +280,14 @@ export const HowAiModelsWorkPage: React.FC = () => {
             </div>
 
             <div className="lg:w-2/5 flex items-center justify-center">
-              <div className="relative rounded-2xl border-2 border-cyan-400/70 shadow-[0_0_25px_rgba(56,189,248,0.25)] bg-slate-950 p-4 max-w-xs w-full text-center">
+              <div className="relative rounded-2xl border border-[#A0988A]/40 shadow-md bg-[#1A1A18] p-4 max-w-xs w-full text-center">
                 <img
                   src="/images/ai-outfit-matcher-visual.png"
                   alt="AI Outfit Matcher Matching Clothing to Chappal"
                   className="w-full h-44 object-contain mx-auto"
                 />
-                <div className="mt-3 pt-3 border-t border-cyan-500/30 text-left">
-                  <div className="flex items-center justify-between text-[11px] text-cyan-300 font-mono">
+                <div className="mt-3 pt-3 border-t border-[#EDE3CF]/20 text-left">
+                  <div className="flex items-center justify-between text-[11px] text-[#EDE3CF] font-mono">
                     <span>PALETTE: HARMONY</span>
                     <span>CUT: STATELY KAPTAAN</span>
                   </div>
@@ -336,7 +336,7 @@ export const HowAiModelsWorkPage: React.FC = () => {
           <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div className="space-y-3">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white text-xs font-bold uppercase tracking-wider">
-                <ShieldCheck className="w-4 h-4 text-cyan-300" />
+                <ShieldCheck className="w-4 h-4 text-[#EDE3CF]" />
                 <span>100% Privacy Guaranteed</span>
               </div>
               <h3 className="font-serif text-2xl sm:text-3xl font-bold">
@@ -350,7 +350,7 @@ export const HowAiModelsWorkPage: React.FC = () => {
 
             <div className="space-y-3 bg-white/10 rounded-2xl p-5 border border-white/20">
               <div className="flex items-center gap-2">
-                <RefreshCw className="w-5 h-5 text-cyan-300" />
+                <RefreshCw className="w-5 h-5 text-[#EDE3CF]" />
                 <h4 className="font-bold text-sm sm:text-base">Guaranteed Artisanal Fit</h4>
               </div>
               <p className="text-xs text-[#F7F4EB]/85 leading-relaxed font-light">
@@ -374,8 +374,8 @@ export const HowAiModelsWorkPage: React.FC = () => {
               Try AI Size Finder
             </Link>
             <Link
-              to="/outfit-matcher"
-              className="px-6 py-3 rounded-full bg-cyan-500 hover:bg-cyan-600 text-slate-950 text-xs sm:text-sm font-bold shadow-md transition-all cursor-pointer"
+              to="/outfit-match"
+              className="px-6 py-3 rounded-full bg-[#EDE3CF] hover:bg-[#DDD3BF] text-[#1A1A18] text-xs sm:text-sm font-bold shadow-md transition-all cursor-pointer border border-[#DDD3BF]"
             >
               Try AI Outfit Matcher
             </Link>

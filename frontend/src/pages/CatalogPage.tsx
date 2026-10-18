@@ -22,7 +22,7 @@ export const CatalogPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState(queryParam);
   const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam || 'All');
   const [selectedColor, setSelectedColor] = useState<string>('All');
-  const [maxPrice, setMaxPrice] = useState<number>(25000);
+  const [maxPrice, setMaxPrice] = useState<number>(100000);
   const [sortBy, setSortBy] = useState<'featured' | 'price-low' | 'price-high' | 'rating'>('featured');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -43,7 +43,7 @@ export const CatalogPage: React.FC = () => {
   };
 
   const loadProducts = () => {
-    apiService.getProducts().then(data => {
+    apiService.getProducts(true).then(data => {
       setProducts(data);
       setLoading(false);
     });
@@ -79,9 +79,18 @@ export const CatalogPage: React.FC = () => {
     setSearchTerm(queryParam || '');
   }, [queryParam]);
 
+  const maxAvailablePrice = useMemo(() => {
+    if (products.length === 0) return 100000;
+    const highest = Math.max(...products.map(p => Number(p.price) || 0));
+    return Math.max(100000, highest);
+  }, [products]);
+
   const categoryNames = useMemo(() => {
-    return ['All', ...categories.map(c => c.name)];
-  }, [categories]);
+    const fromCats = categories.map(c => c.name);
+    const fromProds = products.map(p => p.category).filter(Boolean) as string[];
+    const set = new Set(['All', ...fromCats, ...fromProds]);
+    return Array.from(set);
+  }, [categories, products]);
 
   // Color filters: All Colors, Camel, Black, Grey, Brown + any other product variants
   const colorOptions = useMemo(() => {
@@ -150,10 +159,12 @@ export const CatalogPage: React.FC = () => {
     setSearchTerm('');
     setSelectedCategory('All');
     setSelectedColor('All');
-    setMaxPrice(25000);
+    setMaxPrice(maxAvailablePrice);
     setSortBy('featured');
     const newParams = new URLSearchParams(searchParams);
     newParams.delete('category');
+    newParams.delete('q');
+    newParams.delete('search');
     setSearchParams(newParams, { replace: true });
   };
 
@@ -310,8 +321,8 @@ export const CatalogPage: React.FC = () => {
               </div>
               <input
                 type="range"
-                min="1000"
-                max="15000"
+                min="0"
+                max={maxAvailablePrice}
                 step="500"
                 value={maxPrice}
                 onChange={e => setMaxPrice(Number(e.target.value))}
@@ -406,8 +417,8 @@ export const CatalogPage: React.FC = () => {
                 </div>
                 <input
                   type="range"
-                  min="1000"
-                  max="25000"
+                  min="0"
+                  max={maxAvailablePrice}
                   step="500"
                   value={maxPrice}
                   onChange={e => setMaxPrice(Number(e.target.value))}

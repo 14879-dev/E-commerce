@@ -69,7 +69,7 @@ export const inMemorySettings: any = {
       badge: 'Camera Size Calibration',
       title: 'AI Foot Size Finder',
       subtitle: 'True-to-Size Peshawari Fit.',
-      description: 'Place your foot on standard A4 paper. Millimeter-accurate size recommendation with zero guesswork.',
+      description: 'Place your foot next to a standard credit card or ID card. Millimeter-accurate size recommendation with zero guesswork.',
       linkText: 'Try Size Finder',
       linkUrl: '/size-finder',
       active: true
@@ -1246,6 +1246,9 @@ app.post('/api/products', authenticateAdmin, async (req: Request, res: Response)
 
   if (useMongoDb) {
     const doc = await ProductModel.create(newProduct);
+    const createdObj = (doc as any).toObject ? (doc as any).toObject() : (doc as any)._doc ? (doc as any)._doc : doc;
+    inMemoryProducts.unshift(createdObj);
+    saveProductsToDisk();
     res.status(201).json(doc);
   } else {
     inMemoryProducts.unshift(newProduct);
@@ -2519,8 +2522,37 @@ const heroUpload = multer({
   },
 });
 
-// Serve uploaded hero media and brand files as static with fallback paths
-app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '1h', etag: true }));
+// Helper to mirror uploaded files to frontend/public/uploads and backend/src/data/uploads
+function mirrorUploadedFile(sourceFilePath: string, filename: string) {
+  const candidateDirs = [
+    path.join(__dirname, '..', '..', 'frontend', 'public', 'uploads'),
+    path.join(__dirname, '..', 'src', 'data', 'uploads'),
+    path.join(__dirname, '..', '..', 'backend', 'src', 'data', 'uploads'),
+    path.join(process.cwd(), 'frontend', 'public', 'uploads'),
+    path.join(process.cwd(), 'backend', 'src', 'data', 'uploads'),
+    path.join(process.cwd(), 'src', 'data', 'uploads'),
+  ];
+  for (const dir of candidateDirs) {
+    try {
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const targetPath = path.join(dir, filename);
+      if (path.resolve(sourceFilePath) !== path.resolve(targetPath)) {
+        fs.copyFileSync(sourceFilePath, targetPath);
+      }
+    } catch {
+      // ignore
+    }
+  }
+}
+
+// Serve uploaded hero media and brand files as static without aggressive caching
+app.use('/uploads', (_req: Request, res: Response, next: NextFunction) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
+app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: 0, etag: false }));
 const extraUploadDirs = [
   path.join(process.cwd(), 'backend', 'src', 'data', 'uploads'),
   path.join(process.cwd(), 'frontend', 'public', 'uploads'),
@@ -2529,7 +2561,7 @@ const extraUploadDirs = [
 ];
 extraUploadDirs.forEach(dir => {
   if (fs.existsSync(dir)) {
-    app.use('/uploads', express.static(dir, { maxAge: '1h', etag: true }));
+    app.use('/uploads', express.static(dir, { maxAge: 0, etag: false }));
   }
 });
 
@@ -2554,6 +2586,7 @@ app.post('/api/admin/hero-media', authenticateAdmin, heroUpload.single('media'),
     res.status(400).json({ error: 'No file uploaded' });
     return;
   }
+  mirrorUploadedFile(req.file.path, req.file.filename);
   const isVideo = req.file.mimetype.startsWith('video/') || req.file.originalname.endsWith('.mp4') || req.file.originalname.endsWith('.webm');
   const url = `/uploads/${req.file.filename}`;
   const slideId = `slide-${Date.now()}`;
@@ -2650,17 +2683,8 @@ app.post('/api/admin/brand-asset', authenticateAdmin, requireSuperAdmin, brandUp
   const assetType = (req.body?.assetType || req.query?.assetType || '').toString().toLowerCase();
   const url = `/uploads/${req.file.filename}`;
 
-  // Mirror uploaded asset to both src/data/uploads and dist/data/uploads
-  try {
-    const srcUploads = path.join(process.cwd(), 'src', 'data', 'uploads');
-    if (!fs.existsSync(srcUploads)) fs.mkdirSync(srcUploads, { recursive: true });
-    const targetSrcFile = path.join(srcUploads, req.file.filename);
-    if (req.file.path !== targetSrcFile) {
-      fs.copyFileSync(req.file.path, targetSrcFile);
-    }
-  } catch (err: any) {
-    console.warn('Could not mirror uploaded brand asset to src directory:', err.message);
-  }
+  // Mirror uploaded asset to frontend/public/uploads and backend/src/data/uploads
+  mirrorUploadedFile(req.file.path, req.file.filename);
 
   if (assetType === 'logo') {
     inMemorySettings.logoUrl = url;

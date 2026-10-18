@@ -64,6 +64,21 @@ export const Header: React.FC = () => {
 
   const productsLabel = settings.hideCategories ? 'Products' : 'Catalog';
 
+  const isItemActive = (to: string) => {
+    const current = location.pathname;
+    if (to === '/') return current === '/';
+    if (to === '/outfit-match' || to === '/outfit-matcher') {
+      return current === '/outfit-match' || current === '/outfit-matcher';
+    }
+    if (to === '/size-finder') {
+      return current === '/size-finder' || current === '/ai-size-finder' || current === '/foot-size-finder';
+    }
+    if (to === '/products') {
+      return current === '/products' || current.startsWith('/products/');
+    }
+    return current === to || current.startsWith(`${to}/`);
+  };
+
   const navLinks = [
     { to: '/', label: 'Home', icon: Home },
     { to: '/products', label: productsLabel, icon: Grid },
@@ -99,17 +114,16 @@ export const Header: React.FC = () => {
           <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
             {navLinks.map((item) => {
               const isTrackOrder = item.to === '/orders';
+              const active = isItemActive(item.to);
               return (
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  className={({ isActive }) =>
-                    `flex items-center gap-1.5 py-1 text-xs xl:text-[13px] tracking-wide font-bold transition-all duration-200 cursor-pointer ${
-                      isActive
-                        ? 'text-[#1A1A18] border-b-2 border-[#1A1A18]'
-                        : 'text-[#1A1A18]/80 hover:text-[#1A1A18] border-b-2 border-transparent hover:border-[#1A1A18]/40'
-                    }`
-                  }
+                  className={`flex items-center gap-1.5 py-1 text-xs xl:text-[13px] tracking-wide font-bold transition-all duration-200 cursor-pointer ${
+                    active
+                      ? 'text-[#1A1A18] border-b-2 border-[#1A1A18]'
+                      : 'text-[#1A1A18]/80 hover:text-[#1A1A18] border-b-2 border-transparent hover:border-[#1A1A18]/40'
+                  }`}
                 >
                   {isTrackOrder && (
                     <LeopardCourierIcon className="h-4 w-auto max-h-4 max-w-[40px] shrink-0" />
@@ -304,18 +318,17 @@ export const Header: React.FC = () => {
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1.5">
               {navLinks.map((link) => {
                 const isTrackOrder = link.to === '/orders';
+                const active = isItemActive(link.to);
                 return (
                   <NavLink
                     key={link.to}
                     to={link.to}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={({ isActive }) =>
-                      `flex items-center justify-between py-3 px-3.5 rounded-2xl text-sm font-semibold transition-all duration-200 ${
-                        isActive
-                          ? 'bg-[#1A1A18] text-[#F7F4EB] shadow-md font-bold'
-                          : 'text-[#1A1A18] hover:bg-[#A0988A]/30'
-                      }`
-                    }
+                    className={`flex items-center justify-between py-3 px-3.5 rounded-2xl text-sm font-semibold transition-all duration-200 ${
+                      active
+                        ? 'bg-[#1A1A18] text-[#F7F4EB] shadow-md font-bold'
+                        : 'text-[#1A1A18] hover:bg-[#A0988A]/30'
+                    }`}
                   >
                     <div className="flex items-center gap-2.5">
                       <span>{link.label}</span>

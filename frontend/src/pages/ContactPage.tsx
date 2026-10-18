@@ -339,7 +339,7 @@ export const ContactPage: React.FC = () => {
                 to="/size-finder"
                 className="flex items-center justify-between p-3 rounded-xl bg-[#F7F4EB] border border-[#565449]/20 text-xs font-bold text-[#1A1A18] hover:bg-[#565449] hover:text-[#F7F4EB] transition-all shadow-2xs group"
               >
-                <span>Scan Foot Size on A4 Paper</span>
+                <span>Scan Foot Size with Card</span>
                 <ArrowRight className="w-4 h-4 text-[#1A1A18] group-hover:text-[#F7F4EB]" />
               </Link>
               <Link

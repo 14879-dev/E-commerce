@@ -89,7 +89,7 @@
       "badge": "Camera Size Calibration",
       "title": "AI Foot Size Finder",
       "subtitle": "True-to-Size Peshawari Fit.",
-      "description": "Place your foot on standard A4 paper. Millimeter-accurate size recommendation with zero guesswork.",
+      "description": "Place your foot next to a standard credit card or ID card. Millimeter-accurate size recommendation with zero guesswork.",
       "linkText": "Try Size Finder",
       "linkUrl": "/size-finder",
       "active": true

@@ -15,18 +15,18 @@ interface StepInfo {
 const STEPS: StepInfo[] = [
   {
     id: 0,
-    title: "1. Lay Reference Sheet Flat",
-    subtitle: "A4 paper (or Credit Card) flat on contrasting floor",
-    instruction: "Place your clean A4 paper sheet flat against the floor. Make sure corners are uncurled and the floor has good contrast.",
-    tip: "The algorithm uses this known size (210×297 mm) as a real-world scale ruler.",
+    title: "1. Lay Reference Card Flat",
+    subtitle: "Credit Card / ID Card flat on contrasting floor",
+    instruction: "Place your clean Credit Card or ID Card flat against the floor next to your foot. Make sure the floor has good contrast.",
+    tip: "The algorithm uses this known standard card size (85.6×54 mm) as a real-world scale ruler.",
     badge: "Scale Calibration",
     color: "#f59e0b",
   },
   {
     id: 1,
     title: "2. Position Bare Foot Beside It",
-    subtitle: "Bare foot placed straight and parallel to the sheet",
-    instruction: "Step barefoot beside the reference paper with a 2–3 cm gap. Point your toes straight forward in line with the paper.",
+    subtitle: "Bare foot placed straight and parallel to the card",
+    instruction: "Step barefoot beside the reference card with a 2–3 cm gap. Point your toes straight forward in line with the card.",
     tip: "No socks. Your entire foot from toe tip to heel must be visible and flat.",
     badge: "Foot Alignment",
     color: "#38bdf8",
@@ -35,7 +35,7 @@ const STEPS: StepInfo[] = [
     id: 2,
     title: "3. Hold Camera 90° Overhead",
     subtitle: "Phone positioned 30–50 cm directly above",
-    instruction: "Hold your phone completely flat at a 90° perpendicular angle above both foot and paper. Do not take photos from an angle.",
+    instruction: "Hold your phone completely flat at a 90° perpendicular angle above both foot and card. Do not take photos from an angle.",
     tip: "A top-down view eliminates perspective distortion for true millimeter accuracy.",
     badge: "Overhead 90°",
     color: "#10b981",
@@ -52,7 +52,7 @@ const STEPS: StepInfo[] = [
 ];
 
 export default function FootScanDemo({
-  calibrationObject = "a4_paper",
+  calibrationObject = "credit_card",
   onClose,
 }: {
   calibrationObject?: string;
