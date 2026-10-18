@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, HelpCircle, Flame, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, HelpCircle, Flame, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { ProductCard } from "../components/product/ProductCard";
 import { SEOHelmet } from "../components/common/SEOHelmet";
 import { useStoreSettings } from "../context/StoreSettingsContext";
@@ -243,11 +243,10 @@ export const HomePage: React.FC = () => {
         keywords="peshawari chappal, chappal, pure leather chappal, kaptaan chappal, zalmi chappal, norzi chappal, charsadda chappal, quetta chappal, mens chappal, buy chappal online, tyre sole chappal, wedding chappal"
       />
 
-      {/* Hero Section: Custom Banner with Dynamic Media Background & Permanent Interactive Overlay */}
-      <section className="psh-hero relative w-full overflow-hidden select-none bg-[#ECE6DA]">
-        {/* Desktop & Tablet View (Exact Design Layout at 1024/523 aspect ratio) */}
-        <div className="hidden md:block relative w-full aspect-[1024/523] max-h-[720px] overflow-hidden">
-          {/* Dynamic Background Media Layer (Image or Video from Admin Panel) */}
+      {/* Hero Section: Full-bleed Hero Banner matching other pages with dynamic media and interactive AI overlays */}
+      <section className="psh-hero relative w-full overflow-hidden select-none min-h-[480px] sm:min-h-[520px] lg:min-h-[580px] flex items-center">
+        {/* Dynamic Background Media Layer (Same as other pages) */}
+        <div className="absolute inset-0 w-full h-full">
           {activeHeroMedia.type === "video" ? (
             <video
               src={activeHeroMedia.url}
@@ -255,195 +254,143 @@ export const HomePage: React.FC = () => {
               muted
               loop
               playsInline
-              className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none"
+              className="w-full h-full object-cover object-[78%_center] sm:object-center pointer-events-none"
             />
           ) : (
             <img
-              src={activeHeroMedia.url}
+              src={activeHeroMedia.url || "/uploads/hero.webp"}
               alt="Authentic Handcrafted Peshawari Chappal"
-              className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none"
+              className="w-full h-full object-cover object-[78%_center] sm:object-center pointer-events-none"
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (!target.src.endsWith('/uploads/hero.webp')) {
+                  target.src = '/uploads/hero.webp';
+                }
+              }}
             />
           )}
-
-          {/* 1. TOP-LEFT: AI Foot Size Finder */}
-          <div className="absolute left-[5%] lg:left-[6%] top-[16%] lg:top-[18%] max-w-[340px] z-20 text-left">
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-full border border-white/45 flex items-center justify-center shrink-0 text-white/95">
-                <TargetCircleIcon className="w-5 h-5 sm:w-5.5 sm:h-5.5 lg:w-6 lg:h-6" />
-              </div>
-              <h2 className="text-[#F7F4EB] font-bold text-sm sm:text-base lg:text-[17px] tracking-[0.08em] sm:tracking-[0.12em] uppercase drop-shadow-sm font-sans whitespace-nowrap">
-                AI FOOT SIZE FINDER
-              </h2>
-            </div>
-            <p className="text-[#ECE4D2] text-xs sm:text-[13px] lg:text-[14px] leading-snug sm:leading-relaxed mt-2 sm:mt-2.5 max-w-[330px] font-normal drop-shadow-xs">
-              Take a picture of your foot with a debit card placed beside it. Our AI will scan it and give you the perfect size.
-            </p>
-            <Link
-              to="/size-finder"
-              className="inline-flex items-center gap-2 sm:gap-2.5 rounded-full bg-[#EDE3CF] hover:bg-[#F9F5EC] text-[#382717] px-4 py-2 sm:px-5 sm:py-2.5 mt-3 sm:mt-3.5 shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.03] hover:-translate-y-0.5 active:scale-95 group cursor-pointer border border-[#DDD3BF]"
-              title="Find your foot size with AI camera calibration"
-            >
-              <FootRulerIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-[#382717] shrink-0" />
-              <span className="w-px h-4 bg-[#382717]/25 shrink-0" />
-              <span className="text-xs sm:text-[13px] font-medium tracking-wide">
-                Find your foot size.
-              </span>
-              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#382717] group-hover:translate-x-1 transition-transform shrink-0" />
-            </Link>
-          </div>
-
-          {/* 2. TOP-RIGHT: AI Outfit Matcher */}
-          <div className="absolute right-[4.5%] lg:right-[5.5%] top-[19%] lg:top-[21%] max-w-[340px] z-20 text-left">
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-full border border-white/45 flex items-center justify-center shrink-0 text-white/95">
-                <CameraCircleIcon className="w-5 h-5 sm:w-5.5 sm:h-5.5 lg:w-6 lg:h-6" />
-              </div>
-              <h2 className="text-[#F7F4EB] font-bold text-sm sm:text-base lg:text-[17px] tracking-[0.08em] sm:tracking-[0.12em] uppercase drop-shadow-sm font-sans whitespace-nowrap">
-                AI OUTFIT MATCHER
-              </h2>
-            </div>
-            <p className="text-[#ECE4D2] text-xs sm:text-[13px] lg:text-[14px] leading-snug sm:leading-relaxed mt-2 sm:mt-2.5 max-w-[310px] font-normal drop-shadow-xs">
-              Upload your outfit to find matching Peshawari Chappals.
-            </p>
-            <Link
-              to="/outfit-matcher"
-              className="inline-flex items-center gap-2 sm:gap-2.5 rounded-full bg-[#EDE3CF] hover:bg-[#F9F5EC] text-[#382717] px-4 py-2 sm:px-5 sm:py-2.5 mt-3 sm:mt-3.5 shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.03] hover:-translate-y-0.5 active:scale-95 group cursor-pointer border border-[#DDD3BF]"
-              title="Upload your outfit to match with authentic Peshawari Chappals"
-            >
-              <OutfitIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-[#382717] shrink-0" />
-              <span className="w-px h-4 bg-[#382717]/25 shrink-0" />
-              <span className="text-xs sm:text-[13px] font-medium tracking-wide">
-                Find your best design.
-              </span>
-              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#382717] group-hover:translate-x-1 transition-transform shrink-0" />
-            </Link>
-          </div>
-
-          {/* 3. BOTTOM-LEFT: Shop Collection */}
-          <div className="absolute left-[5%] lg:left-[6%] bottom-[7%] sm:bottom-[8%] z-20 text-left">
-            <Link
-              to="/products"
-              className="group inline-block cursor-pointer text-left"
-              title="Browse traditional Peshawari chappals collection"
-            >
-              <div className="flex items-center gap-2 text-[#382717] hover:text-[#25180c] font-bold text-xl sm:text-2xl lg:text-[28px] tracking-tight transition-colors">
-                <span>Shop Collection</span>
-                <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 text-[#382717] group-hover:translate-x-1.5 transition-transform" />
-              </div>
-              <p className="text-xs sm:text-sm text-[#4F3C28] font-normal mt-0.5 group-hover:text-[#382717] transition-colors">
-                Browse traditional Peshawari chappals
-              </p>
-            </Link>
-          </div>
-
-          {/* 4. BOTTOM-RIGHT: How Do Our AI Works? */}
-          <div className="absolute right-[4.5%] lg:right-[5.5%] bottom-[8%] sm:bottom-[9%] z-20">
-            <Link
-              to="/how-ai-models-work"
-              className="inline-flex items-center gap-2 rounded-full bg-[#EDE3CF] hover:bg-[#F9F5EC] text-[#382717] px-5 sm:px-6 py-2.5 sm:py-3 shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.03] hover:-translate-y-0.5 active:scale-95 group cursor-pointer text-xs sm:text-sm font-medium border border-[#DDD3BF]"
-              title="Learn how our AI Foot Size Scanner and Outfit Matcher work"
-            >
-              <span>How Do Our AI Works?</span>
-              <ArrowRight className="w-4 h-4 text-[#382717] group-hover:translate-x-1 transition-transform shrink-0" />
-            </Link>
-          </div>
         </div>
 
-        {/* Mobile View: High Clarity & Responsive Touch Targets */}
-        <div className="block md:hidden w-full bg-[#241A13] text-white">
-          {/* Top AI Features on dark background */}
-          <div className="p-4 sm:p-5 space-y-3.5">
-            {/* AI Foot Size Finder */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2.5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full border border-white/40 flex items-center justify-center shrink-0 text-white">
-                  <TargetCircleIcon className="w-4.5 h-4.5" />
-                </div>
-                <h2 className="text-[#F7F4EB] font-bold text-sm tracking-wider uppercase">
-                  AI Foot Size Finder
-                </h2>
+        {/* Contrast Overlay: Signature Olive Drab Rich Gradient (Exact match with PageHero on other pages) */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#565449]/95 via-[#565449]/85 to-[#382717]/90 md:bg-gradient-to-r md:from-[#565449]/95 md:via-[#565449]/75 md:to-[#565449]/40 pointer-events-none z-[1]" />
+
+        {/* Main Content Container (Seamlessly unified across Desktop & Mobile) */}
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+            
+            {/* Left Column: Brand Hero & Primary Navigation (7 cols on lg) */}
+            <div className="lg:col-span-7 flex flex-col items-start text-left space-y-4 sm:space-y-5">
+              {/* Dynamic Badge */}
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#565449]/80 border border-[#F7F4EB]/40 backdrop-blur-sm text-xs font-semibold text-[#F7F4EB] uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5 text-[#F7F4EB] shrink-0" />
+                <span>Heritage Re-imagined With AI Fit</span>
               </div>
-              <p className="text-[#ECE4D2] text-xs leading-relaxed">
-                Take a picture of your foot with a debit card placed beside it. Our AI will scan it and give you the perfect size.
+
+              {/* Title & Italic Subtitle */}
+              <h1 className="font-heading text-3xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] tracking-tight text-[#F7F4EB] drop-shadow-md">
+                <span>Authentic Peshawari Chappal</span>
+                <span className="block text-[#F7F4EB]/90 text-xl sm:text-3xl font-light italic mt-1.5 font-serif">
+                  Crafted for Royalty.
+                </span>
+              </h1>
+
+              {/* Description */}
+              <p className="text-xs sm:text-sm lg:text-base text-[#F7F4EB]/90 max-w-xl leading-relaxed font-normal drop-shadow-xs">
+                Hand-tanned full-grain cowhide leather, double-stitched by master craftsmen in Khyber Pakhtunkhwa.
+                Paired with cutting-edge camera AI for millimeter-precise sizing and cultural outfit harmony.
               </p>
-              <Link
-                to="/size-finder"
-                className="inline-flex items-center gap-2 rounded-full bg-[#EDE3CF] active:bg-[#F8F3EA] text-[#382717] px-4 py-2 shadow-sm text-xs font-medium w-full justify-center border border-[#DDD3BF]"
-              >
-                <FootRulerIcon className="w-4 h-4 text-[#382717]" />
-                <span className="w-px h-3.5 bg-[#382717]/25" />
-                <span>Find your foot size.</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex items-center gap-3.5 flex-wrap">
+                <Link
+                  to="/products"
+                  className="btn-copper text-xs sm:text-sm px-6 py-3.5 inline-flex items-center gap-2 group shadow-lg"
+                  title="Browse traditional Peshawari chappals collection"
+                >
+                  <span className="font-semibold">Shop Collection</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+
+                <Link
+                  to="/how-ai-models-work"
+                  className="btn-glass text-xs sm:text-sm px-5 py-3.5 inline-flex items-center gap-2 text-[#F7F4EB] bg-white/15 hover:bg-white/25 border border-white/40 backdrop-blur-md transition-all shadow-md active:scale-95 group"
+                  title="Learn how our AI Foot Size Scanner and Outfit Matcher work"
+                >
+                  <span className="font-semibold">How Do Our AI Works?</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                </Link>
+              </div>
             </div>
 
-            {/* AI Outfit Matcher */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2.5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full border border-white/40 flex items-center justify-center shrink-0 text-white">
-                  <CameraCircleIcon className="w-4.5 h-4.5" />
+            {/* Right Column: Interactive Dual AI Feature Cards (5 cols on lg) */}
+            <div className="lg:col-span-5 flex flex-col gap-4 sm:gap-4.5 w-full max-w-lg lg:max-w-none">
+              
+              {/* Card 1: AI Foot Size Finder */}
+              <div className="glass-panel p-4 sm:p-5 rounded-2xl bg-[#F7F4EB]/92 border border-[#A0988A]/60 shadow-xl backdrop-blur-md transition-all duration-300 hover:border-[#565449]/70 hover:-translate-y-1">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-full bg-[#565449] text-[#F7F4EB] flex items-center justify-center shrink-0 shadow-md">
+                    <TargetCircleIcon className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <h2 className="font-heading text-sm sm:text-base font-extrabold tracking-wide uppercase text-[#1A1A18]">
+                        AI Foot Size Finder
+                      </h2>
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#565449]/15 text-[#565449]">
+                        Camera AI
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#1A1A18]/80 leading-relaxed mt-1 font-normal">
+                      Take a picture of your foot with a debit card beside it. Our AI scans and gives you your true-to-size fit.
+                    </p>
+                    <div className="mt-3">
+                      <Link
+                        to="/size-finder"
+                        className="inline-flex items-center gap-2 rounded-full bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] px-4 py-2 text-xs font-semibold shadow-xs hover:shadow-md transition-all duration-200 active:scale-95 group"
+                      >
+                        <FootRulerIcon className="w-3.5 h-3.5 shrink-0" />
+                        <span>Find your foot size</span>
+                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform shrink-0" />
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-                <h2 className="text-[#F7F4EB] font-bold text-sm tracking-wider uppercase">
-                  AI Outfit Matcher
-                </h2>
               </div>
-              <p className="text-[#ECE4D2] text-xs leading-relaxed">
-                Upload your outfit to find matching Peshawari Chappals.
-              </p>
-              <Link
-                to="/outfit-matcher"
-                className="inline-flex items-center gap-2 rounded-full bg-[#EDE3CF] active:bg-[#F8F3EA] text-[#382717] px-4 py-2 shadow-sm text-xs font-medium w-full justify-center border border-[#DDD3BF]"
-              >
-                <OutfitIcon className="w-4 h-4 text-[#382717]" />
-                <span className="w-px h-3.5 bg-[#382717]/25" />
-                <span>Find your best design.</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+
+              {/* Card 2: AI Outfit Matcher */}
+              <div className="glass-panel p-4 sm:p-5 rounded-2xl bg-[#F7F4EB]/92 border border-[#A0988A]/60 shadow-xl backdrop-blur-md transition-all duration-300 hover:border-[#565449]/70 hover:-translate-y-1">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-full bg-[#565449] text-[#F7F4EB] flex items-center justify-center shrink-0 shadow-md">
+                    <CameraCircleIcon className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <h2 className="font-heading text-sm sm:text-base font-extrabold tracking-wide uppercase text-[#1A1A18]">
+                        AI Outfit Matcher
+                      </h2>
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#565449]/15 text-[#565449]">
+                        Color AI
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#1A1A18]/80 leading-relaxed mt-1 font-normal">
+                      Upload your Kurta or Shalwar Kameez photo to find complementary handcrafted leather chappals.
+                    </p>
+                    <div className="mt-3">
+                      <Link
+                        to="/outfit-matcher"
+                        className="inline-flex items-center gap-2 rounded-full bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] px-4 py-2 text-xs font-semibold shadow-xs hover:shadow-md transition-all duration-200 active:scale-95 group"
+                      >
+                        <OutfitIcon className="w-3.5 h-3.5 shrink-0" />
+                        <span>Find your best design</span>
+                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform shrink-0" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
-          </div>
 
-          {/* Visual Showcase (Image or Video) */}
-          <div className="relative w-full aspect-[16/9] overflow-hidden">
-            {activeHeroMedia.type === "video" ? (
-              <video
-                src={activeHeroMedia.url}
-                autoPlay
-                muted
-                loop
-                playsInline
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <img
-                src={activeHeroMedia.url}
-                alt="Peshawari Chappal"
-                className="w-full h-full object-cover"
-              />
-            )}
-          </div>
-
-          {/* Bottom Actions (Over champagne light backdrop) */}
-          <div className="bg-[#EFE8DC] p-4 sm:p-5 flex flex-col gap-3">
-            <Link
-              to="/products"
-              className="block text-left group"
-            >
-              <div className="flex items-center gap-2 text-[#382717] font-bold text-xl tracking-tight">
-                <span>Shop Collection</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </div>
-              <p className="text-xs text-[#4F3C28] mt-0.5">
-                Browse traditional Peshawari chappals
-              </p>
-            </Link>
-
-            <Link
-              to="/how-ai-models-work"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#EDE3CF] active:bg-[#F8F3EA] text-[#382717] px-5 py-2.5 shadow-sm text-xs font-medium border border-[#DDD3BF]"
-            >
-              <span>How Do Our AI Works?</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
           </div>
         </div>
       </section>

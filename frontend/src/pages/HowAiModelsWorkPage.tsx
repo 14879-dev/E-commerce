@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Ruler,
@@ -11,9 +11,37 @@ import {
   Palette
 } from 'lucide-react';
 import { SEOHelmet } from '../components/common/SEOHelmet';
+import { useStoreSettings } from '../context/StoreSettingsContext';
+import { normalizeAssetUrl } from '../utils/assetUrl';
 
 export const HowAiModelsWorkPage: React.FC = () => {
+  const { settings } = useStoreSettings();
   const [activeTab, setActiveTab] = useState<'size' | 'outfit'>('size');
+
+  const heroMedia = useMemo(() => {
+    if (settings.heroMediaUrl) {
+      const isVid = settings.heroMediaType === 'video' || /\.(mp4|webm|ogg)$/i.test(settings.heroMediaUrl);
+      return {
+        url: normalizeAssetUrl(settings.heroMediaUrl),
+        type: isVid ? ('video' as const) : ('image' as const),
+      };
+    }
+    if (Array.isArray(settings.heroSlides) && settings.heroSlides.length > 0) {
+      const active = settings.heroSlides.find(s => s.active !== false);
+      if (active && active.url) {
+        const url = normalizeAssetUrl(active.url);
+        const isVid = active.type === 'video' || /\.(mp4|webm|ogg)$/i.test(url);
+        return {
+          url,
+          type: isVid ? ('video' as const) : ('image' as const),
+        };
+      }
+    }
+    return {
+      url: '/uploads/hero.webp',
+      type: 'image' as const,
+    };
+  }, [settings.heroMediaUrl, settings.heroMediaType, settings.heroSlides]);
 
   return (
     <div className="w-full bg-[#F7F4EB] min-h-screen">
@@ -23,9 +51,36 @@ export const HowAiModelsWorkPage: React.FC = () => {
         keywords="how ai size finder works, camera foot measurement, a4 paper calibration, ai outfit matcher, peshawari chappal size guide"
       />
 
-      {/* Hero Header */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-[#565449] to-[#45433A] text-[#F7F4EB] py-14 sm:py-20 px-4 sm:px-6 lg:px-8">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#F7F4EB_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
+      {/* Hero Header matching Product and other pages */}
+      <section className="relative overflow-hidden min-h-[380px] sm:min-h-[440px] text-[#F7F4EB] py-14 sm:py-20 px-4 sm:px-6 lg:px-8 select-none flex items-center justify-center">
+        {/* Background Media Layer */}
+        <div className="absolute inset-0 w-full h-full">
+          {heroMedia.type === 'video' ? (
+            <video
+              src={heroMedia.url}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="w-full h-full object-cover object-[78%_center] sm:object-center"
+            />
+          ) : (
+            <img
+              src={heroMedia.url || '/uploads/hero.webp'}
+              alt="How Our AI Models Work"
+              className="w-full h-full object-cover object-[78%_center] sm:object-center"
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (!target.src.endsWith('/uploads/hero.webp')) {
+                  target.src = '/uploads/hero.webp';
+                }
+              }}
+            />
+          )}
+        </div>
+
+        {/* Contrast Overlay: Olive Drab rich gradient matching other pages */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#565449]/95 via-[#565449]/80 to-[#45433A]/75 pointer-events-none z-[1]" />
 
         <div className="relative max-w-5xl mx-auto text-center space-y-4">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#F7F4EB]/15 border border-[#F7F4EB]/30 backdrop-blur-xs text-xs font-semibold text-[#F7F4EB] uppercase tracking-wider">
