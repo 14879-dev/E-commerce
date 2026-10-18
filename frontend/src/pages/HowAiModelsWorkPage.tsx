@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Ruler,
-  Sparkles,
+  ChevronRight,
   ArrowRight,
   ShieldCheck,
   RefreshCw,
@@ -11,37 +11,10 @@ import {
   Palette
 } from 'lucide-react';
 import { SEOHelmet } from '../components/common/SEOHelmet';
-import { useStoreSettings } from '../context/StoreSettingsContext';
-import { normalizeAssetUrl } from '../utils/assetUrl';
+import { PageHero } from '../components/common/PageHero';
 
 export const HowAiModelsWorkPage: React.FC = () => {
-  const { settings } = useStoreSettings();
   const [activeTab, setActiveTab] = useState<'size' | 'outfit'>('size');
-
-  const heroMedia = useMemo(() => {
-    if (settings.heroMediaUrl) {
-      const isVid = settings.heroMediaType === 'video' || /\.(mp4|webm|ogg)$/i.test(settings.heroMediaUrl);
-      return {
-        url: normalizeAssetUrl(settings.heroMediaUrl),
-        type: isVid ? ('video' as const) : ('image' as const),
-      };
-    }
-    if (Array.isArray(settings.heroSlides) && settings.heroSlides.length > 0) {
-      const active = settings.heroSlides.find(s => s.active !== false);
-      if (active && active.url) {
-        const url = normalizeAssetUrl(active.url);
-        const isVid = active.type === 'video' || /\.(mp4|webm|ogg)$/i.test(url);
-        return {
-          url,
-          type: isVid ? ('video' as const) : ('image' as const),
-        };
-      }
-    }
-    return {
-      url: '/uploads/hero.webp',
-      type: 'image' as const,
-    };
-  }, [settings.heroMediaUrl, settings.heroMediaType, settings.heroSlides]);
 
   return (
     <div className="w-full bg-[#F7F4EB] min-h-screen">
@@ -51,61 +24,33 @@ export const HowAiModelsWorkPage: React.FC = () => {
         keywords="how ai size finder works, camera foot measurement, credit card calibration, ai outfit matcher, peshawari chappal size guide"
       />
 
-      {/* Hero Header matching Product and other pages */}
-      <section className="relative overflow-hidden min-h-[380px] sm:min-h-[440px] text-[#F7F4EB] py-14 sm:py-20 px-4 sm:px-6 lg:px-8 select-none flex items-center justify-center">
-        {/* Background Media Layer */}
-        <div className="absolute inset-0 w-full h-full">
-          {heroMedia.type === 'video' ? (
-            <video
-              src={heroMedia.url}
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="w-full h-full object-cover object-[78%_center] sm:object-center"
-            />
-          ) : (
-            <img
-              src={heroMedia.url || '/uploads/hero.webp'}
-              alt="How Our AI Models Work"
-              className="w-full h-full object-cover object-[78%_center] sm:object-center"
-              onError={(e) => {
-                const target = e.currentTarget;
-                if (!target.src.endsWith('/uploads/hero.webp')) {
-                  target.src = '/uploads/hero.webp';
-                }
-              }}
-            />
-          )}
-        </div>
+      {/* Official PageHero Component - 100% Identical to Catalog, Privacy, and Other Pages */}
+      <PageHero
+        badge="Computer Vision AI"
+        title="How Our AI Models Work"
+        subtitle="Sub-Millimeter Fit & Cultural Harmony."
+        description="We engineered two bespoke AI models to eliminate guesswork when ordering authentic Peshawari Chappals online: sub-millimeter camera size calibration and subcontinental cultural color matching."
+      />
 
-        {/* Contrast Overlay: Olive Drab rich gradient matching other pages */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#565449]/95 via-[#565449]/80 to-[#45433A]/75 pointer-events-none z-[1]" />
-
-        <div className="relative max-w-5xl mx-auto text-center space-y-4">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#F7F4EB]/15 border border-[#F7F4EB]/30 backdrop-blur-xs text-xs font-semibold text-[#F7F4EB] uppercase tracking-wider">
-            <Sparkles className="w-4 h-4 text-[#EDE3CF]" />
-            <span>Computer Vision For Artisanal Footwear</span>
+      {/* Main Content Area */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12">
+        {/* Navigation Breadcrumb & Model Switcher Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#565449]/20">
+          <div className="flex items-center gap-2 text-xs text-[#1A1A18]/70">
+            <Link to="/" className="hover:text-[#1A1A18] font-semibold transition-colors">Home</Link>
+            <ChevronRight className="w-3 h-3 text-[#1A1A18]/50" />
+            <span className="text-[#1A1A18] font-bold">How AI Models Work</span>
           </div>
 
-          <h1 className="font-serif text-3xl sm:text-5xl font-bold tracking-tight leading-tight">
-            How Our AI Models Work
-          </h1>
-
-          <p className="max-w-2xl mx-auto text-sm sm:text-base text-[#F7F4EB]/85 leading-relaxed font-light">
-            We engineered two bespoke AI models to eliminate guesswork when ordering authentic Peshawari Chappals online: 
-            sub-millimeter camera size calibration and subcontinental cultural color matching.
-          </p>
-
-          {/* Quick Tab Switcher */}
-          <div className="pt-4 flex items-center justify-center gap-3 flex-wrap">
+          {/* Quick Model Tab Switcher */}
+          <div className="flex items-center gap-2.5 flex-wrap">
             <button
               type="button"
               onClick={() => setActiveTab('size')}
-              className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md ${
+              className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-xs ${
                 activeTab === 'size'
-                  ? 'bg-[#EDE3CF] text-[#1A1A18] shadow-md border border-[#EDE3CF] scale-105'
-                  : 'bg-white/15 text-[#F7F4EB] hover:bg-white/25 border border-white/20'
+                  ? 'bg-[#565449] text-[#F7F4EB] shadow-md border border-[#565449]'
+                  : 'bg-[#A0988A]/20 text-[#1A1A18] hover:bg-[#A0988A]/35 border border-[#565449]/20'
               }`}
             >
               <Ruler className="w-4 h-4" />
@@ -115,10 +60,10 @@ export const HowAiModelsWorkPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('outfit')}
-              className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md ${
+              className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-xs ${
                 activeTab === 'outfit'
-                  ? 'bg-[#EDE3CF] text-[#1A1A18] shadow-md border border-[#EDE3CF] scale-105'
-                  : 'bg-white/15 text-[#F7F4EB] hover:bg-white/25 border border-white/20'
+                  ? 'bg-[#565449] text-[#F7F4EB] shadow-md border border-[#565449]'
+                  : 'bg-[#A0988A]/20 text-[#1A1A18] hover:bg-[#A0988A]/35 border border-[#565449]/20'
               }`}
             >
               <Palette className="w-4 h-4" />
@@ -126,10 +71,6 @@ export const HowAiModelsWorkPage: React.FC = () => {
             </button>
           </div>
         </div>
-      </section>
-
-      {/* Main Content Area */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 space-y-16">
 
         {/* Model 1: AI Foot Size Finder Detailed Walkthrough */}
         <div id="ai-size-finder-section" className={`space-y-10 transition-all ${activeTab === 'outfit' ? 'opacity-85' : 'opacity-100'}`}>
