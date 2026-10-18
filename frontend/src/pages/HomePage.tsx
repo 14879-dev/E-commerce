@@ -1,13 +1,88 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, HelpCircle, Flame, ChevronLeft, ChevronRight, ShoppingCart, Sparkles } from "lucide-react";
+import { ArrowRight, HelpCircle, Flame, ChevronLeft, ChevronRight } from "lucide-react";
 import { ProductCard } from "../components/product/ProductCard";
 import { SEOHelmet } from "../components/common/SEOHelmet";
 import { useStoreSettings } from "../context/StoreSettingsContext";
 import { apiService } from "../services/api";
 import { normalizeAssetUrl } from "../utils/assetUrl";
 import type { Product, Category } from "../types";
-import type { HeroSlide } from "../types/admin";
+
+// Custom SVG Icons matching banner design
+const TargetCircleIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 28 28"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="14" cy="14" r="12" />
+    <circle cx="14" cy="14" r="4.5" />
+    <line x1="14" y1="5.5" x2="14" y2="8" />
+    <line x1="14" y1="20" x2="14" y2="22.5" />
+    <line x1="5.5" y1="14" x2="8" y2="14" />
+    <line x1="20" y1="14" x2="22.5" y2="14" />
+  </svg>
+);
+
+const CameraCircleIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 28 28"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="14" cy="14" r="12" />
+    <path d="M16.5 9.5h-5L9.5 12H7a1.5 1.5 0 0 0-1.5 1.5v6A1.5 1.5 0 0 0 7 21h14a1.5 1.5 0 0 0 1.5-1.5v-6A1.5 1.5 0 0 0 21 12h-2.5l-2-2.5z" />
+    <circle cx="14" cy="16.5" r="2.5" />
+  </svg>
+);
+
+const FootRulerIcon: React.FC<{ className?: string }> = ({ className = "w-4.5 h-4.5" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    {/* Foot footprint */}
+    <path d="M6 19.5c1.7 0 2.6-.9 2.6-2.2 0-1.8-.9-3.2-.9-5.1 0-2.1.9-3.6.9-5 0-1.7-1-2.7-2.6-2.7S3.4 5.5 3.4 7.2c0 1.4.9 2.9.9 5 0 1.9-.9 3.3-.9 5.1 0 1.3.9 2.2 2.6 2.2z" />
+    <circle cx="5.8" cy="5.2" r="0.6" fill="currentColor" />
+    {/* Ruler */}
+    <rect x="13.5" y="4" width="6" height="16" rx="1.5" />
+    <line x1="16.5" y1="7.5" x2="19.5" y2="7.5" />
+    <line x1="15" y1="11" x2="19.5" y2="11" />
+    <line x1="16.5" y1="14.5" x2="19.5" y2="14.5" />
+    <line x1="15" y1="18" x2="19.5" y2="18" />
+  </svg>
+);
+
+const OutfitIcon: React.FC<{ className?: string }> = ({ className = "w-4.5 h-4.5" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    {/* Shirt */}
+    <path d="M4 6.5 7.5 4h9L20 6.5l-2.5 3-1.5-.8V13H8V8.7L6.5 9.5 4 6.5z" />
+    <path d="M10 4a2 2 0 0 0 4 0" />
+    {/* Trousers */}
+    <path d="M11 13h7.5l.5 7h-2.5l-.8-4.5h-.4l-.8 4.5H12l-.5-7z" />
+  </svg>
+);
 
 export const HomePage: React.FC = () => {
   const { settings } = useStoreSettings();
@@ -22,8 +97,6 @@ export const HomePage: React.FC = () => {
   const [heroMediaType, setHeroMediaType] = useState<"image" | "video" | null>(
     settings.heroMediaType || null
   );
-  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
   const trendingScrollRef = useRef<HTMLDivElement>(null);
 
   // Mouse drag-to-swipe for horizontal products grid
@@ -107,76 +180,30 @@ export const HomePage: React.FC = () => {
     };
   }, []);
 
-  const slides: HeroSlide[] = useMemo(() => {
-    if (Array.isArray(settings.heroSlides) && settings.heroSlides.length > 0) {
-      const active = settings.heroSlides.filter(s => s.active !== false);
-      if (active.length > 0) return active;
-    }
+  const activeHeroMedia = useMemo(() => {
     if (heroMediaUrl) {
-      return [{
-        id: 'custom-single',
+      const isVid = heroMediaType === "video" || /\.(mp4|webm|ogg)$/i.test(heroMediaUrl);
+      return {
         url: heroMediaUrl,
-        type: heroMediaType || 'image',
-        badge: 'Heritage Re-imagined With AI Fit',
-        title: 'Authentic Peshawari Chappal',
-        subtitle: 'Crafted for Royalty.',
-        description: 'Hand-tanned full-grain cowhide leather, double-stitched by master craftsmen in Khyber Pakhtunkhwa.',
-        linkText: 'Shop Collection',
-        linkUrl: '/products',
-        active: true
-      }];
+        type: isVid ? ("video" as const) : ("image" as const)
+      };
     }
-    return [
-      {
-        id: 'slide-1',
-        url: '/uploads/hero.webp',
-        type: 'image',
-        badge: 'Heritage Re-imagined With AI Fit',
-        title: 'Authentic Peshawari Chappal',
-        subtitle: 'Crafted for Royalty.',
-        description: 'Hand-tanned full-grain cowhide leather, double-stitched by master craftsmen in Khyber Pakhtunkhwa.',
-        linkText: 'Shop Now',
-        linkUrl: '/products',
-        active: true
-      },
-      {
-        id: 'slide-2',
-        url: '/images/ai-foot-scanner-demo.jpg',
-        type: 'image',
-        badge: 'Camera Size Calibration',
-        title: 'AI Foot Size Finder',
-        subtitle: 'True-to-Size Peshawari Fit.',
-        description: 'Place your foot on standard A4 paper. Millimeter-accurate size recommendation with zero guesswork.',
-        linkText: 'Find Your Size',
-        linkUrl: '/size-finder',
-        active: true
-      },
-      {
-        id: 'slide-3',
-        url: '/images/ai-outfit-matcher-demo.jpg',
-        type: 'image',
-        badge: 'Color Harmony & Tone AI',
-        title: 'AI Traditional Outfit Matcher',
-        subtitle: 'Color & Tone Pairing.',
-        description: 'Upload a photo of your Shalwar Kameez or Kurta. Match with the ideal leather shade and silhouette.',
-        linkText: 'Match Your Outfit',
-        linkUrl: '/outfit-match',
-        active: true
+    if (Array.isArray(settings.heroSlides) && settings.heroSlides.length > 0) {
+      const active = settings.heroSlides.find(s => s.active !== false);
+      if (active && active.url) {
+        const url = normalizeAssetUrl(active.url);
+        const isVid = active.type === "video" || /\.(mp4|webm|ogg)$/i.test(url);
+        return {
+          url,
+          type: isVid ? ("video" as const) : ("image" as const)
+        };
       }
-    ];
-  }, [settings.heroSlides, heroMediaUrl, heroMediaType]);
-
-  // Auto-play slide timer
-  useEffect(() => {
-    if (slides.length <= 1 || isHovered) return;
-    const interval = setInterval(() => {
-      setCurrentSlideIndex(prev => (prev + 1) % slides.length);
-    }, 5500);
-    return () => clearInterval(interval);
-  }, [slides.length, isHovered]);
-
-  const prevSlide = () => setCurrentSlideIndex(prev => (prev === 0 ? slides.length - 1 : prev - 1));
-  const nextSlide = () => setCurrentSlideIndex(prev => (prev + 1) % slides.length);
+    }
+    return {
+      url: "/uploads/hero.webp",
+      type: "image" as const
+    };
+  }, [heroMediaUrl, heroMediaType, settings.heroSlides]);
 
   const dynamicCategories = useMemo(() => categories.map(cat => {
     const count = allProducts.filter(p => (p.category || "").toLowerCase() === cat.name.toLowerCase()).length;
@@ -216,240 +243,209 @@ export const HomePage: React.FC = () => {
         keywords="peshawari chappal, chappal, pure leather chappal, kaptaan chappal, zalmi chappal, norzi chappal, charsadda chappal, quetta chappal, mens chappal, buy chappal online, tyre sole chappal, wedding chappal"
       />
 
-      {/* Hero Section: Interactive Slider with smooth cross-fade */}
-      <section
-        className="psh-hero relative w-full overflow-hidden select-none bg-[#ECE6DA]"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        {/* Slides Media Layer */}
-        {slides.map((slide, idx) => {
-          const isCurrent = idx === currentSlideIndex;
-          const isFirstSlide = idx === 0;
+      {/* Hero Section: Custom Banner with Dynamic Media Background & Permanent Interactive Overlay */}
+      <section className="psh-hero relative w-full overflow-hidden select-none bg-[#ECE6DA]">
+        {/* Desktop & Tablet View (Exact Design Layout at 1024/523 aspect ratio) */}
+        <div className="hidden md:block relative w-full aspect-[1024/523] max-h-[720px] overflow-hidden">
+          {/* Dynamic Background Media Layer (Image or Video from Admin Panel) */}
+          {activeHeroMedia.type === "video" ? (
+            <video
+              src={activeHeroMedia.url}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none"
+            />
+          ) : (
+            <img
+              src={activeHeroMedia.url}
+              alt="Authentic Handcrafted Peshawari Chappal"
+              className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none"
+            />
+          )}
 
-          return (
-            <div
-              key={slide.id || idx}
-              className={`transition-opacity duration-1000 ease-in-out ${
-                isCurrent ? "opacity-100 relative z-0" : "opacity-0 absolute inset-0 pointer-events-none -z-10"
-              }`}
-            >
-              {isFirstSlide ? (
-                /* Slide 1: User-Designed Banner with Interactive Containers & Buttons */
-                <div>
-                  {/* Desktop / Tablet View (Preserves exact design aspect ratio with live interactive hover hotspots) */}
-                  <div className="hidden md:block relative w-full aspect-[1024/402] max-h-[620px] overflow-hidden">
-                    <img
-                      src="/uploads/hero.webp"
-                      alt="Khyber Sole Authentic Handcrafted Peshawari Chappals with AI Sizing & Outfit Matcher"
-                      className="w-full h-full object-cover object-center pointer-events-none select-none"
-                    />
-
-                    {/* Container 1: AI SIZE FINDER (Interactive & Clickable with Hover) */}
-                    <Link
-                      to="/size-finder"
-                      className="absolute left-[4.1%] top-[10.5%] w-[27.6%] h-[51.5%] rounded-[18px] sm:rounded-[22px] lg:rounded-[26px] cursor-pointer transition-all duration-300 ease-out hover:scale-[1.025] hover:-translate-y-1 hover:shadow-[0_12px_36px_rgba(40,45,30,0.6),0_0_24px_rgba(234,179,8,0.35)] hover:ring-2 hover:ring-amber-300/80 active:scale-[0.98] z-20 group overflow-hidden"
-                      title="AI Size Finder - Take a picture of your foot to find your perfect size"
-                    >
-                      <img
-                        src="/images/ai-size-finder-card.png"
-                        alt="AI Size Finder - Camera foot calibration"
-                        className="w-full h-full object-contain drop-shadow-md group-hover:brightness-105 transition-all duration-300"
-                      />
-                      <div className="absolute inset-0 rounded-[18px] sm:rounded-[22px] lg:rounded-[26px] bg-amber-400/0 group-hover:bg-amber-300/5 transition-colors pointer-events-none" />
-                    </Link>
-
-                    {/* Container 2: AI OUTFIT MATCHER (Interactive & Clickable with Hover) */}
-                    <Link
-                      to="/outfit-matcher"
-                      className="absolute left-[32.2%] top-[10.5%] w-[31.4%] h-[51.5%] rounded-[18px] sm:rounded-[22px] lg:rounded-[26px] cursor-pointer transition-all duration-300 ease-out hover:scale-[1.025] hover:-translate-y-1 hover:shadow-[0_12px_36px_rgba(40,45,30,0.6),0_0_24px_rgba(234,179,8,0.35)] hover:ring-2 hover:ring-amber-300/80 active:scale-[0.98] z-20 group overflow-hidden"
-                      title="AI Outfit Matcher - Upload your outfit to find matching Peshawari Chappals"
-                    >
-                      <img
-                        src="/images/ai-outfit-matcher-card.png"
-                        alt="AI Outfit Matcher - Find matching Peshawari Chappals"
-                        className="w-full h-full object-contain drop-shadow-md group-hover:brightness-105 transition-all duration-300"
-                      />
-                      <div className="absolute inset-0 rounded-[18px] sm:rounded-[22px] lg:rounded-[26px] bg-amber-400/0 group-hover:bg-amber-300/5 transition-colors pointer-events-none" />
-                    </Link>
-
-                    {/* Button 1: Shop Collection (Interactive & Clickable with Hover) */}
-                    <Link
-                      to="/products"
-                      className="absolute left-[4.2%] top-[65.4%] w-[18.6%] h-[8.8%] rounded-full cursor-pointer z-20 transition-all duration-300 ease-out hover:scale-[1.04] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.25)] hover:brightness-105 active:scale-[0.97] group flex items-center justify-center bg-[#F7F4EB] hover:bg-white text-[#2B2823] border border-[#DDD5C5]"
-                      title="Shop Authentic Peshawari Chappal Collection"
-                    >
-                      <div className="flex items-center justify-center gap-1.5 sm:gap-2 px-2 w-full text-[10px] sm:text-xs lg:text-sm font-semibold tracking-wide">
-                        <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-4.5 lg:h-4.5 shrink-0 text-[#2B2823] group-hover:-translate-x-0.5 transition-transform" />
-                        <span className="truncate">Shop Collection</span>
-                        <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-[#2B2823] group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </Link>
-
-                    {/* Button 2: How Do Our AI Tools Work? (Interactive & Clickable with Hover) */}
-                    <Link
-                      to="/how-ai-models-work"
-                      className="absolute left-[23.9%] top-[65.4%] w-[22.5%] h-[8.8%] rounded-full cursor-pointer z-20 transition-all duration-300 ease-out hover:scale-[1.04] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(40,45,30,0.4)] hover:bg-[#4a503a] active:scale-[0.97] group flex items-center justify-center bg-[#383D2D] text-[#F7F4EB] border border-[#5A6348]"
-                      title="Learn How Our AI Foot Scanner & Outfit Matcher Work"
-                    >
-                      <div className="flex items-center justify-center gap-1.5 sm:gap-2 px-2 w-full text-[10px] sm:text-xs lg:text-sm font-semibold tracking-wide">
-                        <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-4.5 lg:h-4.5 shrink-0 text-amber-300 group-hover:rotate-12 transition-transform" />
-                        <span className="truncate">How Do Our AI Tools Work?</span>
-                        <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-[#F7F4EB] group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </Link>
-                  </div>
-
-                  {/* Mobile View (Stacked, responsive cards with full clarity and touch accessibility) */}
-                  <div className="block md:hidden w-full bg-[#EFE9DF] pb-6 pt-4 px-4 space-y-4">
-                    {/* Visual Header Image */}
-                    <div className="rounded-2xl overflow-hidden shadow-sm border border-[#DDD5C5]">
-                      <img
-                        src="/uploads/hero.webp"
-                        alt="Khyber Sole Banner"
-                        className="w-full h-auto object-cover"
-                      />
-                    </div>
-
-                    {/* Mobile Interactive Cards */}
-                    <div className="grid grid-cols-1 gap-3.5">
-                      <Link
-                        to="/size-finder"
-                        className="block rounded-2xl overflow-hidden shadow-md hover:shadow-xl border border-amber-300/40 active:scale-98 transition-all"
-                        title="AI Size Finder"
-                      >
-                        <img
-                          src="/images/ai-size-finder-card.png"
-                          alt="AI Size Finder"
-                          className="w-full h-auto"
-                        />
-                      </Link>
-
-                      <Link
-                        to="/outfit-matcher"
-                        className="block rounded-2xl overflow-hidden shadow-md hover:shadow-xl border border-amber-300/40 active:scale-98 transition-all"
-                        title="AI Outfit Matcher"
-                      >
-                        <img
-                          src="/images/ai-outfit-matcher-card.png"
-                          alt="AI Outfit Matcher"
-                          className="w-full h-auto"
-                        />
-                      </Link>
-                    </div>
-
-                    {/* Mobile Interactive Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
-                      <Link
-                        to="/products"
-                        className="h-11 px-5 rounded-full inline-flex items-center justify-center gap-2 text-xs font-semibold text-[#2B2823] bg-[#F7F4EB] hover:bg-white border border-[#DDD5C5] shadow-sm active:scale-95 transition-all"
-                      >
-                        <ShoppingCart className="w-4 h-4 text-[#2B2823]" />
-                        <span>Shop Collection</span>
-                        <ArrowRight className="w-4 h-4 text-[#2B2823]" />
-                      </Link>
-
-                      <Link
-                        to="/how-ai-models-work"
-                        className="h-11 px-5 rounded-full inline-flex items-center justify-center gap-2 text-xs font-semibold text-[#F7F4EB] bg-[#383D2D] hover:bg-[#4a503a] border border-[#5A6348] shadow-sm active:scale-95 transition-all"
-                      >
-                        <Sparkles className="w-4 h-4 text-amber-300" />
-                        <span>How Do Our AI Tools Work?</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                /* Additional Carousel Slides (if configured) */
-                <div className="relative w-full min-h-[500px] sm:min-h-[540px] flex items-center">
-                  {slide.type === "video" ? (
-                    <video
-                      src={normalizeAssetUrl(slide.url)}
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  ) : (
-                    <img
-                      src={normalizeAssetUrl(slide.url)}
-                      alt={slide.title || "Slide"}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
-                  <div className="relative z-10 max-w-xl mx-auto px-6 py-12 text-left space-y-4">
-                    {slide.badge && (
-                      <span className="px-3.5 py-1 rounded-full bg-white/20 text-[#F7F4EB] text-xs font-bold uppercase tracking-wider backdrop-blur-xs">
-                        {slide.badge}
-                      </span>
-                    )}
-                    <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-white">
-                      {slide.title}
-                    </h2>
-                    {slide.subtitle && (
-                      <p className="text-sm sm:text-base text-slate-200">
-                        {slide.subtitle}
-                      </p>
-                    )}
-                    {slide.description && (
-                      <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                        {slide.description}
-                      </p>
-                    )}
-                    {slide.linkUrl && (
-                      <Link
-                        to={slide.linkUrl}
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#F5EEDB] text-[#1A1A18] font-bold text-xs uppercase tracking-wider hover:bg-white transition-all shadow-md active:scale-95"
-                      >
-                        <span>{slide.linkText || "Explore"}</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              )}
+          {/* 1. TOP-LEFT: AI Foot Size Finder */}
+          <div className="absolute left-[5%] lg:left-[6%] top-[16%] lg:top-[18%] max-w-[340px] z-20 text-left">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-full border border-white/45 flex items-center justify-center shrink-0 text-white/95">
+                <TargetCircleIcon className="w-5 h-5 sm:w-5.5 sm:h-5.5 lg:w-6 lg:h-6" />
+              </div>
+              <h2 className="text-[#F7F4EB] font-bold text-sm sm:text-base lg:text-[17px] tracking-[0.08em] sm:tracking-[0.12em] uppercase drop-shadow-sm font-sans whitespace-nowrap">
+                AI FOOT SIZE FINDER
+              </h2>
             </div>
-          );
-        })}
-
-        {/* Slider Navigation Arrows (shown if >1 slide) */}
-        {slides.length > 1 && (
-          <>
-            <button
-              onClick={prevSlide}
-              aria-label="Previous slide"
-              className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#565449]/70 hover:bg-[#45433A] text-[#F7F4EB] backdrop-blur-md border border-[#F7F4EB]/30 flex items-center justify-center transition-all opacity-80 hover:opacity-100 hover:scale-105 shadow-md cursor-pointer"
+            <p className="text-[#ECE4D2] text-xs sm:text-[13px] lg:text-[14px] leading-snug sm:leading-relaxed mt-2 sm:mt-2.5 max-w-[330px] font-normal drop-shadow-xs">
+              Take a picture of your foot with a debit card placed beside it. Our AI will scan it and give you the perfect size.
+            </p>
+            <Link
+              to="/size-finder"
+              className="inline-flex items-center gap-2 sm:gap-2.5 rounded-full bg-[#EDE3CF] hover:bg-[#F9F5EC] text-[#382717] px-4 py-2 sm:px-5 sm:py-2.5 mt-3 sm:mt-3.5 shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.03] hover:-translate-y-0.5 active:scale-95 group cursor-pointer border border-[#DDD3BF]"
+              title="Find your foot size with AI camera calibration"
             >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
-              onClick={nextSlide}
-              aria-label="Next slide"
-              className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#565449]/70 hover:bg-[#45433A] text-[#F7F4EB] backdrop-blur-md border border-[#F7F4EB]/30 flex items-center justify-center transition-all opacity-80 hover:opacity-100 hover:scale-105 shadow-md cursor-pointer"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+              <FootRulerIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-[#382717] shrink-0" />
+              <span className="w-px h-4 bg-[#382717]/25 shrink-0" />
+              <span className="text-xs sm:text-[13px] font-medium tracking-wide">
+                Find your foot size.
+              </span>
+              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#382717] group-hover:translate-x-1 transition-transform shrink-0" />
+            </Link>
+          </div>
 
-            {/* Slide Indicators / Dots */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full bg-[#565449]/70 backdrop-blur-md border border-[#F7F4EB]/25">
-              {slides.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentSlideIndex(idx)}
-                  aria-label={`Go to slide ${idx + 1}`}
-                  className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 ${
-                    idx === currentSlideIndex
-                      ? "w-6 sm:w-8 bg-[#F7F4EB] shadow-sm"
-                      : "w-1.5 sm:w-2 bg-[#F7F4EB]/40 hover:bg-[#F7F4EB]/80"
-                  }`}
-                />
-              ))}
+          {/* 2. TOP-RIGHT: AI Outfit Matcher */}
+          <div className="absolute right-[4.5%] lg:right-[5.5%] top-[19%] lg:top-[21%] max-w-[340px] z-20 text-left">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-full border border-white/45 flex items-center justify-center shrink-0 text-white/95">
+                <CameraCircleIcon className="w-5 h-5 sm:w-5.5 sm:h-5.5 lg:w-6 lg:h-6" />
+              </div>
+              <h2 className="text-[#F7F4EB] font-bold text-sm sm:text-base lg:text-[17px] tracking-[0.08em] sm:tracking-[0.12em] uppercase drop-shadow-sm font-sans whitespace-nowrap">
+                AI OUTFIT MATCHER
+              </h2>
             </div>
-          </>
-        )}
+            <p className="text-[#ECE4D2] text-xs sm:text-[13px] lg:text-[14px] leading-snug sm:leading-relaxed mt-2 sm:mt-2.5 max-w-[310px] font-normal drop-shadow-xs">
+              Upload your outfit to find matching Peshawari Chappals.
+            </p>
+            <Link
+              to="/outfit-matcher"
+              className="inline-flex items-center gap-2 sm:gap-2.5 rounded-full bg-[#EDE3CF] hover:bg-[#F9F5EC] text-[#382717] px-4 py-2 sm:px-5 sm:py-2.5 mt-3 sm:mt-3.5 shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.03] hover:-translate-y-0.5 active:scale-95 group cursor-pointer border border-[#DDD3BF]"
+              title="Upload your outfit to match with authentic Peshawari Chappals"
+            >
+              <OutfitIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-[#382717] shrink-0" />
+              <span className="w-px h-4 bg-[#382717]/25 shrink-0" />
+              <span className="text-xs sm:text-[13px] font-medium tracking-wide">
+                Find your best design.
+              </span>
+              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#382717] group-hover:translate-x-1 transition-transform shrink-0" />
+            </Link>
+          </div>
+
+          {/* 3. BOTTOM-LEFT: Shop Collection */}
+          <div className="absolute left-[5%] lg:left-[6%] bottom-[7%] sm:bottom-[8%] z-20 text-left">
+            <Link
+              to="/products"
+              className="group inline-block cursor-pointer text-left"
+              title="Browse traditional Peshawari chappals collection"
+            >
+              <div className="flex items-center gap-2 text-[#382717] hover:text-[#25180c] font-bold text-xl sm:text-2xl lg:text-[28px] tracking-tight transition-colors">
+                <span>Shop Collection</span>
+                <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 text-[#382717] group-hover:translate-x-1.5 transition-transform" />
+              </div>
+              <p className="text-xs sm:text-sm text-[#4F3C28] font-normal mt-0.5 group-hover:text-[#382717] transition-colors">
+                Browse traditional Peshawari chappals
+              </p>
+            </Link>
+          </div>
+
+          {/* 4. BOTTOM-RIGHT: How Do Our AI Works? */}
+          <div className="absolute right-[4.5%] lg:right-[5.5%] bottom-[8%] sm:bottom-[9%] z-20">
+            <Link
+              to="/how-ai-models-work"
+              className="inline-flex items-center gap-2 rounded-full bg-[#EDE3CF] hover:bg-[#F9F5EC] text-[#382717] px-5 sm:px-6 py-2.5 sm:py-3 shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.03] hover:-translate-y-0.5 active:scale-95 group cursor-pointer text-xs sm:text-sm font-medium border border-[#DDD3BF]"
+              title="Learn how our AI Foot Size Scanner and Outfit Matcher work"
+            >
+              <span>How Do Our AI Works?</span>
+              <ArrowRight className="w-4 h-4 text-[#382717] group-hover:translate-x-1 transition-transform shrink-0" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Mobile View: High Clarity & Responsive Touch Targets */}
+        <div className="block md:hidden w-full bg-[#241A13] text-white">
+          {/* Top AI Features on dark background */}
+          <div className="p-4 sm:p-5 space-y-3.5">
+            {/* AI Foot Size Finder */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2.5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full border border-white/40 flex items-center justify-center shrink-0 text-white">
+                  <TargetCircleIcon className="w-4.5 h-4.5" />
+                </div>
+                <h2 className="text-[#F7F4EB] font-bold text-sm tracking-wider uppercase">
+                  AI Foot Size Finder
+                </h2>
+              </div>
+              <p className="text-[#ECE4D2] text-xs leading-relaxed">
+                Take a picture of your foot with a debit card placed beside it. Our AI will scan it and give you the perfect size.
+              </p>
+              <Link
+                to="/size-finder"
+                className="inline-flex items-center gap-2 rounded-full bg-[#EDE3CF] active:bg-[#F8F3EA] text-[#382717] px-4 py-2 shadow-sm text-xs font-medium w-full justify-center border border-[#DDD3BF]"
+              >
+                <FootRulerIcon className="w-4 h-4 text-[#382717]" />
+                <span className="w-px h-3.5 bg-[#382717]/25" />
+                <span>Find your foot size.</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            {/* AI Outfit Matcher */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2.5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full border border-white/40 flex items-center justify-center shrink-0 text-white">
+                  <CameraCircleIcon className="w-4.5 h-4.5" />
+                </div>
+                <h2 className="text-[#F7F4EB] font-bold text-sm tracking-wider uppercase">
+                  AI Outfit Matcher
+                </h2>
+              </div>
+              <p className="text-[#ECE4D2] text-xs leading-relaxed">
+                Upload your outfit to find matching Peshawari Chappals.
+              </p>
+              <Link
+                to="/outfit-matcher"
+                className="inline-flex items-center gap-2 rounded-full bg-[#EDE3CF] active:bg-[#F8F3EA] text-[#382717] px-4 py-2 shadow-sm text-xs font-medium w-full justify-center border border-[#DDD3BF]"
+              >
+                <OutfitIcon className="w-4 h-4 text-[#382717]" />
+                <span className="w-px h-3.5 bg-[#382717]/25" />
+                <span>Find your best design.</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Visual Showcase (Image or Video) */}
+          <div className="relative w-full aspect-[16/9] overflow-hidden">
+            {activeHeroMedia.type === "video" ? (
+              <video
+                src={activeHeroMedia.url}
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <img
+                src={activeHeroMedia.url}
+                alt="Peshawari Chappal"
+                className="w-full h-full object-cover"
+              />
+            )}
+          </div>
+
+          {/* Bottom Actions (Over champagne light backdrop) */}
+          <div className="bg-[#EFE8DC] p-4 sm:p-5 flex flex-col gap-3">
+            <Link
+              to="/products"
+              className="block text-left group"
+            >
+              <div className="flex items-center gap-2 text-[#382717] font-bold text-xl tracking-tight">
+                <span>Shop Collection</span>
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </div>
+              <p className="text-xs text-[#4F3C28] mt-0.5">
+                Browse traditional Peshawari chappals
+              </p>
+            </Link>
+
+            <Link
+              to="/how-ai-models-work"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#EDE3CF] active:bg-[#F8F3EA] text-[#382717] px-5 py-2.5 shadow-sm text-xs font-medium border border-[#DDD3BF]"
+            >
+              <span>How Do Our AI Works?</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </div>
       </section>
 
       {/* Main Page Content */}
