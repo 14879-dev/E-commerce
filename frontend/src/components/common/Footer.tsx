@@ -224,6 +224,7 @@ export const Footer: React.FC = () => {
             <ul className="space-y-2.5 text-sm text-[#F7F4EB]/85">
               <li><Link to="/size-finder" className="hover:text-[#F7F4EB] hover:underline transition-colors">Camera Foot Size Finder</Link></li>
               <li><Link to="/outfit-match" className="hover:text-[#F7F4EB] hover:underline transition-colors">AI Outfit Matcher</Link></li>
+              <li><Link to="/how-ai-models-work" className="hover:text-[#F7F4EB] hover:underline transition-colors">How AI Models Work</Link></li>
               <li><Link to="/orders" className="hover:text-[#F7F4EB] hover:underline transition-colors">Track Order</Link></li>
 
               {!settings.hideCategories && (

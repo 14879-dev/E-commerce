@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, Ruler, ArrowRight, HelpCircle, Flame, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, HelpCircle, Flame, ChevronLeft, ChevronRight } from "lucide-react";
 import { ProductCard } from "../components/product/ProductCard";
 import { SEOHelmet } from "../components/common/SEOHelmet";
 import { useStoreSettings } from "../context/StoreSettingsContext";
@@ -178,8 +178,6 @@ export const HomePage: React.FC = () => {
   const prevSlide = () => setCurrentSlideIndex(prev => (prev === 0 ? slides.length - 1 : prev - 1));
   const nextSlide = () => setCurrentSlideIndex(prev => (prev + 1) % slides.length);
 
-  const activeSlide = slides[currentSlideIndex] || slides[0];
-
   const dynamicCategories = useMemo(() => categories.map(cat => {
     const count = allProducts.filter(p => (p.category || "").toLowerCase() === cat.name.toLowerCase()).length;
     return {
@@ -220,12 +218,11 @@ export const HomePage: React.FC = () => {
 
       {/* Hero Section: Interactive Slider with smooth cross-fade */}
       <section
-        className="psh-hero relative w-full overflow-hidden min-h-[420px] sm:min-h-[480px] select-none"
-        style={{ height: "52vh" }}
+        className="psh-hero relative w-full overflow-hidden min-h-[540px] sm:min-h-[560px] lg:min-h-[580px] select-none flex items-center"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <style>{`@media(min-width:1024px){.psh-hero{height:58vh!important;min-height:480px!important}}`}</style>
+        <style>{`@media(min-width:1024px){.psh-hero{min-height:580px!important}}`}</style>
 
         {/* Slides Media Layer */}
         {slides.map((slide, idx) => {
@@ -263,77 +260,93 @@ export const HomePage: React.FC = () => {
           );
         })}
 
-        {/* Contrast overlay: Olive Drab rich gradient (No Black!) */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#565449]/95 via-[#565449]/70 to-transparent pointer-events-none z-[1]" />
+        {/* Contrast overlay: subtle dark atmospheric gradient on left */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-transparent pointer-events-none z-[1]" />
 
         {/* Slide Content Layer */}
-        <div className="relative z-10 h-full flex items-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pt-4 pb-4 sm:py-6">
-          <div className="max-w-xl flex flex-col items-start text-left space-y-3 sm:space-y-3.5">
-            {/* Dynamic Badge — Fixed Height */}
-            <div className="h-8 flex items-center">
-              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#565449]/80 border border-[#F7F4EB]/40 backdrop-blur-sm text-xs font-semibold text-[#F7F4EB] uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5 text-[#F7F4EB] shrink-0" />
-                <span>{activeSlide.badge || "Heritage Re-imagined With AI Fit"}</span>
-              </div>
+        <div className="relative z-10 h-full flex items-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-6 sm:py-8">
+          <div className="max-w-xl flex flex-col items-start text-left space-y-4 sm:space-y-4.5">
+            
+            {/* Dual AI Model Showcase Containers matching Reference Image */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 max-w-xl w-full">
+              {/* Container 1: AI SIZE FINDER */}
+              <Link
+                to="/size-finder"
+                className="group relative rounded-2xl sm:rounded-3xl border-2 border-cyan-400/60 hover:border-cyan-300 shadow-[0_0_22px_rgba(56,189,248,0.3)] hover:shadow-[0_0_32px_rgba(56,189,248,0.55)] bg-black/45 hover:bg-black/55 backdrop-blur-md p-3.5 sm:p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden transform-gpu hover:-translate-y-0.5"
+                title="AI Size Finder - Camera foot calibration"
+              >
+                <div className="space-y-1">
+                  <h2 className="text-white font-extrabold text-sm sm:text-base tracking-wider uppercase drop-shadow-sm group-hover:text-cyan-200 transition-colors">
+                    AI SIZE FINDER
+                  </h2>
+                  <p className="text-[11px] sm:text-xs text-slate-200 leading-snug">
+                    Take a picture of your foot to find your perfect size.
+                  </p>
+                </div>
+                <div className="mt-2.5 flex items-center justify-center">
+                  <img
+                    src="/images/ai-foot-scanner-visual.png"
+                    alt="AI Foot Size Finder camera scanning foot"
+                    className="w-full h-24 sm:h-28 object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+              </Link>
+
+              {/* Container 2: AI OUTFIT MATCHER */}
+              <Link
+                to="/outfit-matcher"
+                className="group relative rounded-2xl sm:rounded-3xl border-2 border-cyan-400/60 hover:border-cyan-300 shadow-[0_0_22px_rgba(56,189,248,0.3)] hover:shadow-[0_0_32px_rgba(56,189,248,0.55)] bg-black/45 hover:bg-black/55 backdrop-blur-md p-3.5 sm:p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden transform-gpu hover:-translate-y-0.5"
+                title="AI Outfit Matcher - Find matching Peshawari Chappals"
+              >
+                <div className="space-y-1">
+                  <h2 className="text-white font-extrabold text-sm sm:text-base tracking-wider uppercase drop-shadow-sm group-hover:text-cyan-200 transition-colors">
+                    AI OUTFIT MATCHER
+                  </h2>
+                  <p className="text-[11px] sm:text-xs text-slate-200 leading-snug">
+                    Upload your outfit to find matching Peshawari Chappals.
+                  </p>
+                </div>
+                <div className="mt-2.5 flex items-center justify-center">
+                  <img
+                    src="/images/ai-outfit-matcher-visual.png"
+                    alt="AI Outfit Matcher matching clothing to chappal"
+                    className="w-full h-24 sm:h-28 object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+              </Link>
             </div>
 
-            {/* Heading & Italic Subtitle */}
-            <div className="min-h-[105px] sm:min-h-[130px] flex flex-col justify-start">
-              <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight tracking-tight text-[#F7F4EB] drop-shadow-md">
-                <span className="block">{activeSlide.title || "Authentic Peshawari Chappal"}</span>
-                {activeSlide.subtitle && (
-                  <span className="block text-[#F7F4EB] text-2xl lg:text-3xl font-light italic mt-1 font-serif">
-                    {activeSlide.subtitle}
-                  </span>
-                )}
-              </h1>
-            </div>
-
-            {/* Description */}
-            <div className="min-h-[48px] flex items-center">
-              <p className="text-sm text-[#F7F4EB]/90 leading-relaxed max-w-lg drop-shadow-sm font-normal line-clamp-2">
-                {activeSlide.description || "Hand-tanned full-grain cowhide leather, double-stitched by master craftsmen in Khyber Pakhtunkhwa."}
-              </p>
-            </div>
-
-            {/* Action Buttons: Olive Drab Buttons (No Black, No Orange) */}
+            {/* Action Buttons: Shop Collection + How AI models work! */}
             <div className="pt-1 flex items-center justify-start gap-3 w-auto flex-wrap">
               <Link
-                to={activeSlide.linkUrl || "/products"}
-                className="h-11 px-6 rounded-full inline-flex items-center justify-center gap-2 text-sm font-medium leading-none text-[#F7F4EB] bg-[#565449] hover:bg-[#45433A] border border-[#F7F4EB]/50 shadow-lg transition-all cursor-pointer active:scale-98 whitespace-nowrap"
+                to="/products"
+                className="h-10 sm:h-11 px-5 sm:px-6 rounded-full inline-flex items-center justify-center gap-2 text-xs sm:text-sm font-medium text-[#F7F4EB] bg-white/10 hover:bg-white/20 border border-white/30 backdrop-blur-xs shadow-md transition-all cursor-pointer active:scale-98 whitespace-nowrap"
               >
-                <span>{activeSlide.linkText || "Shop Now"}</span>
+                <span>Shop Collection</span>
                 <ArrowRight className="w-4 h-4 shrink-0" />
               </Link>
 
               <Link
-                to={activeSlide.linkUrl === '/size-finder' ? '/products' : '/size-finder'}
-                className="h-11 px-6 rounded-full inline-flex items-center justify-center gap-2 text-sm font-medium leading-none text-[#1A1A18] bg-[#F7F4EB] hover:bg-[#EFEAE0] border border-[#F7F4EB] shadow-sm transition-all cursor-pointer active:scale-98 whitespace-nowrap"
+                to="/how-ai-models-work"
+                className="h-10 sm:h-11 px-5 sm:px-6 rounded-full inline-flex items-center justify-center gap-2 text-xs sm:text-sm font-bold text-[#1A1A18] bg-[#F5EEDB] hover:bg-[#EAE1CC] shadow-md transition-all cursor-pointer active:scale-98 whitespace-nowrap"
               >
-                {activeSlide.linkUrl === '/size-finder' ? (
-                  <span>Explore Catalog</span>
-                ) : (
-                  <>
-                    <Ruler className="w-4 h-4 text-[#1A1A18] shrink-0" />
-                    <span>AI Size Finder</span>
-                  </>
-                )}
+                <span>How AI models work!</span>
               </Link>
             </div>
 
             {/* Feature Highlights Metrics */}
-            <div className="pt-2.5 grid grid-cols-3 gap-4 border-t border-[#F7F4EB]/30 max-w-md w-full">
+            <div className="pt-2.5 border-t border-white/20 grid grid-cols-3 gap-3 sm:gap-6 max-w-lg w-full">
               <div>
-                <span className="font-serif font-bold text-2xl text-[#F7F4EB] block leading-tight">100%</span>
-                <span className="text-xs text-[#F7F4EB]/80 font-medium block leading-tight">Pure Leather</span>
+                <span className="font-bold text-lg sm:text-2xl text-white block leading-tight">100%</span>
+                <span className="text-[10px] sm:text-xs text-white/80 font-medium block leading-tight">Pure Leather</span>
               </div>
               <div>
-                <span className="font-serif font-bold text-2xl text-[#F7F4EB] block leading-tight">AI Size</span>
-                <span className="text-xs text-[#F7F4EB]/80 font-medium block leading-tight">Camera Calibration</span>
+                <span className="font-bold text-lg sm:text-2xl text-white block leading-tight">AI Size</span>
+                <span className="text-[10px] sm:text-xs text-white/80 font-medium block leading-tight">Camera Calibration</span>
               </div>
               <div>
-                <span className="font-serif font-bold text-2xl text-[#F7F4EB] block leading-tight">Nationwide</span>
-                <span className="text-xs text-[#F7F4EB]/80 font-medium block leading-tight">Fast COD Delivery</span>
+                <span className="font-bold text-lg sm:text-2xl text-white block leading-tight">Nationwide</span>
+                <span className="text-[10px] sm:text-xs text-white/80 font-medium block leading-tight">Fast COD Delivery</span>
               </div>
             </div>
           </div>

@@ -16,6 +16,7 @@ import { CheckoutPage } from './pages/CheckoutPage';
 import { OrderTrackingPage } from './pages/OrderTrackingPage';
 import { FootSizeFinderPage } from './pages/FootSizeFinderPage';
 import { OutfitMatcherPage } from './pages/OutfitMatcherPage';
+import { HowAiModelsWorkPage } from './pages/HowAiModelsWorkPage';
 import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
@@ -63,8 +64,12 @@ const AppContent: React.FC = () => {
           <Route path="/customize/*" element={<Navigate to="/products" replace />} />
           <Route path="/customize" element={<Navigate to="/products" replace />} />
           <Route path="/size-finder" element={<FootSizeFinderPage />} />
+          <Route path="/ai-size-finder" element={<FootSizeFinderPage />} />
           <Route path="/foot-size-finder" element={<FootSizeFinderPage />} />
           <Route path="/outfit-match" element={<OutfitMatcherPage />} />
+          <Route path="/outfit-matcher" element={<OutfitMatcherPage />} />
+          <Route path="/how-ai-models-work" element={<HowAiModelsWorkPage />} />
+          <Route path="/how-it-works" element={<Navigate to="/how-ai-models-work" replace />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/faqs" element={<FAQPage />} />
