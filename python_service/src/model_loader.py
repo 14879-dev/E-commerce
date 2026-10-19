@@ -55,11 +55,6 @@ class ModelLoader:
             base_dir / "best.pt",
             Path("models/best.pt"),
             Path("best.pt"),
-            Path("d:/MERN/E-commerce/Foot_Size_Finder_model/best.pt"),
-            Path("d:/MERN/E-commerce/Foot_Size_Finder_model/models/best.pt"),
-            Path("d:/FYP/model/models/best.pt"),
-            Path("d:/FYP/model/best.pt"),
-            Path(os.path.expanduser("~/Downloads/best.pt")),
             Path("C:/KhybersoleAI/models/best.pt")
         ]
 
