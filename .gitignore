@@ -37,8 +37,10 @@ __pycache__/
 *$py.class
 .pytest_cache/
 venv/
-.venv/
 *.pt
+!python_service/models/best.pt
+!Foot_Size_Finder_model/best.pt
+!Foot_Size_Finder_model/models/best.pt
 *.onnx
 python_service/train/runs/
 python_service/train/dataset/
