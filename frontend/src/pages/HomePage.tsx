@@ -156,11 +156,14 @@ export const HomePage: React.FC = () => {
           setHeroMediaUrl(normalizeAssetUrl(d.url));
           setHeroMediaType(d.type);
         } else {
-          setHeroMediaUrl(null);
-          setHeroMediaType(null);
+          setHeroMediaUrl("/uploads/hero.webp");
+          setHeroMediaType("image");
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        setHeroMediaUrl("/uploads/hero.webp");
+        setHeroMediaType("image");
+      });
     const onCats = () => loadHomeData();
     const onProds = () => loadHomeData();
     const onSettings = (e: Event) => {
@@ -265,35 +268,41 @@ export const HomePage: React.FC = () => {
             />
           ) : (
             <img
-              src={activeHeroMedia.url}
+              src={activeHeroMedia.url || "/uploads/hero.webp"}
               alt="Authentic Handcrafted Peshawari Chappal"
               className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none"
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (!target.src.endsWith('/uploads/hero.webp')) {
+                  target.src = '/uploads/hero.webp';
+                } else if (!target.src.endsWith('/uploads/hero-bg.png')) {
+                  target.src = '/uploads/hero-bg.png';
+                }
+              }}
             />
           )}
 
           {/* 1. TOP-LEFT: AI Foot Size Finder */}
-          <div className="absolute left-[2%] sm:left-[5%] lg:left-[6%] top-[6%] sm:top-[16%] lg:top-[18%] w-[43%] max-w-[148px] sm:w-auto sm:max-w-[340px] min-h-[125px] sm:min-h-0 flex flex-col justify-between z-20 text-left">
-            <div>
-              <div className="flex items-center gap-1 sm:gap-2.5">
-                <div className="w-5 h-5 sm:w-8 sm:h-8 lg:w-10 lg:h-10 rounded-full border border-white/45 flex items-center justify-center shrink-0 text-white/95">
-                  <TargetCircleIcon className="w-3 h-3 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
-                </div>
-                <h2 className="text-[#F7F4EB] font-bold text-[8.5px] sm:text-base lg:text-[17px] tracking-[0.03em] sm:tracking-[0.12em] uppercase drop-shadow-sm font-sans whitespace-nowrap">
-                  AI FOOT SIZE FINDER
-                </h2>
+          <div className="absolute left-[2.5%] sm:left-[5%] lg:left-[6%] top-[5%] sm:top-[16%] lg:top-[18%] w-[44%] max-w-[152px] sm:w-auto sm:max-w-[340px] z-20 text-left">
+            <div className="flex items-center gap-1 sm:gap-2.5">
+              <div className="w-5 h-5 sm:w-8 sm:h-8 lg:w-10 lg:h-10 rounded-full border border-white/45 flex items-center justify-center shrink-0 text-white/95">
+                <TargetCircleIcon className="w-3.5 h-3.5 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
               </div>
-              <p className="text-[#ECE4D2] text-[8px] sm:text-xs lg:text-[14px] leading-tight sm:leading-relaxed mt-1 sm:mt-2.5 max-w-[330px] font-normal drop-shadow-xs line-clamp-3 sm:line-clamp-none">
-                Take a picture of your foot with a debit card placed beside it. Our AI gives you the perfect size.
-              </p>
+              <h2 className="text-[#F7F4EB] font-bold text-[10px] sm:text-base lg:text-[17px] tracking-[0.02em] sm:tracking-[0.12em] uppercase drop-shadow-sm font-sans whitespace-nowrap">
+                AI FOOT SIZE FINDER
+              </h2>
             </div>
+            <p className="text-[#ECE4D2] text-[9.5px] sm:text-xs lg:text-[14px] leading-tight sm:leading-relaxed mt-1 sm:mt-2.5 max-w-[330px] font-normal drop-shadow-xs line-clamp-3 sm:line-clamp-none">
+              Take a picture of your foot with a debit card placed beside it. Our AI gives you the perfect size.
+            </p>
             <Link
               to="/size-finder"
-              className="inline-flex items-center gap-1 sm:gap-2 rounded-full bg-[#EDE3CF] hover:bg-[#F9F5EC] text-[#382717] px-2 py-1 sm:px-4 sm:py-2 lg:px-5 lg:py-2.5 mt-1 sm:mt-3.5 shadow-xs hover:shadow-md transition-all duration-200 hover:scale-[1.03] active:scale-95 group cursor-pointer border border-[#DDD3BF] w-fit"
+              className="inline-flex items-center gap-1 sm:gap-2 rounded-full bg-[#EDE3CF] hover:bg-[#F9F5EC] text-[#382717] px-2.5 py-1 sm:px-4 sm:py-2 lg:px-5 lg:py-2.5 mt-1.5 sm:mt-3.5 shadow-xs hover:shadow-md transition-all duration-200 hover:scale-[1.03] active:scale-95 group cursor-pointer border border-[#DDD3BF] w-fit"
               title="Find your foot size with AI camera calibration"
             >
               <FootRulerIcon className="w-3 h-3 sm:w-4.5 sm:h-4.5 text-[#382717] shrink-0" />
               <span className="hidden xs:inline w-px h-3 sm:h-4 bg-[#382717]/25 shrink-0" />
-              <span className="text-[8.5px] sm:text-[13px] font-medium tracking-wide">
+              <span className="text-[9px] sm:text-[13px] font-semibold tracking-wide">
                 Find foot size
               </span>
               <ArrowRight className="w-2.5 h-2.5 sm:w-4 sm:h-4 text-[#382717] group-hover:translate-x-1 transition-transform shrink-0" />
@@ -301,28 +310,26 @@ export const HomePage: React.FC = () => {
           </div>
 
           {/* 2. TOP-RIGHT: AI Outfit Matcher */}
-          <div className="absolute right-[2%] sm:right-[4.5%] lg:right-[5.5%] top-[6%] sm:top-[19%] lg:top-[21%] w-[43%] max-w-[148px] sm:w-auto sm:max-w-[340px] min-h-[125px] sm:min-h-0 flex flex-col justify-between z-20 text-left">
-            <div>
-              <div className="flex items-center gap-1 sm:gap-2.5">
-                <div className="w-5 h-5 sm:w-8 sm:h-8 lg:w-10 lg:h-10 rounded-full border border-white/45 flex items-center justify-center shrink-0 text-white/95">
-                  <CameraCircleIcon className="w-3 h-3 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
-                </div>
-                <h2 className="text-[#F7F4EB] font-bold text-[8.5px] sm:text-base lg:text-[17px] tracking-[0.03em] sm:tracking-[0.12em] uppercase drop-shadow-sm font-sans whitespace-nowrap">
-                  AI OUTFIT MATCHER
-                </h2>
+          <div className="absolute right-[2.5%] sm:right-[4.5%] lg:right-[5.5%] top-[5%] sm:top-[19%] lg:top-[21%] w-[44%] max-w-[152px] sm:w-auto sm:max-w-[340px] z-20 text-left">
+            <div className="flex items-center gap-1 sm:gap-2.5">
+              <div className="w-5 h-5 sm:w-8 sm:h-8 lg:w-10 lg:h-10 rounded-full border border-white/45 flex items-center justify-center shrink-0 text-white/95">
+                <CameraCircleIcon className="w-3.5 h-3.5 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
               </div>
-              <p className="text-[#ECE4D2] text-[8px] sm:text-xs lg:text-[14px] leading-tight sm:leading-relaxed mt-1 sm:mt-2.5 max-w-[310px] font-normal drop-shadow-xs line-clamp-3 sm:line-clamp-none">
-                Upload your outfit to find matching Peshawari Chappals.
-              </p>
+              <h2 className="text-[#F7F4EB] font-bold text-[10px] sm:text-base lg:text-[17px] tracking-[0.02em] sm:tracking-[0.12em] uppercase drop-shadow-sm font-sans whitespace-nowrap">
+                AI OUTFIT MATCHER
+              </h2>
             </div>
+            <p className="text-[#ECE4D2] text-[9.5px] sm:text-xs lg:text-[14px] leading-tight sm:leading-relaxed mt-1 sm:mt-2.5 max-w-[310px] font-normal drop-shadow-xs line-clamp-3 sm:line-clamp-none">
+              Upload your outfit to find matching Peshawari Chappals.
+            </p>
             <Link
               to="/outfit-match"
-              className="inline-flex items-center gap-1 sm:gap-2 rounded-full bg-[#EDE3CF] hover:bg-[#F9F5EC] text-[#382717] px-2 py-1 sm:px-4 sm:py-2 lg:px-5 lg:py-2.5 mt-1 sm:mt-3.5 shadow-xs hover:shadow-md transition-all duration-200 hover:scale-[1.03] active:scale-95 group cursor-pointer border border-[#DDD3BF] w-fit"
+              className="inline-flex items-center gap-1 sm:gap-2 rounded-full bg-[#EDE3CF] hover:bg-[#F9F5EC] text-[#382717] px-2.5 py-1 sm:px-4 sm:py-2 lg:px-5 lg:py-2.5 mt-1.5 sm:mt-3.5 shadow-xs hover:shadow-md transition-all duration-200 hover:scale-[1.03] active:scale-95 group cursor-pointer border border-[#DDD3BF] w-fit"
               title="Upload your outfit to match with authentic Peshawari Chappals"
             >
               <OutfitIcon className="w-3 h-3 sm:w-4.5 sm:h-4.5 text-[#382717] shrink-0" />
               <span className="hidden xs:inline w-px h-3 sm:h-4 bg-[#382717]/25 shrink-0" />
-              <span className="text-[8.5px] sm:text-[13px] font-medium tracking-wide">
+              <span className="text-[9px] sm:text-[13px] font-semibold tracking-wide">
                 Match outfit
               </span>
               <ArrowRight className="w-2.5 h-2.5 sm:w-4 sm:h-4 text-[#382717] group-hover:translate-x-1 transition-transform shrink-0" />

@@ -49,14 +49,11 @@ export const PageHero: React.FC<PageHeroProps> = ({
   const displayDescription = description || firstSlide.description;
 
   return (
-    <section
-      className="psh-page-hero relative w-full overflow-hidden min-h-[340px] sm:min-h-[400px] select-none"
-      style={{ height: "46vh" }}
-    >
-      <style>{`@media(min-width:1024px){.psh-page-hero{height:50vh!important;min-height:420px!important}}`}</style>
+    <section className="psh-hero relative w-full overflow-hidden select-none bg-[#ECE6DA]">
+      <style>{`@media(min-width:1024px){.psh-hero-banner{height:50vh!important;min-height:420px!important;max-height:500px!important}}`}</style>
 
-      {/* Background Media Layer (First Slider Only) */}
-      <div className="absolute inset-0 w-full h-full">
+      {/* Unified Banner for Desktop, Tablet, and Mobile with exact same height as Home */}
+      <div className="psh-hero-banner relative w-full aspect-[1024/523] min-h-[250px] sm:min-h-[420px] max-h-[500px] overflow-hidden">
         {firstSlide.type === 'video' ? (
           <video
             src={normalizeAssetUrl(firstSlide.url)}
@@ -64,53 +61,52 @@ export const PageHero: React.FC<PageHeroProps> = ({
             muted
             loop
             playsInline
-            className="w-full h-full object-cover object-[78%_center] sm:object-center"
+            className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none"
           />
         ) : (
           <img
             src={normalizeAssetUrl(firstSlide.url) || '/uploads/hero.webp'}
             alt={displayTitle}
-            className="w-full h-full object-cover object-[78%_center] sm:object-center"
+            className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none"
             onError={(e) => {
               const target = e.currentTarget;
               if (!target.src.endsWith('/uploads/hero.webp')) {
                 target.src = '/uploads/hero.webp';
+              } else if (!target.src.endsWith('/uploads/hero-bg.png')) {
+                target.src = '/uploads/hero-bg.png';
               }
             }}
           />
         )}
-      </div>
 
-      {/* Contrast Overlay: Olive Drab rich gradient (exact match with Home hero) */}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#565449]/95 via-[#565449]/70 to-transparent pointer-events-none z-[1]" />
-
-      {/* Content Layer */}
-      <div className="relative z-10 h-full flex items-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pt-4 pb-4 sm:py-6">
-        <div className="max-w-xl flex flex-col items-start text-left space-y-3 sm:space-y-3.5">
-          {/* Badge */}
-          {displayBadge && (
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#565449]/80 border border-[#F7F4EB]/40 backdrop-blur-sm text-xs font-semibold text-[#F7F4EB] uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-[#F7F4EB] shrink-0" />
-              <span>{displayBadge}</span>
-            </div>
-          )}
-
-          {/* Heading */}
-          <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight text-[#F7F4EB] drop-shadow-md">
-            <span>{displayTitle}</span>
-            {displaySubtitle && (
-              <span className="block text-[#F7F4EB]/90 text-xl sm:text-3xl font-light italic mt-1 font-serif">
-                {displaySubtitle}
-              </span>
+        {/* Content Layer directly over full banner, matching Home layout */}
+        <div className="relative z-10 h-full flex items-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-4 sm:py-6">
+          <div className="max-w-xl flex flex-col items-start text-left space-y-1.5 sm:space-y-3">
+            {/* Badge */}
+            {displayBadge && (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-[#565449]/80 border border-[#F7F4EB]/40 backdrop-blur-sm text-[10px] sm:text-xs font-semibold text-[#F7F4EB] uppercase tracking-wider shadow-sm">
+                <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#F7F4EB] shrink-0" />
+                <span>{displayBadge}</span>
+              </div>
             )}
-          </h1>
 
-          {/* Description */}
-          {displayDescription && (
-            <p className="text-xs sm:text-sm text-[#F7F4EB]/90 max-w-lg leading-relaxed">
-              {displayDescription}
-            </p>
-          )}
+            {/* Heading */}
+            <h1 className="font-serif text-2xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight text-[#F7F4EB] drop-shadow-md">
+              <span>{displayTitle}</span>
+              {displaySubtitle && (
+                <span className="block text-[#EDE3CF] text-base sm:text-2xl lg:text-3xl font-light italic mt-0.5 sm:mt-1 font-serif drop-shadow-sm">
+                  {displaySubtitle}
+                </span>
+              )}
+            </h1>
+
+            {/* Description */}
+            {displayDescription && (
+              <p className="text-[11px] sm:text-sm text-[#ECE4D2] max-w-lg leading-snug sm:leading-relaxed font-normal drop-shadow-sm line-clamp-3 sm:line-clamp-none">
+                {displayDescription}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </section>

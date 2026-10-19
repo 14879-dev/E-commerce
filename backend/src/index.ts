@@ -2636,14 +2636,33 @@ extraUploadDirs.forEach(dir => {
 app.get('/api/hero-media', (_req: Request, res: Response) => {
   try {
     const slides = inMemorySettings.heroSlides || [];
+    let mediaUrl = inMemorySettings.heroMediaUrl || (slides[0]?.url ?? '/uploads/hero.webp');
+    let mediaType = inMemorySettings.heroMediaType || (slides[0]?.type ?? 'image');
+
+    // Verify if mediaUrl points to a local upload that exists; if missing, fallback to bundled hero.webp
+    if (typeof mediaUrl === 'string' && mediaUrl.startsWith('/uploads/')) {
+      const filename = path.basename(mediaUrl);
+      const exists = [
+        path.join(process.cwd(), 'frontend', 'public', 'uploads', filename),
+        path.join(process.cwd(), 'backend', 'src', 'data', 'uploads', filename),
+        path.join(UPLOADS_DIR, filename),
+        path.join(__dirname, '..', '..', 'frontend', 'public', 'uploads', filename),
+      ].some(p => fs.existsSync(p));
+
+      if (!exists && filename !== 'hero.webp') {
+        mediaUrl = '/uploads/hero.webp';
+        mediaType = 'image';
+      }
+    }
+
     res.json({
       success: true,
-      url: inMemorySettings.heroMediaUrl || (slides[0]?.url ?? null),
-      type: inMemorySettings.heroMediaType || (slides[0]?.type ?? 'image'),
+      url: mediaUrl || '/uploads/hero.webp',
+      type: mediaType || 'image',
       heroSlides: slides,
     });
   } catch {
-    res.json({ success: true, url: null, type: null, heroSlides: [] });
+    res.json({ success: true, url: '/uploads/hero.webp', type: 'image', heroSlides: [] });
   }
 });
 
