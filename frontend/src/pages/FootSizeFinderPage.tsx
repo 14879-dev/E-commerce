@@ -288,30 +288,31 @@ export const FootSizeFinderPage: React.FC = () => {
                   className="w-full h-full object-cover"
                 />
 
-                {/* Overhead Alignment Guide Box */}
-                <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
-                  <div className="w-56 sm:w-64 h-80 sm:h-88 border-2 border-dashed border-[#D4AF37]/90 rounded-2xl flex flex-col justify-between items-center p-4 bg-black/15 backdrop-blur-[1px]">
-                    <span className="text-[11px] font-bold tracking-wider text-[#D4AF37] uppercase bg-black/60 px-2 py-0.5 rounded-full">
-                      Toe Tip Area (Top)
-                    </span>
-                    <span className="text-xs text-white/90 text-center font-medium bg-black/50 px-2.5 py-1 rounded-lg">
-                      Stand flat &amp; align foot directly overhead
-                    </span>
-                    <span className="text-[11px] font-bold tracking-wider text-[#D4AF37] uppercase bg-black/60 px-2 py-0.5 rounded-full">
-                      Heel Area (Bottom)
-                    </span>
+                {/* Viewfinder Target Overlays */}
+                <div className="absolute inset-4 pointer-events-none border-2 border-dashed border-[#F7F4EB]/70 rounded-xl flex flex-col justify-between p-3">
+                  <div className="flex justify-end items-start">
+                    <button
+                      type="button"
+                      onClick={toggleCameraFacing}
+                      className="pointer-events-auto p-2 rounded-full bg-[#565449]/90 text-[#F7F4EB] hover:bg-[#45433A] border border-[#F7F4EB]/30 transition shadow-xs"
+                      title="Flip camera"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="flex-1 flex items-center justify-center pointer-events-none">
+                    <div className="border-2 border-dashed border-emerald-400/70 rounded-lg w-48 sm:w-60 h-68 sm:h-84 flex items-center justify-center bg-emerald-500/5">
+                      <span className="text-[11px] text-emerald-200 bg-black/60 px-2.5 py-1 rounded backdrop-blur-xs text-center">
+                        Place bare foot flat in frame
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-center text-xs bg-[#565449]/90 backdrop-blur-xs text-[#F7F4EB] py-1.5 px-3 rounded-md mx-auto border border-[#F7F4EB]/30 shadow-xs">
+                    Hold phone flat overhead. Keep bare foot clearly in frame.
                   </div>
                 </div>
-
-                {/* Flip Camera Button */}
-                <button
-                  type="button"
-                  onClick={toggleCameraFacing}
-                  className="absolute top-3 right-3 bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-full transition border border-white/20 cursor-pointer shadow-md"
-                  title="Switch camera"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
               </div>
 
               {/* Instructions banner */}
