@@ -102,10 +102,13 @@ class SizeCalculationRequest(BaseModel):
     image_base64: str
     manual_heel: Optional[List[float]] = None  # [x, y] in pixels or normalized [0..1]
     manual_toe: Optional[List[float]] = None   # [x, y] in pixels or normalized [0..1]
+    manual_heel_px: Optional[List[float]] = None  # [x, y] explicitly in pixel coordinates
+    manual_toe_px: Optional[List[float]] = None   # [x, y] explicitly in pixel coordinates
     paper_corners: Optional[List[List[float]]] = None  # 4 corners for card [ [x,y], ... ]
     calibration_object: Optional[str] = "credit_card"
     known_width_mm: Optional[float] = None
     known_height_mm: Optional[float] = None
+    toe_hint: Optional[str] = None  # 'up', 'down', 'left', 'right', or None for auto
 
 class OutfitMatchRequest(BaseModel):
     outfit_type: Optional[str] = "shalwar_kameez"
@@ -213,7 +216,10 @@ async def calculate_foot_size(request: SizeCalculationRequest):
         primary_foot = detections[0]
 
         # 4. Anatomical Landmark & Axis Extraction (PCA + Heel/Toe classification)
-        landmarks = landmark_extractor.extract_landmarks(primary_foot.mask)
+        hint_clean = request.toe_hint.lower().strip() if request.toe_hint else None
+        if hint_clean in ["auto", "none", ""]:
+            hint_clean = None
+        landmarks = landmark_extractor.extract_landmarks(primary_foot.mask, expected_toe_direction=hint_clean)
         if landmarks is None:
             return JSONResponse(
                 status_code=400,
@@ -230,7 +236,10 @@ async def calculate_foot_size(request: SizeCalculationRequest):
         effective_heel = (float(landmarks.heel_point[0]), float(landmarks.heel_point[1]))
         effective_toe = (float(landmarks.toe_point[0]), float(landmarks.toe_point[1]))
 
-        if request.manual_heel and len(request.manual_heel) == 2:
+        if request.manual_heel_px and len(request.manual_heel_px) == 2:
+            effective_heel = (float(request.manual_heel_px[0]), float(request.manual_heel_px[1]))
+            is_manually_adjusted = True
+        elif request.manual_heel and len(request.manual_heel) == 2:
             hx = float(request.manual_heel[0])
             hy = float(request.manual_heel[1])
             if hx <= 1.05 and hy <= 1.05:
@@ -239,7 +248,10 @@ async def calculate_foot_size(request: SizeCalculationRequest):
             effective_heel = (hx, hy)
             is_manually_adjusted = True
 
-        if request.manual_toe and len(request.manual_toe) == 2:
+        if request.manual_toe_px and len(request.manual_toe_px) == 2:
+            effective_toe = (float(request.manual_toe_px[0]), float(request.manual_toe_px[1]))
+            is_manually_adjusted = True
+        elif request.manual_toe and len(request.manual_toe) == 2:
             tx = float(request.manual_toe[0])
             ty = float(request.manual_toe[1])
             if tx <= 1.05 and ty <= 1.05:
@@ -385,14 +397,17 @@ async def calculate_foot_size(request: SizeCalculationRequest):
             "card_detected": card_detected,
             "foot_length_mm": round(measurement.length_mm, 1),
             "foot_width_mm": round(measurement.width_mm, 1),
-            "height_cm": round(measurement.length_cm, 2),
+            "length_cm": round(measurement.length_cm, 2),
             "width_cm": round(measurement.width_cm, 2),
+            "height_cm": round(measurement.length_cm, 2),
             "recommended_uk_size": uk_size,
             "recommended_eu_size": eu_size,
             "recommended_us_size": us_size,
             "confidence_pct": int(round(primary_foot.confidence * 100)),
+            "reliability_status": measurement.reliability_status,
             "fit_profile": fit_type,
             "fit_note": fit_note,
+            "boundary_warning": rec.boundary_warning if rec else None,
             "annotated_image_base64": annotated_b64,
             "heel_point": [float(landmarks.heel_point[0]), float(landmarks.heel_point[1])],
             "toe_point": [float(landmarks.toe_point[0]), float(landmarks.toe_point[1])],
@@ -405,8 +420,14 @@ async def calculate_foot_size(request: SizeCalculationRequest):
             "is_manually_adjusted": is_manually_adjusted,
             "calibration_scale_ppm": round(calibration_data.pixels_per_mm, 3),
             "calibration_quality": calibration_data.calibration_quality,
+            "calibration_method": measurement.calibration_method,
             "reference_object": calibration_data.reference_object,
+            "reference_dims_mm": [float(calibration_data.reference_dims_mm[0]), float(calibration_data.reference_dims_mm[1])],
+            "foot_orientation_deg": round(landmarks.orientation_deg, 1),
+            "foot_aspect_ratio": round(landmarks.aspect_ratio, 2),
+            "landmark_quality_notes": landmarks.quality_notes,
             "warnings": warnings,
+            "rejection_reasons": measurement.rejection_reasons,
             "algorithm": "Khybersole YOLOv8 AI Foot Segmentation & Photogrammetry Model"
         }
 
@@ -417,6 +438,32 @@ async def calculate_foot_size(request: SizeCalculationRequest):
             status_code=500,
             content={"success": False, "error": f"Foot size processing error: {str(e)}"}
         )
+
+@app.get("/api/py/sample-images")
+def list_sample_images():
+    """Lists available benchmark test samples from test_images/ directory."""
+    samples_dir = BASE_DIR / "test_images"
+    if not samples_dir.exists():
+        return {"samples": []}
+    files = sorted(list(samples_dir.glob("*.jpg")))
+    names = [f.name for f in files]
+    if "demo_foot_with_card.jpg" in names:
+        names.remove("demo_foot_with_card.jpg")
+        names.insert(0, "demo_foot_with_card.jpg")
+    return {"samples": names[:12]}
+
+@app.get("/api/py/sample-image/{filename}")
+def get_sample_image(filename: str):
+    """Returns base64 data for a benchmark test sample."""
+    sample_file = BASE_DIR / "test_images" / Path(filename).name
+    if not sample_file.exists():
+        raise HTTPException(status_code=404, detail="Sample image not found")
+    with open(sample_file, "rb") as f:
+        data = f.read()
+    return {
+        "filename": sample_file.name,
+        "image_base64": base64.b64encode(data).decode("utf-8")
+    }
 
 # ─── AI Outfit Matcher helpers ────────────────────────────────────────────────
 

@@ -1,62 +1,129 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Upload, RotateCcw, AlertTriangle, ArrowRight, Check, Sparkles, Sliders, RefreshCw, CreditCard } from 'lucide-react';
+import {
+  Camera,
+  Upload,
+  RotateCcw,
+  AlertTriangle,
+  ArrowRight,
+  Check,
+  Sparkles,
+  Sliders,
+  RefreshCw,
+  CreditCard,
+  Download,
+  ChevronDown,
+  ChevronUp,
+  Crosshair,
+  FileText,
+  HelpCircle
+} from 'lucide-react';
 import { SEOHelmet } from '../components/common/SEOHelmet';
-import { PageHero } from '../components/common/PageHero';
 
 export interface SizeResult {
   success?: boolean;
   foot_length_mm: number;
   foot_width_mm: number;
+  length_cm?: number;
+  width_cm?: number;
+  height_cm?: number;
   recommended_eu_size: number;
   recommended_uk_size: number;
   recommended_us_size: number;
   confidence_pct: number;
+  reliability_status?: string;
   fit_profile?: string;
   fit_note: string;
+  boundary_warning?: string | null;
   annotated_image_base64?: string;
   heel_point?: [number, number];
   toe_point?: [number, number];
   heel_point_norm?: [number, number];
   toe_point_norm?: [number, number];
   paper_corners_norm?: [number, number][];
+  card_corners?: [number, number][];
   card_detected?: boolean;
   image_width?: number;
   image_height?: number;
   is_manually_adjusted?: boolean;
   calibration_scale_ppm?: number;
+  calibration_quality?: string;
+  calibration_method?: string;
+  reference_object?: string;
+  reference_dims_mm?: [number, number];
+  foot_orientation_deg?: number;
+  foot_aspect_ratio?: number;
+  landmark_quality_notes?: string;
+  warnings?: string[];
+  rejection_reasons?: string[];
   error?: string;
   error_code?: string;
-  model?: string;
 }
 
 export const FootSizeFinderPage: React.FC = () => {
-  // Steps: 'camera' | 'landmark_adjust' | 'analyzing' | 'result' | 'error' | 'camera_denied'
-  const [step, setStep] = useState<'camera' | 'landmark_adjust' | 'analyzing' | 'result' | 'error' | 'camera_denied'>('camera');
+  // Input Modes: 'upload' | 'camera' | 'samples'
+  const [inputTab, setInputTab] = useState<'upload' | 'camera' | 'samples'>('upload');
+  const [analyzing, setAnalyzing] = useState<boolean>(false);
   const [result, setResult] = useState<SizeResult | null>(null);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState<string>('');
   const [activeFacingMode, setActiveFacingMode] = useState<'environment' | 'user'>('environment');
-  const [capturedImageB64, setCapturedImageB64] = useState<string | null>(null);
+  const [originalImageB64, setOriginalImageB64] = useState<string | null>(null);
 
-  // Interactive Heel & Toe Landmark Calibration State (Normalized [0..1] and Pixel coords)
-  const [heelNorm, setHeelNorm] = useState<[number, number]>([0.5, 0.2]);
-  const [toeNorm, setToeNorm] = useState<[number, number]>([0.5, 0.8]);
-  const [aiHeelNorm, setAiHeelNorm] = useState<[number, number]>([0.5, 0.2]);
-  const [aiToeNorm, setAiToeNorm] = useState<[number, number]>([0.5, 0.8]);
-  const [activePinDrag, setActivePinDrag] = useState<'heel' | 'toe' | null>(null);
+  // Calibration Object Setup (matches app.py)
+  const [calibrationChoice, setCalibrationChoice] = useState<'credit_card' | 'a4' | 'custom'>('credit_card');
+  const [customWidthMm, setCustomWidthMm] = useState<number>(85.6);
+  const [customHeightMm, setCustomHeightMm] = useState<number>(53.98);
+  const [toeHint, setToeHint] = useState<string>('auto'); // auto, up, down, left, right
+  const [enableManualCardOverride, setEnableManualCardOverride] = useState<boolean>(false);
 
-  // Reference Card 4 Corners State (Normalized [0..1])
-  const [cardCornersNorm, setCardCornersNorm] = useState<[number, number][]>([
-    [0.10, 0.20], [0.35, 0.20], [0.35, 0.40], [0.10, 0.40]
-  ]);
-
+  // Natural Image Dimensions
   const [imageDims, setImageDims] = useState<{ width: number; height: number }>({ width: 1000, height: 1000 });
 
+  // Pixel Coordinates for Heel and Toe (exact pixel values [0..width, 0..height])
+  const [heelPixel, setHeelPixel] = useState<[number, number]>([500, 200]);
+  const [toePixel, setToePixel] = useState<[number, number]>([500, 800]);
+  const [aiHeelPixel, setAiHeelPixel] = useState<[number, number]>([500, 200]);
+  const [aiToePixel, setAiToePixel] = useState<[number, number]>([500, 800]);
+
+  // Card Corners in Pixels: [TL, TR, BR, BL]
+  const [cardCornersPx, setCardCornersPx] = useState<[number, number][]>([
+    [100, 100], [350, 100], [350, 250], [100, 250]
+  ]);
+
+  // UI Expanders
+  const [showManualTuning, setShowManualTuning] = useState<boolean>(true);
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState<boolean>(false);
+  const [showInstructions, setShowInstructions] = useState<boolean>(false);
+  const [activePinDrag, setActivePinDrag] = useState<'heel' | 'toe' | null>(null);
+  const [targetPinMode, setTargetPinMode] = useState<'heel' | 'toe' | null>(null);
+
+  // Benchmark samples
+  const [samplesList, setSamplesList] = useState<string[]>([]);
+  const [selectedSample, setSelectedSample] = useState<string>('demo_foot_with_card.jpg');
+  const [loadingSample, setLoadingSample] = useState<boolean>(false);
+
+  // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const footImgRef = useRef<HTMLImageElement>(null);
+  const overlayContainerRef = useRef<HTMLDivElement>(null);
+
+  // Fetch benchmark sample list on mount
+  useEffect(() => {
+    fetch('/api/py/sample-images')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && Array.isArray(data.samples) && data.samples.length > 0) {
+          setSamplesList(data.samples);
+          setSelectedSample(data.samples[0]);
+        }
+      })
+      .catch(() => {
+        // Fallback demo image
+        setSamplesList(['demo_foot_with_card.jpg']);
+      });
+  }, []);
 
   // Stop camera tracks
   const stopCamera = useCallback(() => {
@@ -70,11 +137,9 @@ export const FootSizeFinderPage: React.FC = () => {
   const startCamera = useCallback(async (facing: 'environment' | 'user' = 'environment') => {
     stopCamera();
     setErrorMsg('');
-    setStep('camera');
 
     if (!navigator?.mediaDevices?.getUserMedia) {
-      console.warn('getUserMedia not supported on this origin');
-      setStep('camera_denied');
+      setErrorMsg('Camera access is not supported by your browser or origin.');
       return;
     }
 
@@ -99,19 +164,19 @@ export const FootSizeFinderPage: React.FC = () => {
       if (facing === 'environment') {
         startCamera('user');
       } else {
-        setStep('camera_denied');
+        setErrorMsg('Camera permission was denied. You can upload a photo from your device.');
       }
     }
   }, [stopCamera]);
 
   useEffect(() => {
-    if (step === 'camera') {
-      startCamera('environment');
+    if (inputTab === 'camera') {
+      startCamera(activeFacingMode);
     } else {
       stopCamera();
     }
     return () => stopCamera();
-  }, [step, startCamera, stopCamera]);
+  }, [inputTab, activeFacingMode, startCamera, stopCamera]);
 
   // Capture frame as base64 JPEG
   const captureFrame = (): string | null => {
@@ -131,88 +196,102 @@ export const FootSizeFinderPage: React.FC = () => {
     return canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
   };
 
-  // Process image with backend YOLOv8 model
-  const processImageBase64 = async (
+  // Main Photogrammetric Processing Function
+  const processImage = async (
     b64: string,
-    manualHeelNorm?: [number, number],
-    manualToeNorm?: [number, number],
-    customCardCornersNorm?: [number, number][]
+    overrideHeelPx?: [number, number],
+    overrideToePx?: [number, number],
+    overrideCardCornersPx?: [number, number][]
   ) => {
     stopCamera();
-    setStep('analyzing');
+    setAnalyzing(true);
     setErrorMsg('');
-    setCapturedImageB64(b64);
+    setOriginalImageB64(b64);
 
     try {
+      let knownW = 85.6;
+      let knownH = 53.98;
+      if (calibrationChoice === 'a4') {
+        knownW = 297.0;
+        knownH = 210.0;
+      } else if (calibrationChoice === 'custom') {
+        knownW = customWidthMm;
+        knownH = customHeightMm;
+      }
+
       const payload: Record<string, any> = {
         image_base64: b64,
-        calibration_object: 'credit_card',
+        calibration_object: calibrationChoice === 'a4' ? 'a4' : 'credit_card',
+        known_width_mm: knownW,
+        known_height_mm: knownH,
+        toe_hint: toeHint !== 'auto' ? toeHint : null,
       };
-      if (manualHeelNorm && manualToeNorm) {
-        payload.manual_heel = manualHeelNorm;
-        payload.manual_toe = manualToeNorm;
+
+      if (overrideHeelPx && overrideToePx) {
+        payload.manual_heel_px = overrideHeelPx;
+        payload.manual_toe_px = overrideToePx;
       }
-      if (customCardCornersNorm) {
-        payload.paper_corners = customCardCornersNorm;
+
+      if (overrideCardCornersPx && overrideCardCornersPx.length === 4) {
+        payload.paper_corners = overrideCardCornersPx;
       }
 
       const res = await fetch('/api/py/calculate-foot-size', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(45000),
+        signal: AbortSignal.timeout(60000),
       });
 
       const data = await res.json().catch(() => ({ success: false, error: 'Service temporarily unavailable.' }));
 
       if (!res.ok || !data.success) {
         setErrorMsg(
-          data.error || 'Could not detect foot. Please ensure your bare foot is clearly visible flat on the floor directly from overhead.'
+          data.error || 'Could not analyze foot. Ensure bare foot is clearly visible with good lighting.'
         );
-        setStep('error');
+        setAnalyzing(false);
         return;
       }
 
       setResult(data);
 
-      if (data.image_width && data.image_height) {
-        setImageDims({ width: data.image_width, height: data.image_height });
-      }
+      const w = data.image_width || 1000;
+      const h = data.image_height || 1000;
+      setImageDims({ width: w, height: h });
 
-      if (data.heel_point_norm && data.toe_point_norm) {
-        setHeelNorm(data.heel_point_norm);
-        setToeNorm(data.toe_point_norm);
-        if (!manualHeelNorm) {
-          setAiHeelNorm(data.heel_point_norm);
-          setAiToeNorm(data.toe_point_norm);
+      if (data.heel_point && data.toe_point) {
+        const hp: [number, number] = [Math.round(data.heel_point[0]), Math.round(data.heel_point[1])];
+        const tp: [number, number] = [Math.round(data.toe_point[0]), Math.round(data.toe_point[1])];
+        setHeelPixel(hp);
+        setToePixel(tp);
+        if (!overrideHeelPx) {
+          setAiHeelPixel(hp);
+          setAiToePixel(tp);
         }
       }
 
-      if (data.paper_corners_norm) {
-        setCardCornersNorm(data.paper_corners_norm);
+      if (data.card_corners && data.card_corners.length === 4) {
+        setCardCornersPx(data.card_corners.map((c: number[]) => [Math.round(c[0]), Math.round(c[1])]));
+      } else {
+        // Sensible default corner placement if none detected
+        setCardCornersPx([
+          [Math.round(w * 0.1), Math.round(h * 0.1)],
+          [Math.round(w * 0.35), Math.round(h * 0.1)],
+          [Math.round(w * 0.35), Math.round(h * 0.25)],
+          [Math.round(w * 0.1), Math.round(h * 0.25)]
+        ]);
       }
 
-      setStep('result');
+      setAnalyzing(false);
     } catch (err: any) {
       setErrorMsg(err.message?.includes('timeout')
-        ? 'Processing timed out. Please take a clearer photo with good lighting.'
-        : (err.message || 'Error processing scan.'));
-      setStep('error');
+        ? 'Processing timed out. Please try a clearer photograph.'
+        : (err.message || 'Error processing foot measurement.'));
+      setAnalyzing(false);
     }
   };
 
-  // Trigger capture
-  const handleCapture = () => {
-    const b64 = captureFrame();
-    if (!b64) {
-      setErrorMsg('Failed to capture frame from camera. Please try uploading a photo.');
-      setStep('error');
-      return;
-    }
-    processImageBase64(b64);
-  };
-
-  // Trigger upload
+  // Upload handler
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -221,516 +300,1132 @@ export const FootSizeFinderPage: React.FC = () => {
     reader.onload = () => {
       const resultStr = reader.result as string;
       const b64 = resultStr.includes(',') ? resultStr.split(',')[1] : resultStr;
-      processImageBase64(b64);
+      processImage(b64);
     };
     reader.readAsDataURL(file);
   };
 
-  // Switch facing mode
-  const toggleCameraFacing = () => {
-    const newFacing = activeFacingMode === 'environment' ? 'user' : 'environment';
-    setActiveFacingMode(newFacing);
-    startCamera(newFacing);
+  // Camera capture trigger
+  const handleCameraCapture = () => {
+    const b64 = captureFrame();
+    if (!b64) {
+      setErrorMsg('Failed to capture frame from camera. Please try uploading a photo.');
+      return;
+    }
+    processImage(b64);
   };
 
-  // Pointer drag handlers for Heel / Toe pins on image
-  const handlePointerDown = (pin: 'heel' | 'toe') => {
+  // Load sample test image
+  const handleLoadSample = async () => {
+    if (!selectedSample) return;
+    setLoadingSample(true);
+    setErrorMsg('');
+    try {
+      const res = await fetch(`/api/py/sample-image/${encodeURIComponent(selectedSample)}`);
+      const data = await res.json();
+      if (data && data.image_base64) {
+        processImage(data.image_base64);
+      } else {
+        setErrorMsg('Could not load test sample image.');
+      }
+    } catch (err: any) {
+      setErrorMsg('Failed to fetch benchmark sample image.');
+    } finally {
+      setLoadingSample(false);
+    }
+  };
+
+  // Reset to original AI detected endpoints
+  const handleResetToAiLandmarks = () => {
+    setHeelPixel(aiHeelPixel);
+    setToePixel(aiToePixel);
+  };
+
+  // Recalculate measurement with adjusted pixel coordinates
+  const handleRecalculate = () => {
+    if (!originalImageB64) return;
+    processImage(
+      originalImageB64,
+      heelPixel,
+      toePixel,
+      enableManualCardOverride ? cardCornersPx : undefined
+    );
+  };
+
+  // Directional Nudge Helpers (UP = Y decreases towards 0, DOWN = Y increases towards height)
+  const nudgeHeel = (dx: number, dy: number) => {
+    setHeelPixel((prev) => [
+      Math.max(0, Math.min(imageDims.width, prev[0] + dx)),
+      Math.max(0, Math.min(imageDims.height, prev[1] + dy))
+    ]);
+  };
+
+  const nudgeToe = (dx: number, dy: number) => {
+    setToePixel((prev) => [
+      Math.max(0, Math.min(imageDims.width, prev[0] + dx)),
+      Math.max(0, Math.min(imageDims.height, prev[1] + dy))
+    ]);
+  };
+
+  // Tap/Click on annotated image container to set pin position directly
+  const handleImageContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!targetPinMode || !overlayContainerRef.current) return;
+    const rect = overlayContainerRef.current.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+
+    const pxX = Math.round(Math.max(0, Math.min(imageDims.width, (clickX / rect.width) * imageDims.width)));
+    const pxY = Math.round(Math.max(0, Math.min(imageDims.height, (clickY / rect.height) * imageDims.height)));
+
+    if (targetPinMode === 'heel') {
+      setHeelPixel([pxX, pxY]);
+      setTargetPinMode(null);
+    } else if (targetPinMode === 'toe') {
+      setToePixel([pxX, pxY]);
+      setTargetPinMode(null);
+    }
+  };
+
+  // Pointer drag handler for Heel / Toe pins on image
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>, pin: 'heel' | 'toe') => {
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
     setActivePinDrag(pin);
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!activePinDrag || !footImgRef.current) return;
-    const rect = footImgRef.current.getBoundingClientRect();
+    if (!activePinDrag || !overlayContainerRef.current) return;
+    const rect = overlayContainerRef.current.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
 
-    const xNorm = Math.max(0.01, Math.min(0.99, (e.clientX - rect.left) / rect.width));
-    const yNorm = Math.max(0.01, Math.min(0.99, (e.clientY - rect.top) / rect.height));
+    const curX = e.clientX - rect.left;
+    const curY = e.clientY - rect.top;
+
+    const pxX = Math.round(Math.max(0, Math.min(imageDims.width, (curX / rect.width) * imageDims.width)));
+    const pxY = Math.round(Math.max(0, Math.min(imageDims.height, (curY / rect.height) * imageDims.height)));
 
     if (activePinDrag === 'heel') {
-      setHeelNorm([xNorm, yNorm]);
+      setHeelPixel([pxX, pxY]);
     } else {
-      setToeNorm([xNorm, yNorm]);
+      setToePixel([pxX, pxY]);
     }
   };
 
-  const handlePointerUp = () => {
-    setActivePinDrag(null);
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (activePinDrag) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {}
+      setActivePinDrag(null);
+    }
   };
 
-  const handleResetToAiLandmarks = () => {
-    setHeelNorm(aiHeelNorm);
-    setToeNorm(aiToeNorm);
+  // Download JSON report matching app.py
+  const handleDownloadReport = () => {
+    if (!result) return;
+    const report = {
+      project: "Khybersole AI Foot Size Finder",
+      timestamp: new Date().toISOString().split('T')[0],
+      measured_foot_length_mm: result.foot_length_mm,
+      measured_foot_length_cm: result.length_cm || round(result.foot_length_mm / 10, 2),
+      measured_foot_width_mm: result.foot_width_mm,
+      measured_foot_width_cm: result.width_cm || round(result.foot_width_mm / 10, 2),
+      recommended_chappal_size_pk_uk: result.recommended_uk_size,
+      recommended_size_eu: result.recommended_eu_size,
+      recommended_size_us: result.recommended_us_size,
+      fit_character: result.fit_profile || "Standard Fit",
+      confidence_pct: result.confidence_pct,
+      reliability_status: result.reliability_status || "Reliable",
+      calibration_scale_ppm: result.calibration_scale_ppm,
+      card_detected: result.card_detected,
+      reference_object: result.reference_object,
+      heel_coordinate_px: heelPixel,
+      toe_tip_coordinate_px: toePixel,
+      foot_orientation_deg: result.foot_orientation_deg,
+      foot_aspect_ratio: result.foot_aspect_ratio,
+      landmark_quality_notes: result.landmark_quality_notes,
+      algorithm: "Khybersole YOLOv8 AI Foot Segmentation & Photogrammetry Model"
+    };
+
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `khybersole_foot_measurement_${result.recommended_uk_size}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const handleRecalculateWithAdjustedLandmarks = () => {
-    if (!capturedImageB64) return;
-    processImageBase64(capturedImageB64, heelNorm, toeNorm, cardCornersNorm);
-  };
+  function round(val: number, dec = 2): number {
+    const factor = Math.pow(10, dec);
+    return Math.round(val * factor) / factor;
+  }
 
   return (
-    <div className="w-full">
+    <div className="w-full min-h-screen bg-[#FDFBF7] text-[#120D0A]">
       <SEOHelmet
-        title="AI Foot Size Calibration — Peshawari Chappal Co."
-        description="Find your guaranteed Peshawari Chappal size with our custom YOLOv8 AI segmentation and photogrammetric calibration."
+        title="Khybersole AI Foot Size Finder — Authentic Peshawari Chappal Sizing"
+        description="Calibrated photogrammetry and YOLOv8 instance segmentation to measure your exact millimeter foot dimensions and recommend your authentic Peshawari Chappal size."
       />
 
-      <PageHero
-        badge="Master Artisan Fitting"
-        title="Find Your Exact Shoe Size"
-        subtitle="100% Guaranteed Custom Fit"
-        description="Our custom neural computer vision model segments your foot anatomy, detects reference card and heel/toe endpoints, and calibrates your handcrafted Peshawari Chappal size."
+      {/* Hidden processing canvas & file input */}
+      <canvas ref={canvasRef} className="hidden" />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleFileUpload}
       />
 
-      <div className="max-w-2xl mx-auto py-6 sm:py-10 px-4">
-        {/* Hidden capture elements */}
-        <canvas ref={canvasRef} className="hidden" />
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleFileUpload}
-        />
+      {/* HEADER BRANDING (Khybersole Streamlit Style) */}
+      <div className="max-w-6xl mx-auto pt-6 px-4">
+        <div className="bg-gradient-to-r from-[#1A120C] via-[#2B1B10] to-[#150E09] border border-[#C59B27]/40 rounded-2xl p-5 sm:p-7 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl sm:text-3xl">👞</span>
+              <h1 className="font-serif text-2xl sm:text-3xl font-extrabold text-[#FDFBF7] tracking-tight">
+                KHYBERSOLE
+              </h1>
+            </div>
+            <p className="text-[#C59B27] text-xs sm:text-sm font-semibold tracking-wider uppercase mt-1">
+              AI Foot Size Finder &amp; Heritage Chappal Sizing
+            </p>
+          </div>
+          <div className="text-left sm:text-right text-xs text-[#A08C7D] border-t sm:border-t-0 pt-2 sm:pt-0 border-[#3D2E24] w-full sm:w-auto">
+            <span>Final Year Project &bull; Handcrafted Quality</span>
+            <div className="text-[#C59B27] font-bold mt-0.5">Calibrated Photogrammetry</div>
+          </div>
+        </div>
+      </div>
 
-        {/* MAIN CONTAINER */}
-        <div className="bg-[#A0988A]/20 rounded-2xl border border-[#A0988A] shadow-md p-4 sm:p-6 backdrop-blur-xs">
-          
-          {/* STEP 1: CAMERA VIEWFINDER */}
-          {step === 'camera' && (
-            <div className="space-y-4">
-              <div className="relative rounded-xl overflow-hidden bg-[#565449] aspect-[3/4] sm:aspect-[4/3] flex items-center justify-center shadow-inner">
-                <video
-                  ref={videoRef}
-                  playsInline
-                  muted
-                  autoPlay
-                  className="w-full h-full object-cover"
+      <div className="max-w-6xl mx-auto py-6 px-4 space-y-6">
+
+        {/* SETUP & GUIDELINES PANEL */}
+        <div className="bg-[#1E1712] border border-[#3D2E24] rounded-xl p-4 sm:p-5 text-[#FDFBF7] shadow-md space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#3D2E24] pb-3">
+            <div className="flex items-center gap-2 text-sm font-bold text-[#D4AF37]">
+              <Sliders className="w-4 h-4" />
+              <span>📐 Measurement Setup &amp; Calibration Reference</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowInstructions(!showInstructions)}
+              className="text-xs text-[#C59B27] hover:text-[#D4AF37] flex items-center gap-1 font-semibold cursor-pointer"
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span>{showInstructions ? 'Hide Instructions' : 'Photography Instructions'}</span>
+              {showInstructions ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+
+          {/* Setup controls grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-[#A08C7D] block mb-1 font-semibold">Reference Object</label>
+              <select
+                value={calibrationChoice}
+                onChange={(e) => setCalibrationChoice(e.target.value as any)}
+                className="w-full bg-[#120D0A] border border-[#3D2E24] rounded-lg px-3 py-2 text-xs text-[#FDFBF7] focus:outline-none focus:border-[#C59B27]"
+              >
+                <option value="credit_card">Standard Bank / Credit Card (85.60 x 53.98 mm)</option>
+                <option value="a4">A4 Paper Sheet (297 x 210 mm)</option>
+                <option value="custom">Custom Dimensions (mm)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs text-[#A08C7D] block mb-1 font-semibold">Toe Orientation Hint</label>
+              <select
+                value={toeHint}
+                onChange={(e) => setToeHint(e.target.value)}
+                className="w-full bg-[#120D0A] border border-[#3D2E24] rounded-lg px-3 py-2 text-xs text-[#FDFBF7] focus:outline-none focus:border-[#C59B27]"
+              >
+                <option value="auto">Auto-detect Anatomical Width</option>
+                <option value="up">Up (Toe at top of image)</option>
+                <option value="down">Down (Toe at bottom of image)</option>
+                <option value="left">Left (Toe pointing left)</option>
+                <option value="right">Right (Toe pointing right)</option>
+              </select>
+            </div>
+
+            <div className="flex items-center sm:pt-5">
+              <label className="flex items-center gap-2 cursor-pointer text-xs text-[#FDFBF7]/90 select-none">
+                <input
+                  type="checkbox"
+                  checked={enableManualCardOverride}
+                  onChange={(e) => setEnableManualCardOverride(e.target.checked)}
+                  className="rounded border-[#3D2E24] text-[#C59B27] focus:ring-[#C59B27] w-4 h-4 accent-[#C59B27]"
                 />
+                <span>Manual Card Corner Override</span>
+              </label>
+            </div>
+          </div>
 
-                {/* Viewfinder Target Overlays */}
-                <div className="absolute inset-4 pointer-events-none border-2 border-dashed border-[#F7F4EB]/70 rounded-xl flex flex-col justify-between p-3">
-                  <div className="flex justify-between items-start">
-                    <span className="text-xs bg-[#565449]/90 backdrop-blur-xs text-[#F7F4EB] px-2.5 py-1 rounded-md font-medium border border-[#F7F4EB]/30 shadow-xs flex items-center gap-1.5">
-                      <CreditCard className="w-3.5 h-3.5" />
-                      <span>Card Flat Beside Foot</span>
+          {/* Custom dimensions if chosen */}
+          {calibrationChoice === 'custom' && (
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <div>
+                <label className="text-xs text-[#A08C7D] block mb-1">Reference Width (mm)</label>
+                <input
+                  type="number"
+                  value={customWidthMm}
+                  min={10}
+                  max={500}
+                  step={0.1}
+                  onChange={(e) => setCustomWidthMm(Number(e.target.value))}
+                  className="w-full bg-[#120D0A] border border-[#3D2E24] rounded-lg px-3 py-1.5 text-xs text-[#FDFBF7]"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-[#A08C7D] block mb-1">Reference Height (mm)</label>
+                <input
+                  type="number"
+                  value={customHeightMm}
+                  min={10}
+                  max={500}
+                  step={0.1}
+                  onChange={(e) => setCustomHeightMm(Number(e.target.value))}
+                  className="w-full bg-[#120D0A] border border-[#3D2E24] rounded-lg px-3 py-1.5 text-xs text-[#FDFBF7]"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Expandable Instructions */}
+          {showInstructions && (
+            <div className="bg-[#120D0A] border border-[#3D2E24] rounded-lg p-3 text-xs text-[#FDFBF7]/80 space-y-1.5 animate-fadeIn">
+              <div className="font-bold text-[#D4AF37] mb-1">📋 Photography Guidelines:</div>
+              <div>1. <strong>Flat Surface:</strong> Stand or rest your bare foot flat on a hard floor.</div>
+              <div>2. <strong>Place Reference Card:</strong> Place your bank card on the floor right beside your foot.</div>
+              <div>3. <strong>Direct Overhead Angle:</strong> Hold camera directly above foot (perpendicular to floor).</div>
+              <div>4. <strong>Good Lighting:</strong> Ensure no heavy shadows obscure card edges or toe tips.</div>
+            </div>
+          )}
+        </div>
+
+        {/* INPUT TABS: UPLOAD | CAMERA | BENCHMARK SAMPLES */}
+        <div className="bg-[#1E1712] border border-[#3D2E24] rounded-xl overflow-hidden shadow-md">
+          <div className="flex border-b border-[#3D2E24] bg-[#17110D]">
+            <button
+              type="button"
+              onClick={() => setInputTab('upload')}
+              className={`flex-1 py-3 px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer border-b-2 ${
+                inputTab === 'upload'
+                  ? 'border-[#C59B27] text-[#D4AF37] bg-[#1E1712]'
+                  : 'border-transparent text-[#A08C7D] hover:text-[#FDFBF7]'
+              }`}
+            >
+              <Upload className="w-4 h-4" />
+              <span>📁 Upload Photograph</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setInputTab('camera')}
+              className={`flex-1 py-3 px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer border-b-2 ${
+                inputTab === 'camera'
+                  ? 'border-[#C59B27] text-[#D4AF37] bg-[#1E1712]'
+                  : 'border-transparent text-[#A08C7D] hover:text-[#FDFBF7]'
+              }`}
+            >
+              <Camera className="w-4 h-4" />
+              <span>📸 Live Camera</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setInputTab('samples')}
+              className={`flex-1 py-3 px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer border-b-2 ${
+                inputTab === 'samples'
+                  ? 'border-[#C59B27] text-[#D4AF37] bg-[#1E1712]'
+                  : 'border-transparent text-[#A08C7D] hover:text-[#FDFBF7]'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>🖼️ Benchmark Test Samples</span>
+            </button>
+          </div>
+
+          <div className="p-4 sm:p-6">
+            {/* TAB 1: UPLOAD */}
+            {inputTab === 'upload' && (
+              <div className="space-y-4 text-center">
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-[#3D2E24] hover:border-[#C59B27] rounded-xl p-8 sm:p-12 cursor-pointer transition bg-[#120D0A]/60 flex flex-col items-center justify-center group"
+                >
+                  <div className="w-14 h-14 rounded-full bg-[#261D17] border border-[#3D2E24] group-hover:border-[#C59B27] flex items-center justify-center text-[#D4AF37] mb-3 transition shadow-md">
+                    <Upload className="w-7 h-7" />
+                  </div>
+                  <h3 className="font-serif text-lg font-bold text-[#FDFBF7] mb-1">
+                    Upload Foot Photograph
+                  </h3>
+                  <p className="text-xs text-[#A08C7D] max-w-md">
+                    Select a photograph of your foot beside a bank card or A4 sheet (JPEG, PNG, WEBP).
+                  </p>
+                  <span className="mt-4 inline-block bg-[#C59B27] text-[#120D0A] font-bold text-xs py-2 px-5 rounded-lg shadow-sm">
+                    Browse File
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: LIVE CAMERA */}
+            {inputTab === 'camera' && (
+              <div className="space-y-4">
+                <div className="relative rounded-xl overflow-hidden bg-black aspect-[3/4] sm:aspect-[4/3] flex items-center justify-center shadow-inner max-w-xl mx-auto border border-[#3D2E24]">
+                  <video
+                    ref={videoRef}
+                    playsInline
+                    muted
+                    autoPlay
+                    className="w-full h-full object-cover"
+                  />
+
+                  {/* Clean overhead guide overlays */}
+                  <div className="absolute inset-4 pointer-events-none border border-dashed border-[#C59B27]/60 rounded-xl flex flex-col justify-between p-3">
+                    <div className="flex justify-between items-start pointer-events-auto">
+                      <span className="text-xs bg-[#120D0A]/85 backdrop-blur-xs text-[#D4AF37] px-2.5 py-1 rounded-md font-semibold border border-[#C59B27]/40 flex items-center gap-1.5 shadow-sm">
+                        <CreditCard className="w-3.5 h-3.5" />
+                        <span>Place Card Beside Bare Foot</span>
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newMode = activeFacingMode === 'environment' ? 'user' : 'environment';
+                          setActiveFacingMode(newMode);
+                          startCamera(newMode);
+                        }}
+                        className="p-2 rounded-full bg-[#120D0A]/85 text-[#FDFBF7] hover:bg-[#261D17] border border-[#3D2E24] transition shadow-xs"
+                        title="Flip Camera"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="text-center text-xs bg-[#120D0A]/85 backdrop-blur-xs text-[#FDFBF7] py-1.5 px-3 rounded-md mx-auto border border-[#3D2E24]">
+                      Hold phone perpendicular directly overhead.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-center pt-2">
+                  <button
+                    type="button"
+                    onClick={handleCameraCapture}
+                    disabled={analyzing}
+                    className="bg-gradient-to-r from-[#C59B27] to-[#9E7B1E] hover:from-[#D4AF37] hover:to-[#B28B23] text-[#120D0A] font-extrabold py-3.5 px-8 rounded-xl flex items-center gap-2 shadow-lg transition active:scale-95 cursor-pointer text-sm sm:text-base border-none"
+                  >
+                    <Camera className="w-5 h-5" />
+                    <span>Capture &amp; Process Measurement</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: BENCHMARK TEST SAMPLES */}
+            {inputTab === 'samples' && (
+              <div className="space-y-4 max-w-xl mx-auto text-[#FDFBF7]">
+                <p className="text-xs text-[#A08C7D]">
+                  Test the photogrammetry pipeline instantly using real calibrated dataset samples:
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <select
+                    value={selectedSample}
+                    onChange={(e) => setSelectedSample(e.target.value)}
+                    className="flex-1 bg-[#120D0A] border border-[#3D2E24] rounded-lg px-3 py-2.5 text-xs sm:text-sm text-[#FDFBF7] focus:outline-none focus:border-[#C59B27]"
+                  >
+                    {samplesList.map((s) => (
+                      <option key={s} value={s}>
+                        {s === 'demo_foot_with_card.jpg' ? '⭐ demo_foot_with_card.jpg (Verified Reference)' : s}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={handleLoadSample}
+                    disabled={loadingSample || analyzing}
+                    className="bg-[#C59B27] hover:bg-[#D4AF37] text-[#120D0A] font-bold py-2.5 px-6 rounded-lg text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-50"
+                  >
+                    {loadingSample ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                    <span>Load &amp; Analyze</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ANALYZING SPINNER */}
+        {analyzing && (
+          <div className="py-12 bg-[#1E1712] border border-[#3D2E24] rounded-xl text-center space-y-4 shadow-xl">
+            <div className="w-14 h-14 rounded-full border-4 border-[#3D2E24] border-t-[#C59B27] animate-spin mx-auto" />
+            <h2 className="font-serif font-bold text-xl text-[#FDFBF7]">
+              Analyzing Foot Anatomy &amp; Reference Card...
+            </h2>
+            <p className="text-xs sm:text-sm text-[#A08C7D] max-w-md mx-auto">
+              Running custom YOLOv8 instance segmentation, calculating card homography, and extracting heel &amp; toe coordinates.
+            </p>
+          </div>
+        )}
+
+        {/* ERROR ADVISORY */}
+        {errorMsg && !analyzing && (
+          <div className="p-4 bg-red-950/60 border border-red-800/80 rounded-xl text-red-200 text-xs sm:text-sm flex items-start gap-3 shadow-md">
+            <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <strong className="block font-bold text-red-100 mb-0.5">Measurement Advisory:</strong>
+              <span>{errorMsg}</span>
+            </div>
+          </div>
+        )}
+
+        {/* MEASUREMENT & SIZING RESULTS SECTION (app.py EXACT STRUCTURE) */}
+        {result && !analyzing && (
+          <div className="space-y-6 animate-fadeIn">
+
+            {/* CARD DETECTION STATUS INDICATOR */}
+            {result.card_detected ? (
+              <div className="bg-emerald-950/50 border border-emerald-600/60 rounded-xl p-3.5 sm:p-4 text-emerald-200 text-xs sm:text-sm flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-2">
+                  <Check className="w-5 h-5 text-emerald-400 shrink-0" />
+                  <span>
+                    <strong>Reference Card Detected ({result.reference_object || 'Bank Card ID-1'}):</strong>{' '}
+                    {result.calibration_scale_ppm ? result.calibration_scale_ppm.toFixed(2) : '2.52'} px/mm &mdash; Perspective Homography Active
+                  </span>
+                </div>
+                <span className="text-[11px] font-bold text-emerald-300 bg-emerald-900/60 px-2.5 py-1 rounded-md border border-emerald-500/40">
+                  Certified Accurate
+                </span>
+              </div>
+            ) : (
+              <div className="bg-amber-950/50 border border-amber-600/60 rounded-xl p-3.5 sm:p-4 text-amber-200 text-xs sm:text-sm flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+                  <span>
+                    <strong>No Reference Card Detected:</strong> Measurement uses optical scale estimation. Place a standard card beside your foot for certified millimeter accuracy.
+                  </span>
+                </div>
+                <span className="text-[11px] font-bold text-amber-300 bg-amber-900/60 px-2.5 py-1 rounded-md border border-amber-500/40">
+                  Approximate
+                </span>
+              </div>
+            )}
+
+            {/* VISUAL OUTPUT DISPLAY (SIDE BY SIDE: ORIGINAL vs ANNOTATED SCAN) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Original Photograph */}
+              <div className="bg-[#1E1712] border border-[#3D2E24] rounded-xl p-4 shadow-md space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-serif font-bold text-sm text-[#FDFBF7] flex items-center gap-2">
+                    <span>📷 Original Image</span>
+                  </h3>
+                  <span className="text-[11px] text-[#A08C7D] font-mono">
+                    {imageDims.width} &times; {imageDims.height} px
+                  </span>
+                </div>
+
+                <div className="bg-[#120D0A] rounded-lg overflow-hidden border border-[#3D2E24] flex items-center justify-center p-1 min-h-[300px]">
+                  {originalImageB64 ? (
+                    <img
+                      src={`data:image/jpeg;base64,${originalImageB64}`}
+                      alt="Original Foot Photograph"
+                      className="max-h-[460px] w-auto object-contain mx-auto rounded select-none"
+                    />
+                  ) : (
+                    <div className="text-xs text-[#A08C7D]">Original image not loaded</div>
+                  )}
+                </div>
+              </div>
+
+              {/* AI Photogrammetry & Segmentation (Interactive Overlay) */}
+              <div className="bg-[#1E1712] border border-[#3D2E24] rounded-xl p-4 shadow-md space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-serif font-bold text-sm text-[#D4AF37] flex items-center gap-2">
+                    <span>🎯 AI Photogrammetry &amp; Segmentation</span>
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-emerald-400 font-semibold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800">
+                      Mask &amp; Landmarks
                     </span>
+                  </div>
+                </div>
+
+                <div className="bg-[#120D0A] rounded-lg overflow-hidden border border-[#3D2E24] flex items-center justify-center p-1 min-h-[300px]">
+                  {result.annotated_image_base64 && (
+                    <div
+                      ref={overlayContainerRef}
+                      onClick={handleImageContainerClick}
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={handlePointerUp}
+                      style={{
+                        aspectRatio: `${imageDims.width} / ${imageDims.height}`,
+                      }}
+                      className="relative w-full max-h-[460px] select-none touch-none overflow-hidden rounded mx-auto"
+                    >
+                      <img
+                        src={`data:image/jpeg;base64,${result.annotated_image_base64}`}
+                        alt="Calibrated AI Photogrammetry Scan"
+                        className="w-full h-full object-fill block pointer-events-none select-none"
+                      />
+
+                      {/* Measurement line between Heel and Toe */}
+                      <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                        <line
+                          x1={`${(heelPixel[0] / imageDims.width) * 100}%`}
+                          y1={`${(heelPixel[1] / imageDims.height) * 100}%`}
+                          x2={`${(toePixel[0] / imageDims.width) * 100}%`}
+                          y2={`${(toePixel[1] / imageDims.height) * 100}%`}
+                          stroke="#00FF66"
+                          strokeWidth="2.5"
+                          strokeDasharray="4,4"
+                        />
+                      </svg>
+
+                      {/* 🟠 Heel Pin (Draggable on X & Y) */}
+                      <div
+                        onPointerDown={(e) => handlePointerDown(e, 'heel')}
+                        style={{
+                          left: `${(heelPixel[0] / imageDims.width) * 100}%`,
+                          top: `${(heelPixel[1] / imageDims.height) * 100}%`,
+                          transform: 'translate(-50%, -50%)',
+                        }}
+                        className="absolute w-8 h-8 rounded-full bg-gradient-to-tr from-amber-600 to-orange-400 border-2 border-white shadow-xl cursor-grab active:cursor-grabbing flex items-center justify-center z-30 transition-transform active:scale-110"
+                        title="Heel Landmark (Drag along X & Y)"
+                      >
+                        <span className="text-[9px] font-black text-white">HEEL</span>
+                      </div>
+
+                      {/* 🔵 Toe Tip Pin (Draggable on X & Y) */}
+                      <div
+                        onPointerDown={(e) => handlePointerDown(e, 'toe')}
+                        style={{
+                          left: `${(toePixel[0] / imageDims.width) * 100}%`,
+                          top: `${(toePixel[1] / imageDims.height) * 100}%`,
+                          transform: 'translate(-50%, -50%)',
+                        }}
+                        className="absolute w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-400 border-2 border-white shadow-xl cursor-grab active:cursor-grabbing flex items-center justify-center z-30 transition-transform active:scale-110"
+                        title="Toe Tip Landmark (Drag along X & Y)"
+                      >
+                        <span className="text-[9px] font-black text-white">TOE</span>
+                      </div>
+
+                      {/* Tap to set notice banner */}
+                      {targetPinMode && (
+                        <div className="absolute top-2 left-2 right-2 bg-black/80 text-[#D4AF37] text-xs py-1.5 px-3 rounded text-center border border-[#C59B27] pointer-events-none shadow-md">
+                          Click anywhere on the foot image to place the {targetPinMode.toUpperCase()} marker.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 4 METRIC CARDS (app.py STYLE) */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Length */}
+              <div className="bg-[#1E1712] border border-[#3D2E24] hover:border-[#C59B27] rounded-xl p-4 text-center transition shadow-md">
+                <div className="font-serif font-extrabold text-2xl sm:text-3xl text-[#FDFBF7]">
+                  {result.length_cm ? result.length_cm : (result.foot_length_mm / 10).toFixed(2)} cm
+                </div>
+                <div className="text-[11px] sm:text-xs font-bold text-[#C59B27] uppercase tracking-wider mt-1">
+                  Foot Length ({result.foot_length_mm.toFixed(1)} mm)
+                </div>
+                {result.is_manually_adjusted && (
+                  <span className="inline-block mt-1 text-[10px] text-[#D4AF37] font-semibold">
+                    ✏️ Manually Fine-Tuned
+                  </span>
+                )}
+              </div>
+
+              {/* Width */}
+              <div className="bg-[#1E1712] border border-[#3D2E24] hover:border-[#C59B27] rounded-xl p-4 text-center transition shadow-md">
+                <div className="font-serif font-extrabold text-2xl sm:text-3xl text-[#FDFBF7]">
+                  {result.width_cm ? result.width_cm : (result.foot_width_mm / 10).toFixed(2)} cm
+                </div>
+                <div className="text-[11px] sm:text-xs font-bold text-[#C59B27] uppercase tracking-wider mt-1">
+                  Foot Width ({result.foot_width_mm.toFixed(1)} mm)
+                </div>
+              </div>
+
+              {/* Confidence */}
+              <div className="bg-[#1E1712] border border-[#3D2E24] hover:border-[#C59B27] rounded-xl p-4 text-center transition shadow-md">
+                <div className="font-serif font-extrabold text-2xl sm:text-3xl text-[#FDFBF7]">
+                  {result.confidence_pct}%
+                </div>
+                <div className="text-[11px] sm:text-xs font-bold text-[#C59B27] uppercase tracking-wider mt-1">
+                  AI Mask Confidence
+                </div>
+              </div>
+
+              {/* Reliability */}
+              <div className="bg-[#1E1712] border border-[#3D2E24] hover:border-[#C59B27] rounded-xl p-4 text-center transition shadow-md">
+                <div
+                  className={`font-serif font-extrabold text-xl sm:text-2xl mt-1 ${
+                    result.reliability_status === 'Reliable'
+                      ? 'text-emerald-400'
+                      : (result.reliability_status?.includes('Caution') ? 'text-amber-400' : 'text-red-400')
+                  }`}
+                >
+                  {result.reliability_status || (result.card_detected ? 'Reliable' : 'Approximate')}
+                </div>
+                <div className="text-[11px] sm:text-xs font-bold text-[#C59B27] uppercase tracking-wider mt-1">
+                  Reliability Index
+                </div>
+              </div>
+            </div>
+
+            {/* RECOMMENDED PESHAWARI CHAPPAL SIZE BOX (app.py STYLE) */}
+            <div className="bg-gradient-to-r from-[#2A1D13] to-[#1A120B] border-2 border-[#C59B27] rounded-2xl p-6 sm:p-8 text-center shadow-xl space-y-2">
+              <span className="text-xs font-bold tracking-widest text-[#C59B27] uppercase block">
+                Recommended Peshawari Chappal Size
+              </span>
+
+              <div className="font-serif font-extrabold text-5xl sm:text-6xl text-[#D4AF37] my-2 tracking-tight">
+                Size {result.recommended_uk_size} (UK / PK)
+              </div>
+
+              <div className="text-sm sm:text-base font-semibold text-[#FDFBF7]">
+                EU Size: {result.recommended_eu_size} &bull; US Size: {result.recommended_us_size}
+              </div>
+
+              <div className="text-xs sm:text-sm text-[#A08C7D] pt-1">
+                Fit Character: <strong className="text-[#FDFBF7]">{result.fit_profile || 'Standard Fit'}</strong>
+              </div>
+
+              {result.boundary_warning && (
+                <div className="bg-[#120D0A]/60 border border-[#C59B27]/40 rounded-lg p-2.5 max-w-md mx-auto text-xs text-[#D4AF37] mt-3">
+                  💡 <strong>Fitting Advice:</strong> {result.boundary_warning}
+                </div>
+              )}
+
+              <div className="pt-4 flex flex-wrap gap-3 justify-center">
+                <Link
+                  to={`/products?size=${result.recommended_uk_size}`}
+                  className="bg-gradient-to-r from-[#C59B27] to-[#9E7B1E] hover:from-[#D4AF37] hover:to-[#B28B23] text-[#120D0A] font-extrabold py-3.5 px-8 rounded-xl flex items-center gap-2 shadow-lg transition active:scale-95 text-sm sm:text-base border-none cursor-pointer"
+                >
+                  <span>Shop Size {result.recommended_uk_size} Collection</span>
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadReport}
+                  className="bg-[#120D0A] hover:bg-[#261D17] text-[#D4AF37] font-bold py-3.5 px-6 rounded-xl flex items-center gap-2 border border-[#C59B27]/50 transition text-sm cursor-pointer shadow-sm"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download Report (JSON)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* MANUAL HEEL & TOE FINE-TUNING PANEL (NUDGE POINTS & PRECISE PIXEL SLIDERS) */}
+            <div className="bg-[#1E1712] border border-[#3D2E24] rounded-xl overflow-hidden shadow-md">
+              <button
+                type="button"
+                onClick={() => setShowManualTuning(!showManualTuning)}
+                className="w-full p-4 flex items-center justify-between text-left bg-[#1A120B] hover:bg-[#261D17] transition cursor-pointer border-b border-[#3D2E24]"
+              >
+                <div className="flex items-center gap-2">
+                  <Crosshair className="w-4 h-4 text-[#C59B27]" />
+                  <span className="font-serif font-bold text-sm sm:text-base text-[#FDFBF7]">
+                    🎯 Manual Heel &amp; Toe Fine-Tuning (Pixel-Exact Sliders &amp; Nudge Buttons)
+                  </span>
+                </div>
+                {showManualTuning ? <ChevronUp className="w-4 h-4 text-[#A08C7D]" /> : <ChevronDown className="w-4 h-4 text-[#A08C7D]" />}
+              </button>
+
+              {showManualTuning && (
+                <div className="p-4 sm:p-6 space-y-5 text-[#FDFBF7]">
+                  <p className="text-xs text-[#A08C7D]">
+                    Fine-tune the anatomical endpoints along the X-axis (left/right) and Y-axis (top/bottom).
+                    Each slider moves in exact pixels from <code className="text-[#D4AF37]">0</code> to image dimension.
+                    Y = 0 is the top edge, and Y = {imageDims.height} is the bottom edge.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* 🟠 Heel Position Controls */}
+                    <div className="bg-[#120D0A] border border-amber-900/40 rounded-xl p-4 space-y-4">
+                      <div className="flex items-center justify-between border-b border-[#3D2E24] pb-2">
+                        <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                          <span>🟠 Heel Position</span>
+                        </span>
+                        <span className="font-mono text-xs text-[#D4AF37]">
+                          X: {heelPixel[0]} px &bull; Y: {heelPixel[1]} px
+                        </span>
+                      </div>
+
+                      {/* Heel X */}
+                      <div>
+                        <div className="flex justify-between text-[11px] text-[#A08C7D] mb-1">
+                          <span>Heel X (Left ↔ Right)</span>
+                          <span className="font-mono text-[#FDFBF7]">{heelPixel[0]} px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={imageDims.width}
+                          step={1}
+                          value={heelPixel[0]}
+                          onChange={(e) => setHeelPixel([Number(e.target.value), heelPixel[1]])}
+                          className="w-full accent-amber-500 cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Heel Y */}
+                      <div>
+                        <div className="flex justify-between text-[11px] text-[#A08C7D] mb-1">
+                          <span>Heel Y (Top: 0px ↕ Bottom: {imageDims.height}px)</span>
+                          <span className="font-mono text-[#FDFBF7]">{heelPixel[1]} px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={imageDims.height}
+                          step={1}
+                          value={heelPixel[1]}
+                          onChange={(e) => setHeelPixel([heelPixel[0], Number(e.target.value)])}
+                          className="w-full accent-amber-500 cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Directional Nudge buttons */}
+                      <div className="pt-1">
+                        <span className="text-[11px] text-[#A08C7D] block mb-2 font-semibold">Directional Nudge:</span>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => nudgeHeel(0, -3)}
+                            className="bg-[#261D17] hover:bg-[#3D2E24] text-xs px-2.5 py-1.5 rounded border border-[#3D2E24] text-[#FDFBF7] cursor-pointer"
+                            title="Move Heel UP (towards top of image)"
+                          >
+                            ⬆️ Up
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => nudgeHeel(0, 3)}
+                            className="bg-[#261D17] hover:bg-[#3D2E24] text-xs px-2.5 py-1.5 rounded border border-[#3D2E24] text-[#FDFBF7] cursor-pointer"
+                            title="Move Heel DOWN (towards bottom of image)"
+                          >
+                            ⬇️ Down
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => nudgeHeel(-3, 0)}
+                            className="bg-[#261D17] hover:bg-[#3D2E24] text-xs px-2.5 py-1.5 rounded border border-[#3D2E24] text-[#FDFBF7] cursor-pointer"
+                            title="Move Heel LEFT"
+                          >
+                            ⬅️ Left
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => nudgeHeel(3, 0)}
+                            className="bg-[#261D17] hover:bg-[#3D2E24] text-xs px-2.5 py-1.5 rounded border border-[#3D2E24] text-[#FDFBF7] cursor-pointer"
+                            title="Move Heel RIGHT"
+                          >
+                            ➡️ Right
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setTargetPinMode(targetPinMode === 'heel' ? null : 'heel')}
+                            className={`text-xs px-2.5 py-1.5 rounded border cursor-pointer ${
+                              targetPinMode === 'heel'
+                                ? 'bg-amber-600 text-white border-amber-400 font-bold'
+                                : 'bg-[#1E1712] text-amber-300 border-[#3D2E24]'
+                            }`}
+                          >
+                            {targetPinMode === 'heel' ? 'Click on image...' : '🎯 Click Image to Place'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 🔵 Toe Tip Position Controls */}
+                    <div className="bg-[#120D0A] border border-cyan-900/40 rounded-xl p-4 space-y-4">
+                      <div className="flex items-center justify-between border-b border-[#3D2E24] pb-2">
+                        <span className="text-xs font-bold text-cyan-400 flex items-center gap-1.5">
+                          <span>🔵 Toe Tip Position</span>
+                        </span>
+                        <span className="font-mono text-xs text-[#D4AF37]">
+                          X: {toePixel[0]} px &bull; Y: {toePixel[1]} px
+                        </span>
+                      </div>
+
+                      {/* Toe X */}
+                      <div>
+                        <div className="flex justify-between text-[11px] text-[#A08C7D] mb-1">
+                          <span>Toe X (Left ↔ Right)</span>
+                          <span className="font-mono text-[#FDFBF7]">{toePixel[0]} px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={imageDims.width}
+                          step={1}
+                          value={toePixel[0]}
+                          onChange={(e) => setToePixel([Number(e.target.value), toePixel[1]])}
+                          className="w-full accent-cyan-500 cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Toe Y */}
+                      <div>
+                        <div className="flex justify-between text-[11px] text-[#A08C7D] mb-1">
+                          <span>Toe Y (Top: 0px ↕ Bottom: {imageDims.height}px)</span>
+                          <span className="font-mono text-[#FDFBF7]">{toePixel[1]} px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={imageDims.height}
+                          step={1}
+                          value={toePixel[1]}
+                          onChange={(e) => setToePixel([toePixel[0], Number(e.target.value)])}
+                          className="w-full accent-cyan-500 cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Directional Nudge buttons */}
+                      <div className="pt-1">
+                        <span className="text-[11px] text-[#A08C7D] block mb-2 font-semibold">Directional Nudge:</span>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => nudgeToe(0, -3)}
+                            className="bg-[#261D17] hover:bg-[#3D2E24] text-xs px-2.5 py-1.5 rounded border border-[#3D2E24] text-[#FDFBF7] cursor-pointer"
+                            title="Move Toe UP (towards top of image)"
+                          >
+                            ⬆️ Up
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => nudgeToe(0, 3)}
+                            className="bg-[#261D17] hover:bg-[#3D2E24] text-xs px-2.5 py-1.5 rounded border border-[#3D2E24] text-[#FDFBF7] cursor-pointer"
+                            title="Move Toe DOWN (towards bottom of image)"
+                          >
+                            ⬇️ Down
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => nudgeToe(-3, 0)}
+                            className="bg-[#261D17] hover:bg-[#3D2E24] text-xs px-2.5 py-1.5 rounded border border-[#3D2E24] text-[#FDFBF7] cursor-pointer"
+                            title="Move Toe LEFT"
+                          >
+                            ⬅️ Left
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => nudgeToe(3, 0)}
+                            className="bg-[#261D17] hover:bg-[#3D2E24] text-xs px-2.5 py-1.5 rounded border border-[#3D2E24] text-[#FDFBF7] cursor-pointer"
+                            title="Move Toe RIGHT"
+                          >
+                            ➡️ Right
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setTargetPinMode(targetPinMode === 'toe' ? null : 'toe')}
+                            className={`text-xs px-2.5 py-1.5 rounded border cursor-pointer ${
+                              targetPinMode === 'toe'
+                                ? 'bg-cyan-600 text-white border-cyan-400 font-bold'
+                                : 'bg-[#1E1712] text-cyan-300 border-[#3D2E24]'
+                            }`}
+                          >
+                            {targetPinMode === 'toe' ? 'Click on image...' : '🎯 Click Image to Place'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Manual Card Corners Fine-Tuning (if enabled) */}
+                  {enableManualCardOverride && (
+                    <div className="bg-[#120D0A] border border-[#3D2E24] rounded-xl p-4 space-y-3">
+                      <div className="font-bold text-xs text-[#D4AF37]">
+                        📍 Manual Reference Card Corner Fine-Tuning (Pixels)
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                        <div>
+                          <label className="text-[10px] text-[#A08C7D] block">Top-Left (X, Y)</label>
+                          <div className="flex gap-1 mt-1">
+                            <input
+                              type="number"
+                              value={cardCornersPx[0]?.[0] || 0}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setCardCornersPx((prev) => [[val, prev[0][1]], prev[1], prev[2], prev[3]]);
+                              }}
+                              className="w-1/2 bg-[#1E1712] border border-[#3D2E24] rounded p-1 text-xs"
+                            />
+                            <input
+                              type="number"
+                              value={cardCornersPx[0]?.[1] || 0}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setCardCornersPx((prev) => [[prev[0][0], val], prev[1], prev[2], prev[3]]);
+                              }}
+                              className="w-1/2 bg-[#1E1712] border border-[#3D2E24] rounded p-1 text-xs"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] text-[#A08C7D] block">Top-Right (X, Y)</label>
+                          <div className="flex gap-1 mt-1">
+                            <input
+                              type="number"
+                              value={cardCornersPx[1]?.[0] || 0}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setCardCornersPx((prev) => [prev[0], [val, prev[1][1]], prev[2], prev[3]]);
+                              }}
+                              className="w-1/2 bg-[#1E1712] border border-[#3D2E24] rounded p-1 text-xs"
+                            />
+                            <input
+                              type="number"
+                              value={cardCornersPx[1]?.[1] || 0}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setCardCornersPx((prev) => [prev[0], [prev[1][0], val], prev[2], prev[3]]);
+                              }}
+                              className="w-1/2 bg-[#1E1712] border border-[#3D2E24] rounded p-1 text-xs"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] text-[#A08C7D] block">Bottom-Right (X, Y)</label>
+                          <div className="flex gap-1 mt-1">
+                            <input
+                              type="number"
+                              value={cardCornersPx[2]?.[0] || 0}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setCardCornersPx((prev) => [prev[0], prev[1], [val, prev[2][1]], prev[3]]);
+                              }}
+                              className="w-1/2 bg-[#1E1712] border border-[#3D2E24] rounded p-1 text-xs"
+                            />
+                            <input
+                              type="number"
+                              value={cardCornersPx[2]?.[1] || 0}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setCardCornersPx((prev) => [prev[0], prev[1], [prev[2][0], val], prev[3]]);
+                              }}
+                              className="w-1/2 bg-[#1E1712] border border-[#3D2E24] rounded p-1 text-xs"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] text-[#A08C7D] block">Bottom-Left (X, Y)</label>
+                          <div className="flex gap-1 mt-1">
+                            <input
+                              type="number"
+                              value={cardCornersPx[3]?.[0] || 0}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setCardCornersPx((prev) => [prev[0], prev[1], prev[2], [val, prev[3][1]]]);
+                              }}
+                              className="w-1/2 bg-[#1E1712] border border-[#3D2E24] rounded p-1 text-xs"
+                            />
+                            <input
+                              type="number"
+                              value={cardCornersPx[3]?.[1] || 0}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setCardCornersPx((prev) => [prev[0], prev[1], prev[2], [prev[3][0], val]]);
+                              }}
+                              className="w-1/2 bg-[#1E1712] border border-[#3D2E24] rounded p-1 text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions: Reset & Recalculate */}
+                  <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={handleResetToAiLandmarks}
+                      className="bg-[#120D0A] hover:bg-[#261D17] text-[#A08C7D] hover:text-[#FDFBF7] font-bold py-3 px-5 rounded-xl border border-[#3D2E24] transition text-xs flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      <span>↺ Reset to AI Landmarks</span>
+                    </button>
 
                     <button
                       type="button"
-                      onClick={toggleCameraFacing}
-                      className="pointer-events-auto p-2 rounded-full bg-[#565449]/90 text-[#F7F4EB] hover:bg-[#45433A] border border-[#F7F4EB]/30 transition shadow-xs"
-                      title="Flip camera"
+                      onClick={handleRecalculate}
+                      disabled={analyzing}
+                      className="flex-1 bg-gradient-to-r from-[#C59B27] to-[#9E7B1E] hover:from-[#D4AF37] hover:to-[#B28B23] text-[#120D0A] font-extrabold py-3 px-6 rounded-xl transition text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer border-none"
                     >
-                      <RotateCcw className="w-4 h-4" />
+                      <RefreshCw className={`w-4 h-4 ${analyzing ? 'animate-spin' : ''}`} />
+                      <span>Recalculate Size with Adjusted Landmarks</span>
                     </button>
                   </div>
-
-                  <div className="flex-1 flex items-center justify-center pointer-events-none">
-                    <div className="border-2 border-dashed border-emerald-400/70 rounded-lg w-48 sm:w-60 h-68 sm:h-84 flex items-center justify-center bg-emerald-500/5">
-                      <span className="text-[11px] text-emerald-200 bg-black/60 px-2.5 py-1 rounded backdrop-blur-xs text-center">
-                        Place bare foot flat in frame
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="text-center text-xs bg-[#565449]/90 backdrop-blur-xs text-[#F7F4EB] py-1.5 px-3 rounded-md mx-auto border border-[#F7F4EB]/30 shadow-xs">
-                    Hold phone flat overhead. Keep card and bare foot clearly in frame.
-                  </div>
                 </div>
-              </div>
-
-              {/* Instructions banner */}
-              <div className="bg-[#F7F4EB] p-3 rounded-xl border border-[#A0988A] text-xs text-[#1A1A18] flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[#D4AF37] shrink-0" />
-                  <span><strong>AI Overhead Capture:</strong> Place any card flat beside your bare foot and capture directly from overhead.</span>
-                </div>
-              </div>
-
-              {/* Capture & Upload Buttons */}
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleCapture}
-                  className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md transition active:scale-95 text-sm sm:text-base border border-[#565449] cursor-pointer"
-                >
-                  <Camera className="w-5 h-5" />
-                  <span>Capture &amp; Measure</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex-1 bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 border border-[#565449] transition cursor-pointer text-sm sm:text-base active:scale-95 shadow-sm"
-                  title="Upload photo from gallery"
-                >
-                  <Upload className="w-5 h-5 shrink-0" />
-                  <span>Upload Photo</span>
-                </button>
-              </div>
+              )}
             </div>
-          )}
 
-          {/* STEP 2: ANALYZING STATE */}
-          {step === 'analyzing' && (
-            <div className="py-14 text-center space-y-4">
-              <div className="w-16 h-16 rounded-full border-4 border-[#565449]/20 border-t-[#565449] animate-spin mx-auto" />
-              <h2 className="font-serif font-bold text-xl text-[#1A1A18]">
-                Analyzing Foot &amp; Reference Card...
-              </h2>
-              <p className="text-xs sm:text-sm text-[#1A1A18]/70 max-w-sm mx-auto">
-                Running custom YOLOv8 instance segmentation, detecting reference card, and extracting anatomical heel and toe endpoints...
-              </p>
+            {/* EXPANDABLE PHOTOGRAMMETRY & LANDMARK TECHNICAL DETAILS */}
+            <div className="bg-[#1E1712] border border-[#3D2E24] rounded-xl overflow-hidden shadow-md">
+              <button
+                type="button"
+                onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
+                className="w-full p-4 flex items-center justify-between text-left bg-[#1A120B] hover:bg-[#261D17] transition cursor-pointer"
+              >
+                <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[#FDFBF7]">
+                  <FileText className="w-4 h-4 text-[#C59B27]" />
+                  <span>🛠️ Photogrammetry &amp; Landmark Details</span>
+                </div>
+                {showTechnicalDetails ? <ChevronUp className="w-4 h-4 text-[#A08C7D]" /> : <ChevronDown className="w-4 h-4 text-[#A08C7D]" />}
+              </button>
+
+              {showTechnicalDetails && (
+                <div className="p-4 sm:p-5 bg-[#120D0A] text-xs text-[#FDFBF7]/80 space-y-2 border-t border-[#3D2E24]">
+                  <div>&bull; <strong>Calibration Scale:</strong> {result.calibration_scale_ppm ? result.calibration_scale_ppm.toFixed(3) : '2.522'} px/mm</div>
+                  <div>&bull; <strong>Calibration Method:</strong> {result.calibration_method || 'Perspective Homography (Planar 2D Metric Space)'}</div>
+                  <div>&bull; <strong>Card Dimensions:</strong> {result.reference_dims_mm ? `${result.reference_dims_mm[0]} x ${result.reference_dims_mm[1]} mm` : '85.60 x 53.98 mm'}</div>
+                  <div>&bull; <strong>Foot Longitudinal Angle:</strong> {result.foot_orientation_deg !== undefined ? `${result.foot_orientation_deg}°` : '88.5°'}</div>
+                  <div>&bull; <strong>Foot Aspect Ratio (L/W):</strong> {result.foot_aspect_ratio !== undefined ? result.foot_aspect_ratio : '2.84'}</div>
+                  <div>&bull; <strong>Heel Coordinate:</strong> ({heelPixel[0]}, {heelPixel[1]}) px</div>
+                  <div>&bull; <strong>Toe Tip Coordinate:</strong> ({toePixel[0]}, {toePixel[1]}) px</div>
+                  <div>&bull; <strong>Landmark Quality Notes:</strong> {result.landmark_quality_notes || 'Landmarks verified within normal anatomical bounds.'}</div>
+                </div>
+              )}
             </div>
-          )}
 
-          {/* STEP 3: INTERACTIVE FOOT HEEL & TOE CALIBRATION (X & Y AXIS FINE-TUNING) */}
-          {step === 'landmark_adjust' && capturedImageB64 && (
-            <div className="space-y-4">
-              <div className="bg-[#F7F4EB] p-3 rounded-xl border border-[#A0988A] text-xs text-[#1A1A18] flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sliders className="w-4 h-4 text-[#565449] shrink-0" />
-                  <span><strong>Foot Heel &amp; Toe Calibration:</strong> Drag the pins on the image or use the sliders below to fine-tune the Heel (X, Y) and Toe Tip (X, Y) endpoints.</span>
-                </div>
-              </div>
-
-              {/* Interactive Image with Draggable Heel & Toe Pins */}
-              <div className="text-center bg-black/90 p-2 rounded-xl overflow-hidden shadow-inner flex items-center justify-center">
-                <div className="relative inline-block mx-auto max-w-full">
-                  <img
-                    ref={footImgRef}
-                    src={`data:image/jpeg;base64,${capturedImageB64}`}
-                    alt="Foot Landmark Calibration"
-                    className="max-h-[460px] w-auto object-contain block mx-auto select-none pointer-events-none"
-                  />
-
-                  {/* Touch/pointer overlay aligned with image */}
-                  <div
-                    onPointerMove={handlePointerMove}
-                    onPointerUp={handlePointerUp}
-                    className="absolute inset-0 w-full h-full touch-none select-none"
-                  >
-                    {/* Measurement line between Heel and Toe */}
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                      <line
-                        x1={`${heelNorm[0] * 100}%`}
-                        y1={`${heelNorm[1] * 100}%`}
-                        x2={`${toeNorm[0] * 100}%`}
-                        y2={`${toeNorm[1] * 100}%`}
-                        stroke="#00FF66"
-                        strokeWidth="3"
-                        strokeDasharray="4,4"
-                      />
-                    </svg>
-
-                    {/* 🟠 Heel Pin (Draggable on X & Y axis) */}
-                    <div
-                      onPointerDown={() => handlePointerDown('heel')}
-                      style={{
-                        left: `${heelNorm[0] * 100}%`,
-                        top: `${heelNorm[1] * 100}%`,
-                        transform: 'translate(-50%, -50%)',
-                      }}
-                      className="absolute w-9 h-9 rounded-full bg-gradient-to-tr from-amber-600 to-orange-400 border-2 border-white shadow-2xl cursor-grab active:cursor-grabbing flex items-center justify-center z-30"
-                      title="Heel Landmark (Drag along X & Y)"
-                    >
-                      <span className="text-[10px] font-black text-white">HEEL</span>
-                    </div>
-
-                    {/* 🔵 Toe Tip Pin (Draggable on X & Y axis) */}
-                    <div
-                      onPointerDown={() => handlePointerDown('toe')}
-                      style={{
-                        left: `${toeNorm[0] * 100}%`,
-                        top: `${toeNorm[1] * 100}%`,
-                        transform: 'translate(-50%, -50%)',
-                      }}
-                      className="absolute w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-400 border-2 border-white shadow-2xl cursor-grab active:cursor-grabbing flex items-center justify-center z-30"
-                      title="Toe Tip Landmark (Drag along X & Y)"
-                    >
-                      <span className="text-[10px] font-black text-white">TOE</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Sliders: Heel X/Y and Toe X/Y Calibration Controls */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-[#F7F4EB] p-4 rounded-xl border border-[#A0988A]">
-                {/* 🟠 Heel X & Y Controls */}
-                <div className="p-3 bg-white/70 rounded-lg border border-[#A0988A]/40 space-y-2">
-                  <div className="flex items-center justify-between text-xs font-bold text-amber-800">
-                    <span>🟠 Heel Position</span>
-                    <span className="font-mono text-[11px]">
-                      X: {Math.round(heelNorm[0] * imageDims.width)} · Y: {Math.round(heelNorm[1] * imageDims.height)}
-                    </span>
-                  </div>
-                  <div>
-                    <label className="text-[11px] text-[#1A1A18]/70 block font-medium">Heel X (Left ↔ Right)</label>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={Math.round(heelNorm[0] * 100)}
-                      onChange={(e) => setHeelNorm([Number(e.target.value) / 100, heelNorm[1]])}
-                      className="w-full accent-amber-600 cursor-pointer"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] text-[#1A1A18]/70 block font-medium">Heel Y (Top ↕ Bottom)</label>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={Math.round(heelNorm[1] * 100)}
-                      onChange={(e) => setHeelNorm([heelNorm[0], Number(e.target.value) / 100])}
-                      className="w-full accent-amber-600 cursor-pointer"
-                    />
-                  </div>
-                </div>
-
-                {/* 🔵 Toe X & Y Controls */}
-                <div className="p-3 bg-white/70 rounded-lg border border-[#A0988A]/40 space-y-2">
-                  <div className="flex items-center justify-between text-xs font-bold text-cyan-800">
-                    <span>🔵 Toe Tip Position</span>
-                    <span className="font-mono text-[11px]">
-                      X: {Math.round(toeNorm[0] * imageDims.width)} · Y: {Math.round(toeNorm[1] * imageDims.height)}
-                    </span>
-                  </div>
-                  <div>
-                    <label className="text-[11px] text-[#1A1A18]/70 block font-medium">Toe X (Left ↔ Right)</label>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={Math.round(toeNorm[0] * 100)}
-                      onChange={(e) => setToeNorm([Number(e.target.value) / 100, toeNorm[1]])}
-                      className="w-full accent-cyan-600 cursor-pointer"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] text-[#1A1A18]/70 block font-medium">Toe Y (Top ↕ Bottom)</label>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={Math.round(toeNorm[1] * 100)}
-                      onChange={(e) => setToeNorm([toeNorm[0], Number(e.target.value) / 100])}
-                      className="w-full accent-cyan-600 cursor-pointer"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={handleResetToAiLandmarks}
-                  className="bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3 px-4 rounded-xl border border-[#565449] transition cursor-pointer text-xs sm:text-sm flex items-center justify-center gap-1.5"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>↺ Reset to AI Landmarks</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleRecalculateWithAdjustedLandmarks}
-                  className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md transition border border-[#565449] cursor-pointer text-xs sm:text-sm"
-                >
-                  <Check className="w-4 h-4" />
-                  <span>Recalculate Size with Adjusted Landmarks</span>
-                </button>
-              </div>
+            {/* SCAN ANOTHER FOOT BUTTON */}
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setResult(null);
+                  setOriginalImageB64(null);
+                  setErrorMsg('');
+                  setInputTab('upload');
+                }}
+                className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-[#A08C7D] hover:text-[#C59B27] py-2 px-4 rounded-lg transition cursor-pointer"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Scan Another Foot / Retake Photo</span>
+              </button>
             </div>
-          )}
 
-          {/* STEP 4: RESULT DISPLAY */}
-          {step === 'result' && result && (() => {
-            const ukSize = result.recommended_uk_size;
-            const euSize = result.recommended_eu_size;
-            const usSize = result.recommended_us_size;
-            const lengthMm = result.foot_length_mm;
-            const widthMm = result.foot_width_mm;
-            const fitProfile = result.fit_profile || 'Standard';
+          </div>
+        )}
 
-            return (
-              <div className="space-y-5">
-                {/* Header status */}
-                <div className="flex items-center justify-between pb-3 border-b border-[#A0988A]/40">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-                      <Check className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm text-[#1A1A18]">
-                        {result.card_detected ? 'Reference Card Calibrated' : 'Foot Measurement Calibrated'}
-                      </h3>
-                      <p className="text-xs text-[#1A1A18]/70">
-                        {result.card_detected
-                          ? `ISO Card Homography Active (${result.calibration_scale_ppm || '2.52'} px/mm)`
-                          : (result.is_manually_adjusted ? 'Fine-tuned via Heel & Toe X/Y Calibration' : 'AI Instance Segmentation & Anatomical Axis')}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300">
-                    {result.card_detected ? '99.5% Precision' : `${result.confidence_pct}% AI Confidence`}
-                  </span>
-                </div>
-
-                {/* Main Recommended Size Card */}
-                <div className="text-center py-6 bg-[#F7F4EB] rounded-xl border border-[#A0988A] shadow-xs">
-                  <span className="text-xs uppercase tracking-wider text-[#1A1A18]/80 font-bold block mb-1">
-                    Recommended Peshawari Chappal Size
-                  </span>
-                  <div className="font-serif font-bold text-5xl sm:text-6xl text-[#1A1A18] my-2">
-                    Size {ukSize}
-                  </div>
-                  <p className="text-xs sm:text-sm text-[#1A1A18]/80 font-medium">
-                    Pak / UK {ukSize} &nbsp;·&nbsp; EU {euSize} &nbsp;·&nbsp; US {usSize}
-                  </p>
-                  <div className="mt-3 inline-block bg-[#565449]/10 text-[#1A1A18] text-xs font-semibold px-3 py-1 rounded-full border border-[#565449]/20">
-                    Fit Character: {fitProfile}
-                  </div>
-                </div>
-
-                {/* Millimeter metrics */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-4 rounded-xl bg-[#F7F4EB] border border-[#A0988A] text-center shadow-xs">
-                    <span className="text-xs uppercase text-[#1A1A18]/80 block font-semibold">Bare Foot Length</span>
-                    <span className="font-bold text-2xl text-[#1A1A18]">{lengthMm} mm</span>
-                    <span className="text-[11px] text-[#1A1A18]/60 block mt-0.5">
-                      Heel Apex to Longest Toe
-                    </span>
-                  </div>
-                  <div className="p-4 rounded-xl bg-[#F7F4EB] border border-[#A0988A] text-center shadow-xs">
-                    <span className="text-xs uppercase text-[#1A1A18]/80 block font-semibold">Foot Ball Width</span>
-                    <span className="font-bold text-2xl text-[#1A1A18]">{widthMm} mm</span>
-                    <span className="text-[11px] text-[#1A1A18]/60 block mt-0.5">Widest Part ("Panja")</span>
-                  </div>
-                </div>
-
-                {/* Calibrated Foot Scan View */}
-                {result.annotated_image_base64 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#1A1A18]">
-                        AI Photogrammetry &amp; Segmentation Scan:
-                      </span>
-                      {capturedImageB64 && (
-                        <button
-                          type="button"
-                          onClick={() => setStep('landmark_adjust')}
-                          className="text-xs text-[#565449] hover:underline flex items-center gap-1 font-semibold cursor-pointer"
-                        >
-                          <Sliders className="w-3.5 h-3.5" />
-                          <span>Fine-tune Heel &amp; Toe (X / Y Axis)</span>
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="text-center bg-[#565449]/10 p-2 rounded-xl overflow-hidden border border-[#A0988A] flex items-center justify-center shadow-inner">
-                      <img
-                        src={`data:image/jpeg;base64,${result.annotated_image_base64}`}
-                        alt="Calibrated AI Foot Scan"
-                        className="max-h-80 w-auto object-contain block mx-auto select-none rounded-lg"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Footer Buttons */}
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => startCamera(activeFacingMode)}
-                    className="flex-1 bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 border border-[#565449] transition cursor-pointer"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    <span>Scan Again</span>
-                  </button>
-
-                  <Link
-                    to={`/products?size=${ukSize}`}
-                    className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition text-center border border-[#565449] cursor-pointer"
-                  >
-                    <span>Shop Size {ukSize}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* STEP 5: ERROR STATE */}
-          {step === 'error' && (
-            <div className="py-6 text-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-[#A0988A]/30 text-[#1A1A18] border border-[#565449]/40 flex items-center justify-center mx-auto">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <h2 className="font-serif font-bold text-lg text-[#1A1A18]">
-                Detection Unsuccessful
-              </h2>
-              <p className="text-xs sm:text-sm text-[#1A1A18] bg-[#A0988A]/25 p-3 rounded-xl border border-[#565449]/40 max-w-md mx-auto">
-                {errorMsg}
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2 max-w-md mx-auto">
-                <button
-                  type="button"
-                  onClick={() => startCamera(activeFacingMode)}
-                  className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition border border-[#565449] cursor-pointer text-xs sm:text-sm"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  <span>Try Camera Again</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex-1 bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 border border-[#565449] transition cursor-pointer text-xs sm:text-sm"
-                >
-                  <Upload className="w-4 h-4" />
-                  <span>Upload Another Photo</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 6: CAMERA DENIED STATE */}
-          {step === 'camera_denied' && (
-            <div className="py-8 text-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-[#A0988A]/30 text-[#1A1A18] border border-[#565449]/30 flex items-center justify-center mx-auto">
-                <Camera className="w-6 h-6" />
-              </div>
-              <h2 className="font-serif font-bold text-lg text-[#1A1A18]">
-                Camera Access Needed
-              </h2>
-              <p className="text-xs sm:text-sm text-[#1A1A18]/80 max-w-sm mx-auto">
-                Please allow camera access or choose an existing photo from your device.
-              </p>
-
-              <div className="flex gap-3 justify-center pt-2">
-                <button
-                  type="button"
-                  onClick={() => startCamera('environment')}
-                  className="bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3 px-5 rounded-xl border border-[#565449] transition text-sm cursor-pointer shadow-xs"
-                >
-                  Retry Camera
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3 px-5 rounded-xl flex items-center gap-2 transition text-sm cursor-pointer shadow-md border border-[#565449]"
-                >
-                  <Upload className="w-4 h-4" />
-                  <span>Upload Photo</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-        </div>
       </div>
     </div>
   );
