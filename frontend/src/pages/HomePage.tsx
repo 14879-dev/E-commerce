@@ -522,22 +522,22 @@ export const HomePage: React.FC = () => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <div className="p-5 rounded-2xl bg-[#A0988A]/25 border border-[#A0988A] space-y-2">
-              <span className="font-serif text-3xl font-bold text-[#1A1A18]/40">01</span>
+              <span className="font-serif text-3xl font-bold text-[#9e754b]">01</span>
               <h3 className="font-serif font-bold text-base text-[#1A1A18]">Organic Leather Tanning</h3>
               <p className="text-xs text-[#1A1A18]/80 leading-relaxed">Raw cowhide cured with natural bark extracts for deep grain resilience and supple flexibility.</p>
             </div>
             <div className="p-5 rounded-2xl bg-[#A0988A]/25 border border-[#A0988A] space-y-2">
-              <span className="font-serif text-3xl font-bold text-[#1A1A18]/40">02</span>
+              <span className="font-serif text-3xl font-bold text-[#9e754b]">02</span>
               <h3 className="font-serif font-bold text-base text-[#1A1A18]">Precision Stenciling</h3>
               <p className="text-xs text-[#1A1A18]/80 leading-relaxed">Hand-guided shears cut iconic Kaptaan T-straps according to centuries-old Pashtun patterns.</p>
             </div>
             <div className="p-5 rounded-2xl bg-[#A0988A]/25 border border-[#A0988A] space-y-2">
-              <span className="font-serif text-3xl font-bold text-[#1A1A18]/40">03</span>
+              <span className="font-serif text-3xl font-bold text-[#9e754b]">03</span>
               <h3 className="font-serif font-bold text-base text-[#1A1A18]">Ergonomic Moulding</h3>
               <p className="text-xs text-[#1A1A18]/80 leading-relaxed">High-density recycled tire rubber outsoles crafted for multi-surface grip and enduring longevity.</p>
             </div>
             <div className="p-5 rounded-2xl bg-[#A0988A]/25 border border-[#A0988A] space-y-2">
-              <span className="font-serif text-3xl font-bold text-[#1A1A18]/40">04</span>
+              <span className="font-serif text-3xl font-bold text-[#9e754b]">04</span>
               <h3 className="font-serif font-bold text-base text-[#1A1A18]">Brass Filigree Detail</h3>
               <p className="text-xs text-[#1A1A18]/80 leading-relaxed">Hand-engraved solid aged brass buckles and subtle metallic eyelets attached as signature crests.</p>
             </div>
