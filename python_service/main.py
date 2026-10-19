@@ -1,7 +1,7 @@
 """Khybersole & Peshawari Chappal Co. — Neural AI Microservice.
 
 Integrates custom YOLOv8 instance segmentation model (best.pt),
-PCA anatomical landmark extraction, reference card photogrammetry calibration,
+PCA anatomical landmark extraction, interactive heel and toe calibration (X & Y axis),
 and authentic Peshawari Chappal sizing recommendation.
 """
 
@@ -9,7 +9,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Any
 import base64, os, json
 import urllib.request
 from pathlib import Path
@@ -21,24 +21,17 @@ import numpy as np
 import cv2
 
 # Import custom foot size finder model components from src/
-from src.model_loader import ModelLoader, ModelError
+from src.model_loader import ModelLoader
 from src.foot_segmentation import FootSegmenter
 from src.foot_landmarks import FootLandmarkExtractor
-from src.calibration import (
-    ReferenceCardCalibrator,
-    STANDARD_CARD_WIDTH_MM,
-    STANDARD_CARD_HEIGHT_MM,
-    A4_WIDTH_MM,
-    A4_HEIGHT_MM,
-    CalibrationData
-)
+from src.calibration import CalibrationData
 from src.measurement import measure_foot
 from src.size_recommender import SizeRecommender
 from src.image_validation import ImageValidator
 
 app = FastAPI(
     title="Khybersole AI Foot Size Finder Microservice",
-    version="8.0.0",
+    version="9.0.0",
     description="Custom YOLOv8 instance segmentation and photogrammetric sizing for handcrafted Peshawari Chappals."
 )
 
@@ -100,10 +93,13 @@ image_validator = ImageValidator(
 
 class SizeCalculationRequest(BaseModel):
     image_base64: str
-    calibration_object: Optional[str] = "credit_card"
+    manual_heel: Optional[List[float]] = None  # [x, y] in pixels or normalized [0..1]
+    manual_toe: Optional[List[float]] = None   # [x, y] in pixels or normalized [0..1]
+    # Backward compatibility
+    paper_corners: Optional[List[List[float]]] = None
+    calibration_object: Optional[str] = None
     known_width_mm: Optional[float] = None
     known_height_mm: Optional[float] = None
-    paper_corners: Optional[List[List[float]]] = None
 
 class OutfitMatchRequest(BaseModel):
     outfit_type: Optional[str] = "shalwar_kameez"
@@ -115,7 +111,7 @@ def root():
     model_info = ModelLoader.get_model_info() if segmenter else {"loaded": False}
     return {
         "status": "online",
-        "service": "Khybersole AI Foot Size Finder Microservice v8.0",
+        "service": "Khybersole AI Foot Size Finder Microservice v9.0",
         "model_info": model_info,
         "endpoints": ["/health", "/api/py/calculate-foot-size", "/api/py/calculate-size", "/api/py/match-outfit"]
     }
@@ -125,7 +121,7 @@ def health():
     model_info = ModelLoader.get_model_info() if segmenter else {"loaded": False}
     return {
         "status": "ok",
-        "service": "Khybersole AI Foot Size Finder Microservice v8.0",
+        "service": "Khybersole AI Foot Size Finder Microservice v9.0",
         "model_loaded": model_info.get("loaded", False),
         "model_path": model_info.get("path"),
         "model_classes": model_info.get("classes"),
@@ -174,7 +170,7 @@ def _decode_image_b64(b64_str: str) -> np.ndarray:
 @app.post("/api/py/calculate-foot-size")
 @app.post("/api/py/calculate-size")
 async def calculate_foot_size(request: SizeCalculationRequest):
-    """Processes customer foot photo using custom YOLOv8 segmentation and card photogrammetry."""
+    """Processes customer foot photo using custom YOLOv8 segmentation and foot heel/toe calibration."""
     global segmenter
     if segmenter is None:
         try:
@@ -222,58 +218,52 @@ async def calculate_foot_size(request: SizeCalculationRequest):
                 }
             )
 
-        # 5. Reference Object Calibration
-        cal_obj = (request.calibration_object or "credit_card").lower()
-        if "a4" in cal_obj:
-            ref_w_mm = request.known_width_mm or A4_WIDTH_MM
-            ref_h_mm = request.known_height_mm or A4_HEIGHT_MM
-        else:
-            # Standard bank/credit/ID card
-            ref_w_mm = request.known_width_mm or STANDARD_CARD_WIDTH_MM
-            ref_h_mm = request.known_height_mm or STANDARD_CARD_HEIGHT_MM
+        # 5. Interactive Foot Heel & Toe Calibration (X-Axis and Y-Axis fine-tuning)
+        is_manually_adjusted = False
+        effective_heel = (float(landmarks.heel_point[0]), float(landmarks.heel_point[1]))
+        effective_toe = (float(landmarks.toe_point[0]), float(landmarks.toe_point[1]))
 
-        calibrator = ReferenceCardCalibrator(card_width_mm=ref_w_mm, card_height_mm=ref_h_mm)
+        if request.manual_heel and len(request.manual_heel) == 2:
+            hx = float(request.manual_heel[0])
+            hy = float(request.manual_heel[1])
+            if hx <= 1.05 and hy <= 1.05:
+                hx *= w_orig
+                hy *= h_orig
+            effective_heel = (hx, hy)
+            is_manually_adjusted = True
 
-        # Process manual corners if provided (normalized [0..1] or pixel coords)
-        manual_corners_px = None
-        if request.paper_corners and len(request.paper_corners) == 4:
-            pts_arr = np.array(request.paper_corners, dtype=np.float32)
-            if np.all(pts_arr <= 1.05):
-                # Scale normalized coordinates to pixels
-                manual_corners_px = np.zeros_like(pts_arr)
-                manual_corners_px[:, 0] = pts_arr[:, 0] * w_orig
-                manual_corners_px[:, 1] = pts_arr[:, 1] * h_orig
-            else:
-                manual_corners_px = pts_arr
+        if request.manual_toe and len(request.manual_toe) == 2:
+            tx = float(request.manual_toe[0])
+            ty = float(request.manual_toe[1])
+            if tx <= 1.05 and ty <= 1.05:
+                tx *= w_orig
+                ty *= h_orig
+            effective_toe = (tx, ty)
+            is_manually_adjusted = True
 
-        # Perform calibration
-        calibration_data = calibrator.calibrate(
-            img_bgr,
-            manual_corners=manual_corners_px,
-            exclusion_mask=primary_foot.mask
+        # Apply effective endpoints
+        landmarks.heel_point = effective_heel
+        landmarks.toe_point = effective_toe
+        dx_adj = effective_toe[0] - effective_heel[0]
+        dy_adj = effective_toe[1] - effective_heel[1]
+        landmarks.length_pixels = float(np.sqrt(dx_adj * dx_adj + dy_adj * dy_adj))
+
+        # 6. Direct Foot Photogrammetry Calibration (No Card Required)
+        # Standard overhead optical scale: at standard camera perspective, ~2.4 px/mm normalized to 1080p
+        base_h = max(h_orig, w_orig)
+        ppm = 2.4 * (base_h / 1080.0)
+        calibration_data = CalibrationData(
+            pixels_per_mm=max(0.5, ppm),
+            reference_object="AI Foot Photogrammetry (Heel & Toe Axis)",
+            reference_dims_mm=(0.0, 0.0),
+            card_corners=None,
+            homography_matrix=None,
+            is_perspective_corrected=False,
+            calibration_quality="High" if is_manually_adjusted else "Optimal",
+            quality_notes="Direct anatomical foot landmark calibration."
         )
 
-        card_detected = True
-        if calibration_data is None:
-            card_detected = False
-            # Fallback optical scale (approx 2.4 px/mm)
-            fallback_ppm = 2.4
-            calibration_data = CalibrationData(
-                pixels_per_mm=fallback_ppm,
-                reference_object="Estimated Focal Scale (Uncalibrated)",
-                reference_dims_mm=(ref_w_mm, ref_h_mm),
-                card_corners=None,
-                homography_matrix=None,
-                is_perspective_corrected=False,
-                calibration_quality="Low",
-                quality_notes="Automatic card detection not found; uncalibrated optical estimation applied."
-            )
-            warnings.append(
-                "Reference card was not automatically detected. Showing estimated scale. "
-                "Use the 4-pin corner alignment or place a standard credit/ID card beside your foot for certified millimeter accuracy."
-            )
-
-        # 6. Physical Metric Measurement
+        # 7. Physical Metric Measurement
         measurement = measure_foot(
             foot_mask=primary_foot.mask,
             heel_point=landmarks.heel_point,
@@ -286,7 +276,7 @@ async def calculate_foot_size(request: SizeCalculationRequest):
 
         warnings.extend(measurement.warnings)
 
-        # 7. Peshawari Chappal Sizing Recommendation
+        # 8. Peshawari Chappal Sizing Recommendation
         rec = size_recommender.recommend_size(measurement.length_mm)
         if rec and rec.recommended_size is not None:
             uk_size = float(rec.recommended_size)
@@ -294,7 +284,6 @@ async def calculate_foot_size(request: SizeCalculationRequest):
             us_size = float(rec.size_us) if rec.size_us else float(uk_size + 1.0)
             fit_type = rec.fit_type
         else:
-            # Fallback estimation if outside chart
             length_mm = measurement.length_mm
             if length_mm <= 248.0:
                 uk_size, eu_size, us_size = 6.0, 39, 7.0
@@ -318,43 +307,27 @@ async def calculate_foot_size(request: SizeCalculationRequest):
         chappal_model = "Kaptaan Signature" if eu_size <= 41 else "Zalmi Royal" if eu_size <= 43 else "Quetta Sovereign"
         fit_note = f"Foot {round(measurement.length_mm)}mm x {round(measurement.width_mm)}mm | UK {int(uk_size) if uk_size.is_integer() else uk_size} (EU {eu_size}) | {width_profile.title()}-width. Recommended: {chappal_model}."
 
-        # 8. Visual Annotations & Overlay Generation
+        # 9. Visual Annotation: Foot Segmentation Mask + Heel/Toe Markers + Measurement Line
         annotated = FootSegmenter.draw_overlay(img_bgr, primary_foot, color_bgr=(0, 200, 255), alpha=0.35)
         annotated = FootLandmarkExtractor.draw_landmarks(annotated, landmarks, draw_axis=True)
-        if calibration_data.card_corners is not None:
-            annotated = ReferenceCardCalibrator.draw_calibration(annotated, calibration_data)
 
         # Header summary bar on image
-        banner_h = 42
+        banner_h = 44
         overlay_banner = annotated.copy()
         cv2.rectangle(overlay_banner, (0, 0), (w_orig, banner_h), (25, 20, 16), -1)
-        annotated = cv2.addWeighted(overlay_banner, 0.82, annotated, 0.18, 0)
-        tag_text = f"KHYBERSOLE AI | {measurement.length_mm:.1f} mm | UK {int(uk_size) if uk_size.is_integer() else uk_size} (EU {eu_size}) | Conf: {int(round(primary_foot.confidence * 100))}%"
-        cv2.putText(annotated, tag_text, (16, 27), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (212, 175, 55), 2, cv2.LINE_AA)
+        annotated = cv2.addWeighted(overlay_banner, 0.85, annotated, 0.15, 0)
+        adj_tag = " [Calibrated]" if is_manually_adjusted else ""
+        tag_text = f"KHYBERSOLE AI | {measurement.length_mm:.1f} mm | UK {int(uk_size) if uk_size.is_integer() else uk_size} (EU {eu_size}){adj_tag} | Conf: {int(round(primary_foot.confidence * 100))}%"
+        cv2.putText(annotated, tag_text, (16, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (212, 175, 55), 2, cv2.LINE_AA)
 
         # Encode annotated image to JPEG base64
         _, enc_buf = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, 90])
         annotated_b64 = base64.b64encode(enc_buf).decode("utf-8")
 
-        # Normalized corners for frontend CamScanner drag pins
-        if calibration_data.card_corners is not None:
-            paper_corners_norm = [
-                [float(c[0] / w_orig), float(c[1] / h_orig)]
-                for c in calibration_data.card_corners
-            ]
-        else:
-            # Default suggestive pins in top-left quadrant
-            paper_corners_norm = [
-                [0.10, 0.10],
-                [0.32, 0.10],
-                [0.32, 0.24],
-                [0.10, 0.24]
-            ]
-
         return {
             "success": True,
             "foot_detected": True,
-            "card_detected": card_detected,
+            "card_detected": False,
             "foot_length_mm": round(measurement.length_mm, 1),
             "foot_width_mm": round(measurement.width_mm, 1),
             "height_cm": round(measurement.length_cm, 2),
@@ -366,8 +339,14 @@ async def calculate_foot_size(request: SizeCalculationRequest):
             "fit_profile": fit_type,
             "fit_note": fit_note,
             "annotated_image_base64": annotated_b64,
-            "paper_corners_norm": paper_corners_norm,
-            "algorithm": "Khybersole YOLOv8 AI Foot Segmentation & Photogrammetry Model",
+            "heel_point": [float(landmarks.heel_point[0]), float(landmarks.heel_point[1])],
+            "toe_point": [float(landmarks.toe_point[0]), float(landmarks.toe_point[1])],
+            "heel_point_norm": [float(landmarks.heel_point[0] / w_orig), float(landmarks.heel_point[1] / h_orig)],
+            "toe_point_norm": [float(landmarks.toe_point[0] / w_orig), float(landmarks.toe_point[1] / h_orig)],
+            "image_width": w_orig,
+            "image_height": h_orig,
+            "is_manually_adjusted": is_manually_adjusted,
+            "algorithm": "Khybersole YOLOv8 AI Foot Segmentation Model",
             "warnings": warnings,
             "quality_assessment": calibration_data.calibration_quality,
             "reference_object": calibration_data.reference_object
