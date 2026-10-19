@@ -83,8 +83,8 @@ class ReferenceCardCalibrator:
         """
         h, w = image_bgr.shape[:2]
         img_area = h * w
-        min_card_area = img_area * 0.008   # At least 0.8% of image
-        max_card_area = img_area * 0.45    # At most 45% of image
+        min_card_area = max(1500, int(img_area * 0.0015))   # At least 0.15% of image (handles live camera streams)
+        max_card_area = int(img_area * 0.50)    # At most 50% of image
 
         gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)

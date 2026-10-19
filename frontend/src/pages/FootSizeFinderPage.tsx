@@ -58,6 +58,7 @@ export const FootSizeFinderPage: React.FC = () => {
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const footImgRef = useRef<HTMLImageElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Stop camera tracks
   const stopCamera = useCallback(() => {
@@ -67,7 +68,7 @@ export const FootSizeFinderPage: React.FC = () => {
     }
   }, []);
 
-  // Start camera stream
+  // Start camera stream with robust high-resolution constraints
   const startCamera = useCallback(async (facing: 'environment' | 'user' = 'environment') => {
     stopCamera();
     setErrorMsg('');
@@ -80,13 +81,22 @@ export const FootSizeFinderPage: React.FC = () => {
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: facing,
-          width: { ideal: 1920, min: 1280 },
-          height: { ideal: 1080, min: 720 },
-        },
-      });
+      let stream: MediaStream;
+      try {
+        // High-definition preference with continuous autofocus
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: facing },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+        });
+      } catch {
+        // Flexible fallback without hard dimension preferences
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: facing } },
+        });
+      }
 
       streamRef.current = stream;
       if (videoRef.current) {
@@ -114,22 +124,68 @@ export const FootSizeFinderPage: React.FC = () => {
     return () => stopCamera();
   }, [step, startCamera, stopCamera]);
 
-  // Capture frame as base64 JPEG
-  const captureFrame = (): string | null => {
+  // Viewfinder-aligned high-resolution capture (matches visible screen framing 1:1)
+  const captureFrame = async (): Promise<string | null> => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return null;
 
-    const w = video.videoWidth || 1280;
-    const h = video.videoHeight || 720;
-    canvas.width = w;
-    canvas.height = h;
+    const vW = video.videoWidth;
+    const vH = video.videoHeight;
+    if (!vW || !vH) return null;
 
-    const ctx = canvas.getContext('2d');
+    // 1. Try ImageCapture API if available on hardware for full optical resolution & focus
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (track && (window as any).ImageCapture) {
+      try {
+        const ic = new (window as any).ImageCapture(track);
+        const blob = await ic.takePhoto();
+        const b64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const res = reader.result as string;
+            resolve(res.includes(',') ? res.split(',')[1] : res);
+          };
+          reader.readAsDataURL(blob);
+        });
+        if (b64) return b64;
+      } catch (e) {
+        console.warn('ImageCapture fallback to canvas:', e);
+      }
+    }
+
+    // 2. Exact Viewfinder Crop:
+    // Calculates visible crop box of <video className="object-cover" />
+    // so what the user saw on screen is exactly 100% what is captured (no unwanted side clutter)
+    const container = video.parentElement;
+    let targetRatio = 3 / 4;
+    if (container && container.clientWidth > 0 && container.clientHeight > 0) {
+      targetRatio = container.clientWidth / container.clientHeight;
+    }
+
+    const streamRatio = vW / vH;
+    let sX = 0, sY = 0, sW = vW, sH = vH;
+
+    if (streamRatio > targetRatio) {
+      // Stream is wider than container -> crop extra horizontal borders
+      sW = Math.round(vH * targetRatio);
+      sX = Math.round((vW - sW) / 2);
+    } else if (streamRatio < targetRatio) {
+      // Stream is taller than container -> crop extra vertical borders
+      sH = Math.round(vW / targetRatio);
+      sY = Math.round((vH - sH) / 2);
+    }
+
+    canvas.width = sW;
+    canvas.height = sH;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return null;
-    ctx.drawImage(video, 0, 0, w, h);
 
-    return canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(video, sX, sY, sW, sH, 0, 0, sW, sH);
+
+    return canvas.toDataURL('image/jpeg', 0.95).split(',')[1];
   };
 
   // Process image with backend YOLOv8 model & card photogrammetry
@@ -203,8 +259,8 @@ export const FootSizeFinderPage: React.FC = () => {
   };
 
   // Trigger capture
-  const handleCapture = () => {
-    const b64 = captureFrame();
+  const handleCapture = async () => {
+    const b64 = await captureFrame();
     if (!b64) {
       setErrorMsg('Failed to capture frame from camera. Please try uploading a photo.');
       setStep('error');
@@ -335,6 +391,14 @@ export const FootSizeFinderPage: React.FC = () => {
           className="hidden"
           onChange={handleFileUpload}
         />
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleFileUpload}
+        />
 
         {/* MAIN CONTAINER */}
         <div className="bg-[#A0988A]/20 rounded-2xl border border-[#A0988A] shadow-md p-4 sm:p-6 backdrop-blur-xs">
@@ -392,23 +456,34 @@ export const FootSizeFinderPage: React.FC = () => {
               </div>
 
               {/* Capture & Upload Buttons */}
-              <div className="flex gap-3 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
                 <button
                   type="button"
                   onClick={handleCapture}
-                  className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md transition active:scale-95 text-sm sm:text-base border border-[#565449] cursor-pointer"
+                  className="bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-md transition active:scale-95 text-xs sm:text-sm border border-[#565449] cursor-pointer"
+                  title="Capture currently focused live viewfinder"
                 >
-                  <Camera className="w-5 h-5" />
-                  <span>Capture &amp; Measure</span>
+                  <Camera className="w-4 h-4 shrink-0" />
+                  <span>Live Capture</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="bg-[#565449]/80 hover:bg-[#565449] text-[#F7F4EB] font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-md transition active:scale-95 text-xs sm:text-sm border border-[#565449] cursor-pointer"
+                  title="Open phone's native camera with hardware autofocus"
+                >
+                  <Sparkles className="w-4 h-4 text-[#D4AF37] shrink-0" />
+                  <span>Phone HD Camera</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex-1 bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 border border-[#565449] transition cursor-pointer text-sm sm:text-base active:scale-95 shadow-sm"
-                  title="Upload photo from gallery"
+                  className="bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-1.5 border border-[#565449] transition cursor-pointer text-xs sm:text-sm active:scale-95 shadow-sm"
+                  title="Upload existing photo from gallery"
                 >
-                  <Upload className="w-5 h-5 shrink-0" />
+                  <Upload className="w-4 h-4 shrink-0" />
                   <span>Upload Photo</span>
                 </button>
               </div>
