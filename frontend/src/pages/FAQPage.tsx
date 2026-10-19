@@ -137,7 +137,7 @@ export const FAQPage: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search questions (e.g., sizing, leather, COD, return)..."
-              className="w-full pl-11 pr-4 py-3 bg-[#F7F4EB] border border-[#565449]/30 rounded-2xl text-sm text-[#1A1A18] placeholder-[#565449]/50 focus:outline-none focus:border-[#565449] shadow-sm transition-all"
+              className="w-full pl-11 pr-4 py-3 bg-[#F7F4EB] border border-[#565449]/30 rounded-2xl text-base sm:text-sm text-[#1A1A18] placeholder-[#565449]/50 focus:outline-none focus:border-[#565449] shadow-sm transition-all"
             />
           </div>
         </div>

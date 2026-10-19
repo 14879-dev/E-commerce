@@ -207,7 +207,7 @@ export const CatalogPage: React.FC = () => {
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             placeholder="Search products by model, leather shade, brass buckle..."
-            className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#565449]/35 text-[#1A1A18] placeholder:text-[#1A1A18]/60 text-sm focus:outline-none focus:border-[#565449]"
+            className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-[#A0988A]/20 border border-[#565449]/35 text-[#1A1A18] placeholder:text-[#1A1A18]/60 text-base sm:text-sm focus:outline-none focus:border-[#565449]"
           />
         </div>
 

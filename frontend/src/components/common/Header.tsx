@@ -157,7 +157,7 @@ export const Header: React.FC = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search chappals, models..."
-                  className="w-44 xl:w-64 pl-9 pr-8 py-2 rounded-full text-xs bg-[#A0988A]/20 hover:bg-[#A0988A]/30 focus:bg-[#A0988A]/40 border border-[#565449]/35 focus:border-[#565449] focus:ring-2 focus:ring-[#565449]/20 text-[#1A1A18] placeholder-[#1A1A18]/60 outline-none transition-all shadow-2xs"
+                  className="w-44 xl:w-64 pl-9 pr-8 py-2 rounded-full text-base lg:text-xs bg-[#A0988A]/20 hover:bg-[#A0988A]/30 focus:bg-[#A0988A]/40 border border-[#565449]/35 focus:border-[#565449] focus:ring-2 focus:ring-[#565449]/20 text-[#1A1A18] placeholder-[#1A1A18]/60 outline-none transition-all shadow-2xs"
                 />
                 {searchQuery && (
                   <button
@@ -226,7 +226,7 @@ export const Header: React.FC = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search chappals, sizes, models..."
-                  className="w-full pl-9 pr-8 py-2.5 rounded-xl text-xs bg-[#A0988A]/25 border border-[#565449]/40 focus:border-[#565449] focus:ring-2 focus:ring-[#565449]/20 text-[#1A1A18] placeholder-[#1A1A18]/60 outline-none transition-all"
+                  className="w-full pl-9 pr-8 py-2.5 rounded-xl text-base bg-[#A0988A]/25 border border-[#565449]/40 focus:border-[#565449] focus:ring-2 focus:ring-[#565449]/20 text-[#1A1A18] placeholder-[#1A1A18]/60 outline-none transition-all"
                 />
                 {searchQuery && (
                   <button

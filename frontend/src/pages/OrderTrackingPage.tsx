@@ -155,7 +155,7 @@ export const OrderTrackingPage: React.FC = () => {
               value={searchId}
               onChange={e => setSearchId(e.target.value)}
               placeholder="e.g. PSH-2026-..."
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#F7F4EB] border border-[#A0988A] text-sm text-[#1A1A18] placeholder:text-[#1A1A18]/60 focus:outline-none focus:border-[#565449]"
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#F7F4EB] border border-[#A0988A] text-base sm:text-sm text-[#1A1A18] placeholder:text-[#1A1A18]/60 focus:outline-none focus:border-[#565449]"
             />
           </div>
           <button
