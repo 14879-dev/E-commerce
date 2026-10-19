@@ -17,7 +17,7 @@ The pipeline executes **100% locally and offline** without external cloud APIs:
    - Extracts exact landmark endpoints: Longest Toe Apex $\mathbf{P}_{\text{toe}} = (x_t, y_t)$ and Heel Curvature Center $\mathbf{P}_{\text{heel}} = (x_h, y_h)$.
 4. **Euclidean Metric Calibration**:
    $$\text{Length}_{\text{mm}} = \frac{\|\mathbf{P}_{\text{toe}} - \mathbf{P}_{\text{heel}}\|_2}{\text{Pixels-per-mm}}$$
-5. **KDM Peshawari Chappal Fit Classifier**:
+5. **KhyberSole Peshawari Chappal Fit Classifier**:
    - Maps millimeter length and ball girth width to EU (39–47), UK, and US sizing.
 
 ---

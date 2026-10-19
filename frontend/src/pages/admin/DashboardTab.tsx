@@ -6,7 +6,15 @@ import type { Product, Order, Review } from '../../types';
 import type { InvestmentItem } from '../../types/admin';
 
 export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> = ({ onNavigateTab }) => {
-  const [timeRange, setTimeRange] = useState<'day' | 'week' | 'month' | 'year'>('month');
+  const [timeRange, setTimeRange] = useState<'day' | 'week' | 'month' | 'year' | 'custom'>('month');
+  const [customStartDate, setCustomStartDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split('T')[0];
+  });
+  const [customEndDate, setCustomEndDate] = useState<string>(() => {
+    return new Date().toISOString().split('T')[0];
+  });
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const cached = localStorage.getItem('psh_products');
@@ -135,8 +143,50 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
     if (p.articleTag) productCostMap.set(p.articleTag.toLowerCase().trim(), cost);
   });
 
-  // 2. Total Pure Product Revenue (Delivered Orders Only — realized cash in hand)
-  const deliveredOrders = orders.filter(o => o.status === 'Delivered');
+  // Helper to get reliable timestamp from an order
+  const getOrderTimestamp = (o: Order): number => {
+    if (o.date) {
+      const parsed = new Date(o.date).getTime();
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+    const match = String(o.id || o.orderNumber || '').match(/(\d{10,13})/);
+    return match ? Number(match[1]) : 0;
+  };
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+  const startOfWeek = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+  const startOfMonth = now.getTime() - 30 * 24 * 60 * 60 * 1000;
+  const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
+
+  // Active Timeframe Filtered Orders
+  const filteredOrders = orders.filter(o => {
+    const t = getOrderTimestamp(o);
+    // If order has no detectable timestamp, keep it visible so nothing is lost
+    if (t === 0) return true;
+
+    if (timeRange === 'day') {
+      return t >= startOfToday;
+    }
+    if (timeRange === 'week') {
+      return t >= startOfWeek;
+    }
+    if (timeRange === 'month') {
+      return t >= startOfMonth;
+    }
+    if (timeRange === 'year') {
+      return t >= startOfYear;
+    }
+    if (timeRange === 'custom') {
+      const start = customStartDate ? new Date(`${customStartDate}T00:00:00`).getTime() : 0;
+      const end = customEndDate ? new Date(`${customEndDate}T23:59:59.999`).getTime() : Infinity;
+      return t >= start && t <= end;
+    }
+    return true;
+  });
+
+  // 2. Total Pure Product Revenue (Delivered Orders Only in active timeframe)
+  const deliveredOrders = filteredOrders.filter(o => o.status === 'Delivered');
 
   const totalPureRevenue = deliveredOrders
     .reduce((sum, o) => {
@@ -153,7 +203,7 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
       return sum + Math.max(0, orderTotal - shippingFee);
     }, 0);
 
-  // 3. Cost of Sold Items (Supplier buying cost for delivered units)
+  // 3. Cost of Sold Items (Supplier buying cost for delivered units in active timeframe)
   const totalCostOfSoldItems = deliveredOrders
     .reduce((sum, o) => {
       const orderCost = (o.items || []).reduce((itemSum, it) => {
@@ -204,13 +254,13 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
   // c) Grand Combined Total Investment = Supplier Chappal Capital + Packaging & Monetization & Operational Investments
   const grandTotalInvestment = totalSupplierInvestment + totalOperationalInvestments;
 
-  const totalOrdersCount = orders.length;
-  const pendingOrdersCount = orders.filter(
+  const totalOrdersCount = filteredOrders.length;
+  const pendingOrdersCount = filteredOrders.filter(
     o => o.status !== 'Delivered' && o.status !== 'Cancelled'
   ).length;
 
   // Order status distribution
-  const statusMap = orders.reduce((acc: Record<string, number>, o) => {
+  const statusMap = filteredOrders.reduce((acc: Record<string, number>, o) => {
     acc[o.status] = (acc[o.status] || 0) + 1;
     return acc;
   }, {});
@@ -223,31 +273,121 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
     { name: 'Cancelled', value: statusMap['Cancelled'] || 0, color: '#DC2626' },// Vibrant Crimson / Cancelled
   ];
 
-  const hasOrderStatusData = orders.length > 0;
+  const hasOrderStatusData = filteredOrders.length > 0;
 
-  // Monthly revenue trajectory (All 12 Calendar Months — Delivered orders realized only)
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const revenueChartData = monthNames.map((m, mIdx) => {
-    const monthOrders = deliveredOrders.filter(o => {
-      if (!o.date) return false;
-      const str = String(o.date);
-      if (str.includes(m)) return true;
-      try {
-        const d = new Date(str);
-        if (!isNaN(d.getTime()) && d.getMonth() === mIdx) return true;
-      } catch {}
-      return false;
-    });
-    const rev = monthOrders.reduce((sum, o) => {
-      const shipping = Number(o.shippingFee) || 0;
-      return sum + Math.max(0, (Number(o.total) || 0) - shipping);
-    }, 0);
-    return {
-      label: m,
-      revenue: rev,
-      orders: monthOrders.length,
+  // Dynamic Trajectory Chart Data tailored to selected timeframe
+  const revenueChartData = (() => {
+    const getOrderRev = (ord: Order) => {
+      const shipping = Number(ord.shippingFee) || 0;
+      return Math.max(0, (Number(ord.total) || 0) - shipping);
     };
-  });
+
+    if (timeRange === 'day') {
+      // 4-hour slots across today
+      const slots = [
+        { label: '00:00 - 04:00', startH: 0, endH: 4 },
+        { label: '04:00 - 08:00', startH: 4, endH: 8 },
+        { label: '08:00 - 12:00', startH: 8, endH: 12 },
+        { label: '12:00 - 16:00', startH: 12, endH: 16 },
+        { label: '16:00 - 20:00', startH: 16, endH: 20 },
+        { label: '20:00 - 24:00', startH: 20, endH: 24 },
+      ];
+      return slots.map(slot => {
+        const slotOrders = deliveredOrders.filter(o => {
+          const t = getOrderTimestamp(o);
+          if (t < startOfToday) return false;
+          const h = new Date(t).getHours();
+          return h >= slot.startH && h < slot.endH;
+        });
+        const rev = slotOrders.reduce((sum, o) => sum + getOrderRev(o), 0);
+        return { label: slot.label, revenue: rev, orders: slotOrders.length };
+      });
+    }
+
+    if (timeRange === 'week') {
+      // Past 7 days
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const dayStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' });
+        const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0).getTime();
+        const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).getTime();
+        const dayOrders = deliveredOrders.filter(o => {
+          const t = getOrderTimestamp(o);
+          return t >= dayStart && t <= dayEnd;
+        });
+        const rev = dayOrders.reduce((sum, o) => sum + getOrderRev(o), 0);
+        days.push({ label: dayStr, revenue: rev, orders: dayOrders.length });
+      }
+      return days;
+    }
+
+    if (timeRange === 'month') {
+      // 6 intervals of 5 days (Days 1-5, 6-10...)
+      const buckets = [
+        { label: 'Days 1-5', startOffset: 30, endOffset: 25 },
+        { label: 'Days 6-10', startOffset: 25, endOffset: 20 },
+        { label: 'Days 11-15', startOffset: 20, endOffset: 15 },
+        { label: 'Days 16-20', startOffset: 15, endOffset: 10 },
+        { label: 'Days 21-25', startOffset: 10, endOffset: 5 },
+        { label: 'Days 26-30', startOffset: 5, endOffset: 0 },
+      ];
+      return buckets.map(b => {
+        const bStart = now.getTime() - b.startOffset * 24 * 60 * 60 * 1000;
+        const bEnd = now.getTime() - b.endOffset * 24 * 60 * 60 * 1000;
+        const bOrders = deliveredOrders.filter(o => {
+          const t = getOrderTimestamp(o);
+          return t >= bStart && t <= bEnd;
+        });
+        const rev = bOrders.reduce((sum, o) => sum + getOrderRev(o), 0);
+        return { label: b.label, revenue: rev, orders: bOrders.length };
+      });
+    }
+
+    if (timeRange === 'custom') {
+      const s = customStartDate ? new Date(`${customStartDate}T00:00:00`).getTime() : (now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const e = customEndDate ? new Date(`${customEndDate}T23:59:59.999`).getTime() : now.getTime();
+      const diffDays = Math.max(1, Math.round((e - s) / (24 * 60 * 60 * 1000)));
+
+      // If <= 10 days, daily points; otherwise group into ~6 buckets
+      const stepDays = diffDays <= 10 ? 1 : Math.ceil(diffDays / 6);
+      const points = [];
+      for (let cur = s; cur <= e; cur += stepDays * 24 * 60 * 60 * 1000) {
+        const pointEnd = Math.min(e, cur + stepDays * 24 * 60 * 60 * 1000 - 1);
+        const curDate = new Date(cur);
+        const label = curDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const ptOrders = deliveredOrders.filter(o => {
+          const t = getOrderTimestamp(o);
+          return t >= cur && t <= pointEnd;
+        });
+        const rev = ptOrders.reduce((sum, o) => sum + getOrderRev(o), 0);
+        points.push({ label, revenue: rev, orders: ptOrders.length });
+      }
+      return points;
+    }
+
+    // Default: 'year' - 12 calendar months
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return monthNames.map((m, mIdx) => {
+      const monthOrders = deliveredOrders.filter(o => {
+        const t = getOrderTimestamp(o);
+        if (t > 0) {
+          const d = new Date(t);
+          return d.getFullYear() === now.getFullYear() && d.getMonth() === mIdx;
+        }
+        if (!o.date) return false;
+        const str = String(o.date);
+        return str.includes(m);
+      });
+      const rev = monthOrders.reduce((sum, o) => sum + getOrderRev(o), 0);
+      return {
+        label: m,
+        revenue: rev,
+        orders: monthOrders.length,
+      };
+    });
+  })();
 
   if (loading) {
     return <div className="p-12 text-center text-slate-500 font-medium">Loading executive dashboard...</div>;
@@ -278,19 +418,44 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
           </p>
         </div>
 
-        <div className="flex items-center gap-2 bg-[#565449]/10 p-1 rounded-xl border border-[#565449]/30">
-          {(['day', 'week', 'month', 'year'] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setTimeRange(t)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${timeRange === t
-                  ? 'bg-[#565449] text-[#F7F4EB] shadow-xs'
-                  : 'text-[#1A1A18] hover:bg-[#565449]/10'
-                }`}
-            >
-              {t}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1 bg-[#565449]/10 p-1 rounded-xl border border-[#565449]/30">
+            {(['day', 'week', 'month', 'year', 'custom'] as const).map(t => (
+              <button
+                key={t}
+                onClick={() => setTimeRange(t)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${timeRange === t
+                    ? 'bg-[#565449] text-[#F7F4EB] shadow-xs'
+                    : 'text-[#1A1A18] hover:bg-[#565449]/10'
+                  }`}
+              >
+                {t === 'day' ? 'Daily' : t === 'week' ? 'Weekly' : t === 'month' ? 'Monthly' : t === 'year' ? 'Yearly' : 'Custom'}
+              </button>
+            ))}
+          </div>
+
+          {timeRange === 'custom' && (
+            <div className="flex items-center gap-2 bg-[#F7F4EB] px-3 py-1 rounded-xl border border-[#565449]/40 text-xs shadow-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[#1A1A18]/70 text-[10px] font-bold uppercase">From:</span>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="bg-white border border-[#565449]/30 rounded-lg px-2 py-0.5 text-xs text-[#1A1A18] font-mono focus:outline-none focus:border-[#565449]"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[#1A1A18]/70 text-[10px] font-bold uppercase">To:</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="bg-white border border-[#565449]/30 rounded-lg px-2 py-0.5 text-xs text-[#1A1A18] font-mono focus:outline-none focus:border-[#565449]"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -484,10 +649,20 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-serif font-bold text-lg text-[#1A1A18]">Revenue & Sales Trajectory</h3>
-              <p className="text-xs text-[#1A1A18]/70">Monthly revenue accumulation (PKR)</p>
+              <p className="text-xs text-[#1A1A18]/70">
+                {timeRange === 'day'
+                  ? 'Daily hourly revenue accumulation (PKR)'
+                  : timeRange === 'week'
+                  ? 'Last 7 days sales trajectory (PKR)'
+                  : timeRange === 'month'
+                  ? 'Last 30 days sales trajectory (PKR)'
+                  : timeRange === 'custom'
+                  ? `Custom window (${customStartDate} to ${customEndDate})`
+                  : 'Yearly monthly revenue accumulation (PKR)'}
+              </p>
             </div>
             <span className="text-xs font-bold text-[#1A1A18] bg-[#565449]/15 px-3 py-1 rounded-full border border-[#565449]/30">
-              Filtered: {timeRange.toUpperCase()}
+              Filtered: {timeRange === 'day' ? 'DAILY' : timeRange === 'week' ? 'WEEKLY' : timeRange === 'month' ? 'MONTHLY' : timeRange === 'year' ? 'YEARLY' : `CUSTOM (${customStartDate} → ${customEndDate})`}
             </span>
           </div>
 

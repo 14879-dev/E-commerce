@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Upload, RotateCcw, AlertTriangle, ArrowRight, Check, Sparkles, Sliders, RefreshCw, CreditCard, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Camera, Upload, RotateCcw, AlertTriangle, ArrowRight, Check, Sliders, RefreshCw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { SEOHelmet } from '../components/common/SEOHelmet';
 import { PageHero } from '../components/common/PageHero';
 
@@ -31,11 +31,10 @@ export interface SizeResult {
 }
 
 export const FootSizeFinderPage: React.FC = () => {
-  // Steps: 'camera' | 'landmark_adjust' | 'analyzing' | 'result' | 'error' | 'camera_denied'
-  const [step, setStep] = useState<'camera' | 'landmark_adjust' | 'analyzing' | 'result' | 'error' | 'camera_denied'>('camera');
+  // Steps: 'select' | 'landmark_adjust' | 'analyzing' | 'result' | 'error'
+  const [step, setStep] = useState<'select' | 'landmark_adjust' | 'analyzing' | 'result' | 'error'>('select');
   const [result, setResult] = useState<SizeResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const [activeFacingMode, setActiveFacingMode] = useState<'environment' | 'user'>('environment');
   const [capturedImageB64, setCapturedImageB64] = useState<string | null>(null);
 
   // Interactive Heel & Toe Landmark Calibration State (Normalized [0..1] and Pixel coords)
@@ -53,140 +52,9 @@ export const FootSizeFinderPage: React.FC = () => {
 
   const [imageDims, setImageDims] = useState<{ width: number; height: number }>({ width: 1000, height: 1000 });
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const footImgRef = useRef<HTMLImageElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-
-  // Stop camera tracks
-  const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-  }, []);
-
-  // Start camera stream with robust high-resolution constraints
-  const startCamera = useCallback(async (facing: 'environment' | 'user' = 'environment') => {
-    stopCamera();
-    setErrorMsg('');
-    setStep('camera');
-
-    if (!navigator?.mediaDevices?.getUserMedia) {
-      console.warn('getUserMedia not supported on this origin');
-      setStep('camera_denied');
-      return;
-    }
-
-    try {
-      let stream: MediaStream;
-      try {
-        // High-definition preference with continuous autofocus
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: facing },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-        });
-      } catch {
-        // Flexible fallback without hard dimension preferences
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: facing } },
-        });
-      }
-
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play().catch(() => {});
-        };
-      }
-    } catch (err: any) {
-      console.warn('Camera access error:', err);
-      if (facing === 'environment') {
-        startCamera('user');
-      } else {
-        setStep('camera_denied');
-      }
-    }
-  }, [stopCamera]);
-
-  useEffect(() => {
-    if (step === 'camera') {
-      startCamera('environment');
-    } else {
-      stopCamera();
-    }
-    return () => stopCamera();
-  }, [step, startCamera, stopCamera]);
-
-  // Viewfinder-aligned high-resolution capture (matches visible screen framing 1:1)
-  const captureFrame = async (): Promise<string | null> => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) return null;
-
-    const vW = video.videoWidth;
-    const vH = video.videoHeight;
-    if (!vW || !vH) return null;
-
-    // 1. Try ImageCapture API if available on hardware for full optical resolution & focus
-    const track = streamRef.current?.getVideoTracks()[0];
-    if (track && (window as any).ImageCapture) {
-      try {
-        const ic = new (window as any).ImageCapture(track);
-        const blob = await ic.takePhoto();
-        const b64 = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const res = reader.result as string;
-            resolve(res.includes(',') ? res.split(',')[1] : res);
-          };
-          reader.readAsDataURL(blob);
-        });
-        if (b64) return b64;
-      } catch (e) {
-        console.warn('ImageCapture fallback to canvas:', e);
-      }
-    }
-
-    // 2. Exact Viewfinder Crop:
-    // Calculates visible crop box of <video className="object-cover" />
-    // so what the user saw on screen is exactly 100% what is captured (no unwanted side clutter)
-    const container = video.parentElement;
-    let targetRatio = 3 / 4;
-    if (container && container.clientWidth > 0 && container.clientHeight > 0) {
-      targetRatio = container.clientWidth / container.clientHeight;
-    }
-
-    const streamRatio = vW / vH;
-    let sX = 0, sY = 0, sW = vW, sH = vH;
-
-    if (streamRatio > targetRatio) {
-      // Stream is wider than container -> crop extra horizontal borders
-      sW = Math.round(vH * targetRatio);
-      sX = Math.round((vW - sW) / 2);
-    } else if (streamRatio < targetRatio) {
-      // Stream is taller than container -> crop extra vertical borders
-      sH = Math.round(vW / targetRatio);
-      sY = Math.round((vH - sH) / 2);
-    }
-
-    canvas.width = sW;
-    canvas.height = sH;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return null;
-
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(video, sX, sY, sW, sH, 0, 0, sW, sH);
-
-    return canvas.toDataURL('image/jpeg', 0.95).split(',')[1];
-  };
 
   // Process image with backend YOLOv8 model & card photogrammetry
   const processImageBase64 = async (
@@ -195,7 +63,6 @@ export const FootSizeFinderPage: React.FC = () => {
     manualToeNorm?: [number, number],
     customCardCornersNorm?: [number, number][]
   ) => {
-    stopCamera();
     setStep('analyzing');
     setErrorMsg('');
     setCapturedImageB64(b64);
@@ -258,17 +125,6 @@ export const FootSizeFinderPage: React.FC = () => {
     }
   };
 
-  // Trigger capture
-  const handleCapture = async () => {
-    const b64 = await captureFrame();
-    if (!b64) {
-      setErrorMsg('Failed to capture frame from camera. Please try uploading a photo.');
-      setStep('error');
-      return;
-    }
-    processImageBase64(b64);
-  };
-
   // Trigger upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -281,13 +137,15 @@ export const FootSizeFinderPage: React.FC = () => {
       processImageBase64(b64);
     };
     reader.readAsDataURL(file);
+    // Reset file input value so user can select the same file again if desired
+    e.target.value = '';
   };
 
-  // Switch facing mode
-  const toggleCameraFacing = () => {
-    const newFacing = activeFacingMode === 'environment' ? 'user' : 'environment';
-    setActiveFacingMode(newFacing);
-    startCamera(newFacing);
+  const handleReset = () => {
+    setResult(null);
+    setCapturedImageB64(null);
+    setErrorMsg('');
+    setStep('select');
   };
 
   // Pointer drag handlers for Heel / Toe pins with pointer capture for butter smooth movement
@@ -383,7 +241,6 @@ export const FootSizeFinderPage: React.FC = () => {
 
       <div className="max-w-2xl mx-auto py-6 sm:py-10 px-4">
         {/* Hidden capture elements */}
-        <canvas ref={canvasRef} className="hidden" />
         <input
           ref={fileInputRef}
           type="file"
@@ -403,89 +260,73 @@ export const FootSizeFinderPage: React.FC = () => {
         {/* MAIN CONTAINER */}
         <div className="bg-[#A0988A]/20 rounded-2xl border border-[#A0988A] shadow-md p-4 sm:p-6 backdrop-blur-xs">
           
-          {/* STEP 1: CAMERA VIEWFINDER */}
-          {step === 'camera' && (
-            <div className="space-y-4">
-              <div className="relative rounded-xl overflow-hidden bg-[#565449] aspect-[3/4] sm:aspect-[4/3] flex items-center justify-center shadow-inner">
-                <video
-                  ref={videoRef}
-                  playsInline
-                  muted
-                  autoPlay
-                  className="w-full h-full object-cover"
-                />
+          {/* STEP 1: SELECT HD CAPTURE OR UPLOAD */}
+          {step === 'select' && (
+            <div className="space-y-5">
+              <div className="relative rounded-2xl overflow-hidden bg-[#565449]/15 border-2 border-dashed border-[#565449]/40 p-6 sm:p-8 flex flex-col items-center justify-center text-center">
+                <div className="w-16 h-16 rounded-2xl bg-[#565449] text-[#F7F4EB] flex items-center justify-center shadow-md mb-3">
+                  <Camera className="w-8 h-8" />
+                </div>
+                <h3 className="font-serif font-bold text-xl sm:text-2xl text-[#1A1A18] mb-1.5">
+                  Capture or Upload Foot Photo
+                </h3>
+                <p className="text-xs sm:text-sm text-[#1A1A18]/80 max-w-md mx-auto mb-5">
+                  Place a standard card flat on the floor beside your bare foot and capture straight from overhead for precision calibration.
+                </p>
 
-                {/* Viewfinder Target Overlays */}
-                <div className="absolute inset-4 pointer-events-none border-2 border-dashed border-[#F7F4EB]/70 rounded-xl flex flex-col justify-between p-3">
-                  <div className="flex justify-between items-start">
-                    <span className="text-xs bg-[#565449]/90 backdrop-blur-xs text-[#F7F4EB] px-2.5 py-1 rounded-md font-medium border border-[#F7F4EB]/30 shadow-xs flex items-center gap-1.5">
-                      <CreditCard className="w-3.5 h-3.5" />
-                      <span>Card Flat Beside Foot</span>
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={toggleCameraFacing}
-                      className="pointer-events-auto p-2 rounded-full bg-[#565449]/90 text-[#F7F4EB] hover:bg-[#45433A] border border-[#F7F4EB]/30 transition shadow-xs cursor-pointer"
-                      title="Flip camera"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <div className="flex-1 flex items-center justify-center pointer-events-none">
-                    <div className="border-2 border-dashed border-emerald-400/70 rounded-lg w-48 sm:w-60 h-68 sm:h-84 flex items-center justify-center bg-emerald-500/5">
-                      <span className="text-[11px] text-emerald-200 bg-black/60 px-2.5 py-1 rounded backdrop-blur-xs text-center">
-                        Place bare foot flat in frame
-                      </span>
+                {/* 3 Step Visual Guide */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-lg text-left mb-6">
+                  <div className="bg-[#F7F4EB] p-3 rounded-xl border border-[#A0988A]/60 shadow-xs">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-[#1A1A18] mb-1">
+                      <span className="w-5 h-5 rounded-full bg-[#565449] text-white flex items-center justify-center text-[11px]">1</span>
+                      <span>Bare Foot</span>
                     </div>
+                    <p className="text-[11px] text-[#1A1A18]/70 leading-snug">
+                      Stand or place bare foot flat on hard, level floor.
+                    </p>
                   </div>
 
-                  <div className="text-center text-xs bg-[#565449]/90 backdrop-blur-xs text-[#F7F4EB] py-1.5 px-3 rounded-md mx-auto border border-[#F7F4EB]/30 shadow-xs">
-                    Hold phone flat overhead. Keep card and bare foot clearly in frame.
+                  <div className="bg-[#F7F4EB] p-3 rounded-xl border border-[#A0988A]/60 shadow-xs">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-[#1A1A18] mb-1">
+                      <span className="w-5 h-5 rounded-full bg-[#565449] text-white flex items-center justify-center text-[11px]">2</span>
+                      <span>Reference Card</span>
+                    </div>
+                    <p className="text-[11px] text-[#1A1A18]/70 leading-snug">
+                      Place any debit/credit/ID card flat beside foot.
+                    </p>
+                  </div>
+
+                  <div className="bg-[#F7F4EB] p-3 rounded-xl border border-[#A0988A]/60 shadow-xs">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-[#1A1A18] mb-1">
+                      <span className="w-5 h-5 rounded-full bg-[#565449] text-white flex items-center justify-center text-[11px]">3</span>
+                      <span>Overhead Shot</span>
+                    </div>
+                    <p className="text-[11px] text-[#1A1A18]/70 leading-snug">
+                      Hold phone straight directly above facing down.
+                    </p>
                   </div>
                 </div>
-              </div>
 
-              {/* Instructions banner */}
-              <div className="bg-[#F7F4EB] p-3 rounded-xl border border-[#A0988A] text-xs text-[#1A1A18] flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[#D4AF37] shrink-0" />
-                  <span><strong>AI Overhead Capture:</strong> Place any card flat beside your bare foot and capture directly from overhead.</span>
+                {/* Action Buttons */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md">
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition active:scale-95 text-xs sm:text-sm border border-[#565449] cursor-pointer"
+                  >
+                    <Camera className="w-4 h-4 shrink-0" />
+                    <span>Take HD Photo (Camera)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 border border-[#565449] transition cursor-pointer text-xs sm:text-sm active:scale-95 shadow-sm"
+                  >
+                    <Upload className="w-4 h-4 shrink-0" />
+                    <span>Upload Existing Photo</span>
+                  </button>
                 </div>
-              </div>
-
-              {/* Capture & Upload Buttons */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={handleCapture}
-                  className="bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-md transition active:scale-95 text-xs sm:text-sm border border-[#565449] cursor-pointer"
-                  title="Capture currently focused live viewfinder"
-                >
-                  <Camera className="w-4 h-4 shrink-0" />
-                  <span>Live Capture</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="bg-[#565449]/80 hover:bg-[#565449] text-[#F7F4EB] font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-md transition active:scale-95 text-xs sm:text-sm border border-[#565449] cursor-pointer"
-                  title="Open phone's native camera with hardware autofocus"
-                >
-                  <Sparkles className="w-4 h-4 text-[#D4AF37] shrink-0" />
-                  <span>Phone HD Camera</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-1.5 border border-[#565449] transition cursor-pointer text-xs sm:text-sm active:scale-95 shadow-sm"
-                  title="Upload existing photo from gallery"
-                >
-                  <Upload className="w-4 h-4 shrink-0" />
-                  <span>Upload Photo</span>
-                </button>
               </div>
             </div>
           )}
@@ -892,11 +733,11 @@ export const FootSizeFinderPage: React.FC = () => {
                 <div className="flex gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => startCamera(activeFacingMode)}
+                    onClick={handleReset}
                     className="flex-1 bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 border border-[#565449] transition cursor-pointer"
                   >
                     <RotateCcw className="w-4 h-4" />
-                    <span>Scan Again</span>
+                    <span>Scan Another Foot</span>
                   </button>
 
                   <Link
@@ -927,51 +768,17 @@ export const FootSizeFinderPage: React.FC = () => {
               <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2 max-w-md mx-auto">
                 <button
                   type="button"
-                  onClick={() => startCamera(activeFacingMode)}
-                  className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition border border-[#565449] cursor-pointer text-xs sm:text-sm"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="flex-1 bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition border border-[#565449] cursor-pointer text-xs sm:text-sm shadow-md"
                 >
-                  <RotateCcw className="w-4 h-4" />
-                  <span>Try Camera Again</span>
+                  <Camera className="w-4 h-4" />
+                  <span>Take HD Photo</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="flex-1 bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 border border-[#565449] transition cursor-pointer text-xs sm:text-sm"
-                >
-                  <Upload className="w-4 h-4" />
-                  <span>Upload Another Photo</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 6: CAMERA DENIED STATE */}
-          {step === 'camera_denied' && (
-            <div className="py-8 text-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-[#A0988A]/30 text-[#1A1A18] border border-[#565449]/30 flex items-center justify-center mx-auto">
-                <Camera className="w-6 h-6" />
-              </div>
-              <h2 className="font-serif font-bold text-lg text-[#1A1A18]">
-                Camera Access Needed
-              </h2>
-              <p className="text-xs sm:text-sm text-[#1A1A18]/80 max-w-sm mx-auto">
-                Please allow camera access or choose an existing photo from your device.
-              </p>
-
-              <div className="flex gap-3 justify-center pt-2">
-                <button
-                  type="button"
-                  onClick={() => startCamera('environment')}
-                  className="bg-[#A0988A]/30 hover:bg-[#A0988A]/50 text-[#1A1A18] font-bold py-3 px-5 rounded-xl border border-[#565449] transition text-sm cursor-pointer shadow-xs"
-                >
-                  Retry Camera
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold py-3 px-5 rounded-xl flex items-center gap-2 transition text-sm cursor-pointer shadow-md border border-[#565449]"
                 >
                   <Upload className="w-4 h-4" />
                   <span>Upload Photo</span>

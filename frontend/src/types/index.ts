@@ -36,7 +36,7 @@ export interface ProductVariant {
 
 export interface Product {
   id: string;
-  articleTag?: string; // e.g. KDM-00001 (Article code / tag)
+  articleTag?: string; // e.g. KhyberSole-00001 (Article code / tag)
   slug: string;
   name: string;
   subtitle: string;

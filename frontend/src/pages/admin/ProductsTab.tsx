@@ -61,8 +61,8 @@ export const ProductsTab: React.FC = () => {
     availableSizes: number[];
     availableColors: (LeatherColor | string)[];
   }>({
-    articleTag: 'KDM-00001',
-    name: 'KDM-00001',
+    articleTag: 'KhyberSole-00001',
+    name: 'KhyberSole-00001',
     subtitle: 'Handcrafted Double Sole Peshawari Chappal',
     category: 'None',
     price: 0,
@@ -90,19 +90,19 @@ export const ProductsTab: React.FC = () => {
   // Multi-file upload ref
   const multipleFileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Helper to generate next sequential article code (e.g. KDM-00001, KDM-00002)
+  // Helper to generate next sequential article code (e.g. KhyberSole-00001, KhyberSole-00002)
   const generateNextTag = (prods: Product[]): string => {
     let maxNum = 0;
     prods.forEach((p) => {
       const tagStr = p.articleTag || p.name || '';
-      const match = tagStr.match(/KDM-(\d+)/i);
+      const match = tagStr.match(/(?:KhyberSole|KDM)-(\d+)/i);
       if (match) {
         const num = parseInt(match[1], 10);
         if (!isNaN(num) && num > maxNum) maxNum = num;
       }
     });
     const next = maxNum + 1;
-    return `KDM-${String(next).padStart(5, '0')}`;
+    return `KhyberSole-${String(next).padStart(5, '0')}`;
   };
 
   useEffect(() => {
@@ -261,7 +261,7 @@ export const ProductsTab: React.FC = () => {
   // Open Edit Product Modal
   const handleOpenEditModal = (p: Product) => {
     setEditingProduct(p);
-    const existingTag = p.articleTag || (p.name && /^KDM-\d+/i.test(p.name) ? p.name : '');
+    const existingTag = p.articleTag || (p.name && /^(?:KhyberSole|KDM)-\d+/i.test(p.name) ? p.name : '');
     const rawSizes = Array.isArray(p.availableSizes)
       ? p.availableSizes.map(Number).filter(s => s >= 7 && s <= 13)
       : [];
@@ -908,7 +908,7 @@ export const ProductsTab: React.FC = () => {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. KDM-00001"
+                      placeholder="e.g. KhyberSole-00001"
                       value={formData.articleTag}
                       onChange={(e) => {
                         const val = e.target.value.toUpperCase();
