@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Sparkles, Menu, X, Home, Grid, Ruler, Truck, Info, Tag, Mail, Search } from 'lucide-react';
+import { ShoppingBag, Sparkles, Menu, X, Home, Grid, Ruler, Truck, Info, Tag, Mail, Search, Layers } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useStoreSettings } from '../../context/StoreSettingsContext';
 import { apiService } from '../../services/api';
@@ -73,6 +73,9 @@ export const Header: React.FC = () => {
     if (to === '/size-finder') {
       return current === '/size-finder' || current === '/ai-size-finder' || current === '/foot-size-finder';
     }
+    if (to === '/categories') {
+      return current === '/categories' || current.startsWith('/categories/');
+    }
     if (to === '/products') {
       return current === '/products' || current.startsWith('/products/');
     }
@@ -81,6 +84,7 @@ export const Header: React.FC = () => {
 
   const navLinks = [
     { to: '/', label: 'Home', icon: Home },
+    ...(!settings.hideCategories ? [{ to: '/categories', label: 'Categories', icon: Layers }] : []),
     { to: '/products', label: productsLabel, icon: Grid },
     { to: '/size-finder', label: 'Size Finder', icon: Ruler },
     { to: '/outfit-match', label: 'AI Outfit', icon: Sparkles, badge: 'AI' },

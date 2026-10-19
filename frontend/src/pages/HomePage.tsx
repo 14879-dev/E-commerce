@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, HelpCircle, Flame, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, HelpCircle, Flame, ChevronLeft, ChevronRight, Heart, ArrowDown } from "lucide-react";
 import { ProductCard } from "../components/product/ProductCard";
 import { SEOHelmet } from "../components/common/SEOHelmet";
 import { useStoreSettings } from "../context/StoreSettingsContext";
@@ -85,7 +85,7 @@ const OutfitIcon: React.FC<{ className?: string }> = ({ className = "w-4.5 h-4.5
 );
 
 export const HomePage: React.FC = () => {
-  const { settings } = useStoreSettings();
+  const { settings, formatPrice } = useStoreSettings();
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [visitsMap, setVisitsMap] = useState<Record<string, number>>({});
@@ -206,12 +206,16 @@ export const HomePage: React.FC = () => {
   }, [heroMediaUrl, heroMediaType, settings.heroSlides]);
 
   const dynamicCategories = useMemo(() => categories.map(cat => {
-    const count = allProducts.filter(p => (p.category || "").toLowerCase() === cat.name.toLowerCase()).length;
+    const catProds = allProducts.filter(p => (p.category || "").toLowerCase() === cat.name.toLowerCase());
+    const count = catProds.length;
+    const prices = catProds.map(p => Number(p.price) || 0).filter(pr => pr > 0);
+    const minPrice = prices.length > 0 ? Math.min(...prices) : 6999;
     return {
       id: cat.id, name: cat.name,
       desc: cat.description || cat.name,
       count: count + " " + (count === 1 ? "Model" : "Models"),
-      img: cat.image || "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&q=80&w=400",
+      img: cat.image || "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&q=80&w=600",
+      minPrice,
     };
   }), [categories, allProducts]);
 
@@ -355,31 +359,100 @@ export const HomePage: React.FC = () => {
       {/* Main Page Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-14">
 
-        {/* Section 1: Categories (Bone Canvas with Warm Taupe Cards) */}
+        {/* Section 1: Categories (Reference Card Layout with Gradient Overlay and Centered SEE ALL Button) */}
         {!settings.hideCategories && (
-          <section className="space-y-0 pt-6 border-t border-[#A0988A]/50">
+          <section className="space-y-4 pt-6 border-t border-[#A0988A]/50">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-widest text-[#1A1A18] block mb-0.5">Explore Silhouettes</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest text-[#9e754b] block mb-0.5">Explore Silhouettes</span>
                 <h2 className="font-serif text-xl sm:text-3xl lg:text-4xl font-bold text-[#1A1A18]">Shop By Category</h2>
               </div>
-              <Link to="/products" className="text-xs sm:text-sm font-semibold text-[#1A1A18] hover:text-[#45433A] flex items-center gap-1 shrink-0 whitespace-nowrap">
+              <Link to="/categories" className="text-xs sm:text-sm font-semibold text-[#1A1A18] hover:text-[#9e754b] flex items-center gap-1 shrink-0 whitespace-nowrap">
                 View All Categories <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </Link>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide sm:grid sm:grid-cols-3 md:grid-cols-5 sm:overflow-x-visible sm:pb-0 sm:gap-4 pt-3">
-              {dynamicCategories.map(cat => (
-                <Link key={cat.id || cat.name} to={`/products?category=${encodeURIComponent(cat.name)}`} className="group bg-[#A0988A]/20 rounded-2xl border border-[#A0988A] p-3 sm:p-4 hover:border-[#565449] hover:shadow-md transition-all flex flex-col justify-between flex-shrink-0 w-[68vw] sm:w-auto snap-start">
-                  <div className="aspect-[4/3] rounded-xl overflow-hidden bg-[#F7F4EB]/40 mb-3">
-                    <img src={cat.img} alt={cat.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-[#1A1A18] tracking-wider block">{cat.count}</span>
-                    <h3 className="font-serif font-bold text-sm sm:text-base text-[#1A1A18] group-hover:text-[#45433A] transition-colors">{cat.name} Series</h3>
-                    <p className="text-[11px] text-[#1A1A18]/70 line-clamp-1 mt-0.5">{cat.desc}</p>
-                  </div>
+
+            {/* Container for Cards with Bottom Fade Overlay and SEE ALL Button */}
+            <div className="relative pt-2 pb-12">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-6">
+                {dynamicCategories.map((cat) => (
+                  <Link
+                    key={cat.id || cat.name}
+                    to={`/products?category=${encodeURIComponent(cat.name)}`}
+                    className="group bg-white rounded-2xl sm:rounded-3xl border border-[#A0988A]/35 hover:border-[#1A1A18]/60 p-2.5 sm:p-3 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between cursor-pointer"
+                  >
+                    {/* Image Container with Badges & Wishlist Heart */}
+                    <div className="relative aspect-[4/5] rounded-xl sm:rounded-2xl overflow-hidden bg-[#F7F4EB]/60 mb-2.5 sm:mb-3">
+                      <img
+                        src={cat.img}
+                        alt={cat.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      {/* Top-left Badges matching reference image */}
+                      <div className="absolute top-2 sm:top-2.5 left-2 sm:left-2.5 flex flex-col gap-1 z-10">
+                        <span className="bg-[#1A1A18] text-[#F7F4EB] text-[9px] sm:text-[10px] font-bold px-2 sm:px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+                          BEST SELLER
+                        </span>
+                        <span className="bg-[#9e754b] text-white text-[9px] sm:text-[10px] font-bold px-2 sm:px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+                          FEATURED
+                        </span>
+                      </div>
+                      {/* Top-right Heart Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                        className="absolute top-2 sm:top-2.5 right-2 sm:right-2.5 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/90 hover:bg-white text-[#1A1A18] hover:text-red-500 flex items-center justify-center shadow-xs transition-all active:scale-90"
+                        aria-label="Save to wishlist"
+                      >
+                        <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </button>
+                    </div>
+
+                    {/* Card Body Info */}
+                    <div className="space-y-1 px-1 pb-1">
+                      <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#9e754b] block">
+                        SHOES
+                      </span>
+                      <h3 className="font-serif font-bold text-sm sm:text-base lg:text-lg text-[#1A1A18] group-hover:text-[#9e754b] transition-colors line-clamp-1">
+                        {cat.name} Series
+                      </h3>
+                      <div className="flex items-center justify-between pt-1">
+                        <div>
+                          <span className="text-[10px] text-[#1A1A18]/60 block leading-none mb-0.5">Starting from</span>
+                          <span className="text-xs sm:text-sm font-bold text-[#1A1A18]">
+                            {formatPrice(cat.minPrice)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#7B4A28] border border-black/10" title="Saddle Brown" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#111111] border border-black/10" title="Midnight Black" />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+
+              {/* Bottom Gradient Overlay (fades out the bottom area of cards just like reference image) */}
+              <div className="absolute inset-x-0 bottom-0 h-28 sm:h-36 bg-gradient-to-t from-[#F7F4EB] via-[#F7F4EB]/85 to-transparent pointer-events-none z-10" />
+
+              {/* Floating Pill SEE ALL Button with Downward Pointing Arrow */}
+              <div className="absolute inset-x-0 bottom-1 sm:bottom-2 flex justify-center z-20">
+                <Link
+                  to="/categories"
+                  className="group inline-flex items-center gap-3 sm:gap-4 px-6 sm:px-8 py-2.5 sm:py-3 bg-white hover:bg-white text-[#1A1A18] rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.12)] hover:shadow-[0_14px_40px_rgba(0,0,0,0.18)] border border-[#A0988A]/40 hover:border-[#1A1A18] transition-all duration-300 transform hover:-translate-y-0.5 cursor-pointer backdrop-blur-sm"
+                >
+                  <span className="text-xs sm:text-sm font-bold uppercase tracking-widest text-[#1A1A18]">
+                    SEE ALL
+                  </span>
+                  <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[#1A1A18]/30 group-hover:border-[#1A1A18] group-hover:bg-[#1A1A18] group-hover:text-white flex items-center justify-center transition-all duration-300">
+                    <ArrowDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1A1A18] group-hover:text-white transition-transform duration-300 group-hover:translate-y-0.5" />
+                  </span>
                 </Link>
-              ))}
+              </div>
             </div>
           </section>
         )}

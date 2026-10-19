@@ -10,6 +10,7 @@ import { AdminAuthGuard } from './components/admin/AdminAuthGuard';
 
 import { HomePage } from './pages/HomePage';
 import { CatalogPage } from './pages/CatalogPage';
+import { CategoriesPage } from './pages/CategoriesPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import { ShoppingBagPage } from './pages/ShoppingBagPage';
 import { CheckoutPage } from './pages/CheckoutPage';
@@ -52,6 +53,8 @@ const AppContent: React.FC = () => {
         <Routes>
           {/* Public Storefront Routes */}
           <Route path="/" element={<HomePage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
+          <Route path="/category" element={<CategoriesPage />} />
           <Route path="/products" element={<CatalogPage />} />
           <Route path="/products/:slug" element={<ProductDetailPage />} />
           <Route path="/wishlist" element={<Navigate to="/products" replace />} />
