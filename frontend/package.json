@@ -15,6 +15,7 @@
     "@types/canvas-confetti": "^1.9.0",
     "@types/three": "^0.185.4",
     "canvas-confetti": "^1.9.4",
+    "framer-motion": "^14.6.0",
     "lucide-react": "^1.29.0",
     "peshawari-chappal-monorepo": "file:..",
     "react": "^19.2.8",

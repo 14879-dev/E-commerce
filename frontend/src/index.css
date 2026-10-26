@@ -45,7 +45,7 @@
 
   body {
     @apply bg-[#F7F4EB] text-[#1A1A18] antialiased min-h-screen overflow-x-hidden;
-    background-color: #F7F4EB !important;
+    background-color: #F7F4EB;
     background-image:
       radial-gradient(circle at 15% 10%, rgba(86, 84, 73, 0.03) 0%, transparent 45%),
       radial-gradient(circle at 85% 65%, rgba(160, 152, 138, 0.05) 0%, transparent 50%),
@@ -54,6 +54,37 @@
     width: 100%;
     max-width: 100vw;
     touch-action: manipulation;
+  }
+
+  /* Admin Panel V14 Styling — Scoped only to admin pages */
+  .admin-shell {
+    background-color: #F8F9FA;
+    color: #18181B;
+  }
+
+  .dark .admin-shell {
+    background-color: #0E0E10;
+    color: #F4F4F5;
+  }
+
+  .admin-card {
+    background-color: #FFFFFF;
+    border: 1px solid rgba(228, 228, 231, 0.85);
+    border-radius: 1.25rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  }
+
+  .dark .admin-card {
+    background-color: #18181B;
+    border-color: rgba(39, 39, 42, 0.85);
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
+  }
+
+  .admin-card-coral {
+    background: linear-gradient(135deg, #FF5C39 0%, #E03A14 100%);
+    color: #FFFFFF;
+    border-radius: 1.25rem;
+    box-shadow: 0 8px 24px -4px rgba(224, 58, 20, 0.25);
   }
 
   /* Prevent mobile Safari & Chrome from auto-zooming on input focus (minimum 16px font-size) */

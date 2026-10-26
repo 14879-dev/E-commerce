@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, ShoppingBag, AlertTriangle, Sparkles, Clock, Coins, Star, Box, Package, TrendingUp, ArrowRight, Layers } from 'lucide-react';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts';
+import { motion } from 'framer-motion';
+import { 
+  AlertTriangle, 
+  Sparkles, 
+  Clock, 
+  Star, 
+  Box, 
+  TrendingUp, 
+  Plus, 
+  Filter, 
+  CheckCircle2
+} from 'lucide-react';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import { apiService } from '../../services/api';
 import type { Product, Order, Review } from '../../types';
 import type { InvestmentItem } from '../../types/admin';
@@ -162,7 +173,6 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
   // Active Timeframe Filtered Orders
   const filteredOrders = orders.filter(o => {
     const t = getOrderTimestamp(o);
-    // If order has no detectable timestamp, keep it visible so nothing is lost
     if (t === 0) return true;
 
     if (timeRange === 'day') {
@@ -223,13 +233,11 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
       return sum + orderCost;
     }, 0);
 
-  // 4. Exact Net Profit (Selling price − Supplier buying cost per item, strictly excluding COD delivery fees)
-  // E.g. Buy for 1500, Sell for 2100 => Net profit = 600
+  // 4. Exact Net Profit (Selling price − Supplier buying cost per item)
   const totalProfit = totalPureRevenue - totalCostOfSoldItems;
   const profitMargin = totalPureRevenue > 0 ? Math.round((totalProfit / totalPureRevenue) * 100) : 0;
 
   // 5. Total Investment Calculations:
-  // a) Supplier Product Capital: FIXED capital paid to supplier (costPrice * inventory) — strictly untouched by customer orders!
   const inventoryTotalOutlay = products.reduce(
     (sum, p) => sum + (Number(p.costPrice) || 0) * (Number(p.stockCount) || 1),
     0
@@ -242,7 +250,6 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
     ? inventoryTotalOutlay
     : (supplierBudget || 0);
 
-  // b) Custom Operational Investments (Packaging, Monetization Ads, Logistics Supplies, Gear)
   const packagingInvestment = investments
     .filter(i => i.category === 'packaging')
     .reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
@@ -250,8 +257,6 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
     .filter(i => i.category === 'monetization')
     .reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
   const totalOperationalInvestments = investments.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
-
-  // c) Grand Combined Total Investment = Supplier Chappal Capital + Packaging & Monetization & Operational Investments
   const grandTotalInvestment = totalSupplierInvestment + totalOperationalInvestments;
 
   const totalOrdersCount = filteredOrders.length;
@@ -265,15 +270,12 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
     return acc;
   }, {});
 
-  // Order status distribution with distinct high-contrast semantic colors
   const orderStatusData = [
-    { name: 'Placed', value: statusMap['Placed'] || 0, color: '#D97706' },      // Warm Amber Gold
-    { name: 'Shipped', value: statusMap['Shipped'] || 0, color: '#2563EB' },    // Electric Blue / In Transit
-    { name: 'Delivered', value: statusMap['Delivered'] || 0, color: '#059669' },// Emerald Green / Completed
-    { name: 'Cancelled', value: statusMap['Cancelled'] || 0, color: '#DC2626' },// Vibrant Crimson / Cancelled
+    { name: 'Placed', value: statusMap['Placed'] || 0, color: '#F59E0B' },
+    { name: 'Shipped', value: statusMap['Shipped'] || 0, color: '#3B82F6' },
+    { name: 'Delivered', value: statusMap['Delivered'] || 0, color: '#10B981' },
+    { name: 'Cancelled', value: statusMap['Cancelled'] || 0, color: '#EF4444' },
   ];
-
-  const hasOrderStatusData = filteredOrders.length > 0;
 
   // Dynamic Trajectory Chart Data tailored to selected timeframe
   const revenueChartData = (() => {
@@ -283,14 +285,13 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
     };
 
     if (timeRange === 'day') {
-      // 4-hour slots across today
       const slots = [
-        { label: '00:00 - 04:00', startH: 0, endH: 4 },
-        { label: '04:00 - 08:00', startH: 4, endH: 8 },
-        { label: '08:00 - 12:00', startH: 8, endH: 12 },
-        { label: '12:00 - 16:00', startH: 12, endH: 16 },
-        { label: '16:00 - 20:00', startH: 16, endH: 20 },
-        { label: '20:00 - 24:00', startH: 20, endH: 24 },
+        { label: '00:00', startH: 0, endH: 4 },
+        { label: '04:00', startH: 4, endH: 8 },
+        { label: '08:00', startH: 8, endH: 12 },
+        { label: '12:00', startH: 12, endH: 16 },
+        { label: '16:00', startH: 16, endH: 20 },
+        { label: '20:00', startH: 20, endH: 24 },
       ];
       return slots.map(slot => {
         const slotOrders = deliveredOrders.filter(o => {
@@ -305,12 +306,11 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
     }
 
     if (timeRange === 'week') {
-      // Past 7 days
       const days = [];
       for (let i = 6; i >= 0; i--) {
         const d = new Date(now);
         d.setDate(d.getDate() - i);
-        const dayStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' });
+        const dayStr = d.toLocaleDateString('en-US', { weekday: 'short' });
         const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0).getTime();
         const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).getTime();
         const dayOrders = deliveredOrders.filter(o => {
@@ -324,14 +324,13 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
     }
 
     if (timeRange === 'month') {
-      // 6 intervals of 5 days (Days 1-5, 6-10...)
       const buckets = [
-        { label: 'Days 1-5', startOffset: 30, endOffset: 25 },
-        { label: 'Days 6-10', startOffset: 25, endOffset: 20 },
-        { label: 'Days 11-15', startOffset: 20, endOffset: 15 },
-        { label: 'Days 16-20', startOffset: 15, endOffset: 10 },
-        { label: 'Days 21-25', startOffset: 10, endOffset: 5 },
-        { label: 'Days 26-30', startOffset: 5, endOffset: 0 },
+        { label: '1-5', startOffset: 30, endOffset: 25 },
+        { label: '6-10', startOffset: 25, endOffset: 20 },
+        { label: '11-15', startOffset: 20, endOffset: 15 },
+        { label: '16-20', startOffset: 15, endOffset: 10 },
+        { label: '21-25', startOffset: 10, endOffset: 5 },
+        { label: '26-30', startOffset: 5, endOffset: 0 },
       ];
       return buckets.map(b => {
         const bStart = now.getTime() - b.startOffset * 24 * 60 * 60 * 1000;
@@ -350,13 +349,12 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
       const e = customEndDate ? new Date(`${customEndDate}T23:59:59.999`).getTime() : now.getTime();
       const diffDays = Math.max(1, Math.round((e - s) / (24 * 60 * 60 * 1000)));
 
-      // If <= 10 days, daily points; otherwise group into ~6 buckets
       const stepDays = diffDays <= 10 ? 1 : Math.ceil(diffDays / 6);
       const points = [];
       for (let cur = s; cur <= e; cur += stepDays * 24 * 60 * 60 * 1000) {
         const pointEnd = Math.min(e, cur + stepDays * 24 * 60 * 60 * 1000 - 1);
         const curDate = new Date(cur);
-        const label = curDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const label = curDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
         const ptOrders = deliveredOrders.filter(o => {
           const t = getOrderTimestamp(o);
           return t >= cur && t <= pointEnd;
@@ -377,8 +375,7 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
           return d.getFullYear() === now.getFullYear() && d.getMonth() === mIdx;
         }
         if (!o.date) return false;
-        const str = String(o.date);
-        return str.includes(m);
+        return String(o.date).includes(m);
       });
       const rev = monthOrders.reduce((sum, o) => sum + getOrderRev(o), 0);
       return {
@@ -389,388 +386,599 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
     });
   })();
 
+  // Spending Limit Percentage Calculation
+  const spendingLimitPercent = supplierBudget > 0
+    ? Math.min(100, Math.round((totalSupplierInvestment / supplierBudget) * 100))
+    : 0;
+
   if (loading) {
-    return <div className="p-12 text-center text-slate-500 font-medium">Loading executive dashboard...</div>;
+    return (
+      <div className="p-16 flex flex-col items-center justify-center space-y-3">
+        <div className="w-8 h-8 rounded-full border-2 border-[#FF5C39] border-t-transparent animate-spin" />
+        <span className="text-xs font-semibold text-zinc-500">Loading live executive dashboard...</span>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
 
-      {/* Top Controls Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#565449]/20 pb-4">
+      {/* ── Top Greeting & Timeframe Bar (Reference Frame 01) ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-serif font-bold text-2xl text-[#1A1A18] flex items-center gap-2.5">
-            Performance Executive Overview
-            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-widest transition-all duration-300 ${
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight flex items-center gap-2.5">
+            Good morning, Admin
+            <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full border uppercase tracking-wider transition-all ${
               isRefreshing
-                ? 'bg-[#565449] text-[#F7F4EB] border-[#565449]'
-                : 'bg-[#565449]/15 text-[#1A1A18] border-[#565449]/30'
+                ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent'
+                : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
             }`}>
-              <span className="w-1.5 h-1.5 rounded-full bg-[#565449] animate-pulse" />
-              Live
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Live Sync
             </span>
-          </h2>
-          <p className="text-xs text-[#1A1A18]/70">
-            Live operational metrics, net profit, supplier investment, and order pipeline.
+          </h1>
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+            Real-time store performance, net margins, supplier capital, and fulfillment pipeline.
             {lastRefresh && (
-              <span className="ml-2 text-[#1A1A18]/50">Updated {lastRefresh.toLocaleTimeString()}</span>
+              <span className="ml-2 text-zinc-400 dark:text-zinc-500">Updated {lastRefresh.toLocaleTimeString()}</span>
             )}
           </p>
         </div>
 
+        {/* Timeframe Pill Switcher */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 bg-[#565449]/10 p-1 rounded-xl border border-[#565449]/30">
-            {(['day', 'week', 'month', 'year', 'custom'] as const).map(t => (
-              <button
-                key={t}
-                onClick={() => setTimeRange(t)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${timeRange === t
-                    ? 'bg-[#565449] text-[#F7F4EB] shadow-xs'
-                    : 'text-[#1A1A18] hover:bg-[#565449]/10'
+          <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 p-1 rounded-full border border-zinc-200/80 dark:border-zinc-700/80 shadow-2xs">
+            {(['day', 'week', 'month', 'year', 'custom'] as const).map(t => {
+              const isSelected = timeRange === t;
+              return (
+                <button
+                  key={t}
+                  onClick={() => setTimeRange(t)}
+                  className={`relative px-3 sm:px-4 py-1.5 rounded-full text-xs font-semibold capitalize transition-colors cursor-pointer z-10 ${
+                    isSelected
+                      ? 'text-white dark:text-zinc-900 font-bold'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
                   }`}
-              >
-                {t === 'day' ? 'Daily' : t === 'week' ? 'Weekly' : t === 'month' ? 'Monthly' : t === 'year' ? 'Yearly' : 'Custom'}
-              </button>
-            ))}
+                >
+                  {isSelected && (
+                    <motion.div
+                      layoutId="dashboardTimePill"
+                      className="absolute inset-0 bg-zinc-900 dark:bg-white rounded-full shadow-xs -z-10"
+                      transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                    />
+                  )}
+                  {t === 'day' ? 'Day' : t === 'week' ? 'Week' : t === 'month' ? 'Month' : t === 'year' ? 'Year' : 'Custom'}
+                </button>
+              );
+            })}
           </div>
 
           {timeRange === 'custom' && (
-            <div className="flex items-center gap-2 bg-[#F7F4EB] px-3 py-1 rounded-xl border border-[#565449]/40 text-xs shadow-xs">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[#1A1A18]/70 text-[10px] font-bold uppercase">From:</span>
-                <input
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="bg-white border border-[#565449]/30 rounded-lg px-2 py-0.5 text-xs text-[#1A1A18] font-mono focus:outline-none focus:border-[#565449]"
-                />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[#1A1A18]/70 text-[10px] font-bold uppercase">To:</span>
-                <input
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="bg-white border border-[#565449]/30 rounded-lg px-2 py-0.5 text-xs text-[#1A1A18] font-mono focus:outline-none focus:border-[#565449]"
-                />
-              </div>
+            <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 px-3 py-1 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs shadow-2xs">
+              <span className="text-[10px] uppercase font-bold text-zinc-400">From</span>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={e => setCustomStartDate(e.target.value)}
+                className="bg-transparent text-xs text-zinc-800 dark:text-zinc-200 font-medium focus:outline-none"
+              />
+              <span className="text-[10px] uppercase font-bold text-zinc-400">To</span>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={e => setCustomEndDate(e.target.value)}
+                className="bg-transparent text-xs text-zinc-800 dark:text-zinc-200 font-medium focus:outline-none"
+              />
             </div>
           )}
         </div>
       </div>
 
-      {/* KPI Cards Grid - 5 Executive Financial & Operational Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        
-        {/* Card 1: Pure Product Revenue */}
-        <div className="bg-[#F7F4EB] rounded-2xl border-2 border-emerald-600/35 p-5 shadow-sm space-y-2 relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
-              Product Sales Revenue
-            </span>
-            <div className="p-2 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs">
-              <DollarSign className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="font-serif font-bold text-2xl text-emerald-900">Rs. {totalPureRevenue.toLocaleString()}</div>
-          <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-medium">
-            Delivered orders only • Excludes COD delivery charges
-          </div>
-        </div>
+      {/* ── Top 3-Column Section (Reference Frame 01 V14 Dashboard) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
-        {/* Card 2: Net Profit */}
-        <div className="bg-[#F7F4EB] rounded-2xl border-2 border-emerald-600/35 p-5 shadow-sm space-y-2 relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
-              Realized Net Profit
-            </span>
-            <div className="p-2 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="font-serif font-bold text-2xl text-emerald-900">Rs. {totalProfit.toLocaleString()}</div>
-          <div className="flex items-center gap-1 text-[11px] text-emerald-800 font-medium">
-            <span className="font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">{profitMargin}% margin</span> • Realized on delivered pairs
-          </div>
-        </div>
-
-        {/* Card 3: Total Investment (Supplier Products + Packaging & Monetization Operations) */}
-        <div 
-          onClick={() => onNavigateTab && onNavigateTab('investments')}
-          className="bg-[#F7F4EB] rounded-2xl border-2 border-[#565449]/40 p-5 shadow-sm space-y-2 cursor-pointer hover:border-[#565449] hover:shadow-md transition-all group"
-          title="Click to manage Packaging, Monetization, and Supplier Procurement Budget"
+        {/* ── Block 1: Left Balance / Liquidity Card (lg:col-span-4) ── */}
+        <motion.div 
+          whileHover={{ y: -4 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+          className="lg:col-span-4 admin-card p-6 flex flex-col justify-between relative overflow-hidden"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#1A1A18]/70 flex items-center gap-1.5">
-              Total Investment
-            </span>
-            <div className="p-2 rounded-xl bg-[#565449]/15 text-[#1A1A18] border border-[#565449]/30 group-hover:scale-105 transition-transform">
-              <Coins className="w-4 h-4" />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                  Total Balance
+                </span>
+                <div className="text-3xl sm:text-4xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">
+                  Rs. {totalPureRevenue.toLocaleString()}
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                <TrendingUp className="w-3.5 h-3.5" />
+                +{profitMargin}% Margin
+              </span>
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+              Delivered product sales turnover strictly excluding cash-on-delivery courier charges.
+            </p>
+
+            {/* Quick Action Buttons Matching Reference Video */}
+            <div className="grid grid-cols-2 gap-2.5 pt-1">
+              <button
+                onClick={() => onNavigateTab && onNavigateTab('products')}
+                className="py-2.5 px-4 rounded-xl font-bold text-xs bg-zinc-900 hover:bg-black text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Product</span>
+              </button>
+
+              <button
+                onClick={() => onNavigateTab && onNavigateTab('orders')}
+                className="py-2.5 px-4 rounded-xl font-bold text-xs bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 flex items-center justify-center gap-2 transition-all cursor-pointer border border-zinc-200/70 dark:border-zinc-700"
+              >
+                <Filter className="w-3.5 h-3.5" />
+                <span>Filter Orders</span>
+              </button>
             </div>
           </div>
-          <div className="font-serif font-bold text-2xl text-[#1A1A18]">
-            Rs. {grandTotalInvestment.toLocaleString()}
-          </div>
-          <div className="flex flex-col gap-0.5 text-[11px] text-[#1A1A18]/70 font-medium">
-            <span className="truncate" title={`Rs. ${totalSupplierInvestment.toLocaleString()} fixed supplier procurement (${totalPairsInStock} pairs) + Rs. ${totalOperationalInvestments.toLocaleString()} packaging, monetization & ops`}>
-              Rs. {totalSupplierInvestment.toLocaleString()} supplier ({totalPairsInStock} pairs) + Rs. {totalOperationalInvestments.toLocaleString()} ops
-            </span>
-            {onNavigateTab && (
-              <span className="text-[#1A1A18] font-bold flex items-center gap-1 group-hover:underline text-[10px] pt-0.5">
-                Adjust Supplier & Packaging Funds <ArrowRight className="w-3 h-3" />
+
+          {/* Sub Summary Widgets */}
+          <div className="grid grid-cols-2 gap-2.5 pt-5 mt-5 border-t border-zinc-100 dark:border-zinc-800/80">
+            <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">
+                Supplier Capital
               </span>
-            )}
+              <span className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100 block mt-0.5">
+                Rs. {totalSupplierInvestment.toLocaleString()}
+              </span>
+              <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                {totalPairsInStock} pairs inventory
+              </span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">
+                Order Pipeline
+              </span>
+              <span className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100 block mt-0.5">
+                {pendingOrdersCount} In Queue
+              </span>
+              <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                {totalOrdersCount} total orders
+              </span>
+            </div>
           </div>
+        </motion.div>
+
+        {/* ── Block 2: Middle 2x2 Cards Grid (lg:col-span-4) ── */}
+        <div className="lg:col-span-4 grid grid-cols-2 gap-3.5">
+          
+          {/* Card 1: Reference Signature Coral Card (Realized Net Profit) */}
+          <motion.div
+            whileHover={{ y: -5 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            className="admin-card-coral p-5 rounded-2xl flex flex-col justify-between text-white shadow-lg relative overflow-hidden"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-white/90 uppercase tracking-wider">
+                Net Profit
+              </span>
+              <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-white" />
+              </div>
+            </div>
+            <div className="my-2">
+              <div className="text-2xl font-extrabold tracking-tight">
+                Rs. {totalProfit.toLocaleString()}
+              </div>
+              <div className="text-xs text-white/80 font-medium mt-0.5">
+                {profitMargin}% margin on sales
+              </div>
+            </div>
+            <div className="text-[10px] text-white/75 bg-black/15 px-2 py-0.5 rounded-full inline-block self-start font-medium">
+              Realized on delivered pairs
+            </div>
+          </motion.div>
+
+          {/* Card 2: Cost of Sold Items */}
+          <motion.div
+            whileHover={{ y: -5 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            className="admin-card p-5 rounded-2xl flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                Cost of Sold
+              </span>
+              <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300">
+                <Box className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="my-2">
+              <div className="text-2xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                Rs. {totalCostOfSoldItems.toLocaleString()}
+              </div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+                Supplier buying cost
+              </div>
+            </div>
+            <div className="text-[10px] text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full inline-block self-start font-medium">
+              Delivered stock units
+            </div>
+          </motion.div>
+
+          {/* Card 3: Orders in Fulfillment Queue */}
+          <motion.div
+            whileHover={{ y: -5 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            onClick={() => onNavigateTab && onNavigateTab('orders')}
+            className="admin-card p-5 rounded-2xl flex flex-col justify-between cursor-pointer group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                In Queue
+              </span>
+              <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Clock className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="my-2">
+              <div className="text-2xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                {pendingOrdersCount}
+              </div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+                Awaiting fulfillment
+              </div>
+            </div>
+            <div className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full inline-flex items-center gap-1 self-start font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+              Manage Queue →
+            </div>
+          </motion.div>
+
+          {/* Card 4: Delivered Orders Count */}
+          <motion.div
+            whileHover={{ y: -5 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            onClick={() => onNavigateTab && onNavigateTab('orders')}
+            className="admin-card p-5 rounded-2xl flex flex-col justify-between cursor-pointer group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                Delivered
+              </span>
+              <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="my-2">
+              <div className="text-2xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                {deliveredOrders.length}
+              </div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+                Successfully delivered
+              </div>
+            </div>
+            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full inline-block self-start font-medium">
+              100% completed
+            </div>
+          </motion.div>
+
         </div>
 
-        {/* Card 4: Total Orders */}
-        <div 
-          onClick={() => onNavigateTab && onNavigateTab('orders')}
-          className="bg-[#F7F4EB] rounded-2xl border border-[#565449]/35 p-5 shadow-sm space-y-2 cursor-pointer hover:border-[#565449] hover:shadow-md transition-all group"
-          title="Click to view all customer orders"
+        {/* ── Block 3: Total Income & Trajectory Chart (lg:col-span-4) ── */}
+        <motion.div 
+          whileHover={{ y: -4 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+          className="lg:col-span-4 admin-card p-6 flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#1A1A18]/70">Total Orders</span>
-            <div className="p-2 rounded-xl bg-[#565449]/15 text-[#1A1A18] border border-[#565449]/30 group-hover:scale-105 transition-transform">
-              <ShoppingBag className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="font-serif font-bold text-2xl text-[#1A1A18]">{totalOrdersCount}</div>
-          <div className="flex flex-col gap-0.5 text-[11px] text-[#1A1A18]/70 font-medium">
-            <span>
-              {totalOrdersCount > 0 ? 'Total orders received to date' : 'No orders recorded yet'}
-            </span>
-            {onNavigateTab && (
-              <span className="text-[#1A1A18] font-bold flex items-center gap-1 group-hover:underline text-[10px] pt-0.5">
-                View All Orders <ArrowRight className="w-3 h-3" />
+          <div>
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                  Total Income
+                </span>
+                <div className="text-2xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight mt-0.5">
+                  Rs. {totalPureRevenue.toLocaleString()}
+                </div>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                {timeRange.toUpperCase()}
               </span>
-            )}
-          </div>
-        </div>
-
-        {/* Card 5: Pending Orders (Orders in Queue) */}
-        <div 
-          onClick={() => onNavigateTab && onNavigateTab('orders')}
-          className="bg-[#F7F4EB] rounded-2xl border-2 border-orange-500/40 p-5 shadow-sm space-y-2 cursor-pointer hover:border-orange-500 hover:shadow-md transition-all group relative overflow-hidden"
-          title="Click to view active orders in queue"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-orange-950 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-orange-500 inline-block animate-pulse" />
-              Orders In Queue
-            </span>
-            <div className="p-2 rounded-xl bg-orange-100 text-orange-800 border border-orange-300 shadow-xs group-hover:scale-105 transition-transform">
-              <Clock className="w-4 h-4" />
             </div>
-          </div>
-          <div className="font-serif font-bold text-2xl text-orange-950">{pendingOrdersCount} In Queue</div>
-          <div className="flex flex-col gap-0.5 text-[11px] text-orange-800 font-medium">
-            <span>
-              {pendingOrdersCount > 0 ? 'Awaiting courier dispatch or delivery' : 'All orders fulfilled / No pending tasks'}
-            </span>
-            {onNavigateTab && (
-              <span className="text-orange-950 font-bold flex items-center gap-1 group-hover:underline text-[10px] pt-0.5">
-                Manage Order Queue <ArrowRight className="w-3 h-3" />
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Executive Capital Allocation & Investment Ledger Summary */}
-      <div className="bg-[#F7F4EB] rounded-2xl border-2 border-[#565449]/40 p-5 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-200">
-              <Layers className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="font-serif font-bold text-base text-slate-900">Capital Allocation & Total Investment Breakdown</h3>
-              <p className="text-xs text-slate-500">Combined balance of supplier product procurement, luxury packaging, monetization ads, and operational funds.</p>
-            </div>
-          </div>
-          {onNavigateTab && (
-            <button
-              onClick={() => onNavigateTab('investments')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#565449] hover:bg-[#45433A] text-[#F7F4EB] font-bold text-xs shadow-xs transition-all self-start sm:self-auto"
-            >
-              <span>Manage Investments & Packaging</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Supplier Footwear */}
-          <div className="p-4 rounded-xl bg-slate-50/80 border-2 border-slate-300 hover:border-slate-400 transition-all space-y-1 shadow-xs">
-            <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">1. Supplier Footwear</div>
-            <div className="text-lg font-bold font-serif text-slate-900">Rs. {totalSupplierInvestment.toLocaleString()}</div>
-            <div className="text-[11px] text-slate-500">
-              {totalPairsInStock} pairs stock • Fixed capital (untouched by orders)
-            </div>
+            <p className="text-xs text-zinc-400 mt-0.5">Sales trajectory over active window</p>
           </div>
 
-          {/* Packaging & Unboxing */}
-          <div className="p-4 rounded-xl bg-amber-50/70 border-2 border-amber-300 hover:border-amber-400 transition-all space-y-1 shadow-xs">
-            <div className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">2. Packaging & Unboxing</div>
-            <div className="text-lg font-bold font-serif text-amber-900">Rs. {packagingInvestment.toLocaleString()}</div>
-            <div className="text-[11px] text-amber-700">
-              Boxes, velvet pouches, embossed tags
-            </div>
-          </div>
-
-          {/* Monetization & Ads */}
-          <div className="p-4 rounded-xl bg-purple-50/70 border-2 border-purple-300 hover:border-purple-400 transition-all space-y-1 shadow-xs">
-            <div className="text-[11px] font-bold text-purple-800 uppercase tracking-wider">3. Monetization & Ads</div>
-            <div className="text-lg font-bold font-serif text-purple-900">Rs. {monetizationInvestment.toLocaleString()}</div>
-            <div className="text-[11px] text-purple-700">
-              Meta, TikTok, Influencer campaigns
-            </div>
-          </div>
-
-          {/* Grand Combined Capital */}
-          <div className="p-4 rounded-xl bg-emerald-50/70 border-2 border-emerald-400 hover:border-emerald-500 transition-all space-y-1 shadow-xs">
-            <div className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">4. Total Capital In Play</div>
-            <div className="text-lg font-bold font-serif text-emerald-900">Rs. {grandTotalInvestment.toLocaleString()}</div>
-            <div className="text-[11px] text-emerald-700">
-              100% combined business investment
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Visual Analytics Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-        {/* Revenue Over Time Chart */}
-        <div className="lg:col-span-8 bg-[#F7F4EB] rounded-2xl border border-[#565449]/35 p-6 space-y-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-serif font-bold text-lg text-[#1A1A18]">Revenue & Sales Trajectory</h3>
-              <p className="text-xs text-[#1A1A18]/70">
-                {timeRange === 'day'
-                  ? 'Daily hourly revenue accumulation (PKR)'
-                  : timeRange === 'week'
-                  ? 'Last 7 days sales trajectory (PKR)'
-                  : timeRange === 'month'
-                  ? 'Last 30 days sales trajectory (PKR)'
-                  : timeRange === 'custom'
-                  ? `Custom window (${customStartDate} to ${customEndDate})`
-                  : 'Yearly monthly revenue accumulation (PKR)'}
-              </p>
-            </div>
-            <span className="text-xs font-bold text-[#1A1A18] bg-[#565449]/15 px-3 py-1 rounded-full border border-[#565449]/30">
-              Filtered: {timeRange === 'day' ? 'DAILY' : timeRange === 'week' ? 'WEEKLY' : timeRange === 'month' ? 'MONTHLY' : timeRange === 'year' ? 'YEARLY' : `CUSTOM (${customStartDate} → ${customEndDate})`}
-            </span>
-          </div>
-
-          <div className="h-72 w-full pt-4">
+          <div className="h-44 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={revenueChartData}>
                 <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#565449" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#A0988A" stopOpacity={0} />
+                  <linearGradient id="coralAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#FF5C39" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#FF5C39" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="label" stroke="#1A1A18" fontSize={12} tickLine={false} />
-                <YAxis stroke="#1A1A18" fontSize={12} tickLine={false} tickFormatter={val => `Rs. ${val}`} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#565449', borderColor: '#A0988A', borderRadius: '12px', color: '#F7F4EB' }}
-                  formatter={(val: any) => [`Rs. ${Number(val).toLocaleString()}`, 'Revenue']}
+                <XAxis 
+                  dataKey="label" 
+                  stroke="#A1A1AA" 
+                  fontSize={10} 
+                  tickLine={false} 
+                  axisLine={false}
                 />
-                <Area type="monotone" dataKey="revenue" stroke="#565449" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                <YAxis 
+                  stroke="#A1A1AA" 
+                  fontSize={10} 
+                  tickLine={false} 
+                  axisLine={false}
+                  tickFormatter={v => `${Math.round(v / 1000)}k`} 
+                />
+                <Tooltip
+                  contentStyle={{ 
+                    backgroundColor: '#18181B', 
+                    border: '1px solid #27272A', 
+                    borderRadius: '12px', 
+                    color: '#FAFAFA',
+                    fontSize: '11px' 
+                  }}
+                  formatter={(val: any) => [`Rs. ${Number(val).toLocaleString()}`, 'Income']}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  stroke="#FF5C39" 
+                  strokeWidth={2.5} 
+                  fillOpacity={1} 
+                  fill="url(#coralAreaGrad)" 
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </div>
 
-        {/* Order Status Breakdown Chart */}
-        <div className="lg:col-span-4 bg-[#F7F4EB] rounded-2xl border border-[#565449]/35 p-6 space-y-4 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
+            <span>Delivered Volume: <strong>{deliveredOrders.length} orders</strong></span>
+            <span className="font-semibold text-[#FF5C39]">Active Window</span>
+          </div>
+        </motion.div>
+
+      </div>
+
+      {/* ── Lower Row: Spending Limit & Recent Activities Table (Reference Frame 01) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+        {/* ── Left: Monthly Spending Limit / Supplier Procurement Gauge (lg:col-span-4) ── */}
+        <div className="lg:col-span-4 admin-card p-6 flex flex-col justify-between space-y-5">
           <div>
-            <h3 className="font-serif font-bold text-lg text-[#1A1A18]">Order Status Distribution</h3>
-            <p className="text-xs text-[#1A1A18]/70">Active fulfillment pipeline overview</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+                  Monthly Spending Limit
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Supplier footwear procurement vs budget
+                </p>
+              </div>
+              {onNavigateTab && (
+                <button
+                  onClick={() => onNavigateTab('investments')}
+                  className="text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white"
+                >
+                  Adjust
+                </button>
+              )}
+            </div>
+
+            {/* Circular Gauge / Multi-bar Visual */}
+            <div className="py-6 flex flex-col items-center justify-center">
+              <div className="relative w-36 h-36 flex items-center justify-center">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="transparent"
+                    stroke="currentColor"
+                    strokeWidth="9"
+                    className="text-zinc-100 dark:text-zinc-800"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="transparent"
+                    stroke="#FF5C39"
+                    strokeWidth="9"
+                    strokeDasharray={`${(spendingLimitPercent / 100) * 251.2} 251.2`}
+                    strokeLinecap="round"
+                    className="transition-all duration-1000 ease-out"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                  <span className="text-2xl font-extrabold text-zinc-900 dark:text-zinc-100">
+                    {spendingLimitPercent}%
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                    Allocated
+                  </span>
+                </div>
+              </div>
+              <div className="text-xs text-center font-medium text-zinc-500 dark:text-zinc-400 mt-2">
+                Rs. {totalSupplierInvestment.toLocaleString()} of Rs. {supplierBudget.toLocaleString()} limit
+              </div>
+            </div>
           </div>
 
-          <div className="h-52 w-full relative flex items-center justify-center">
-            {hasOrderStatusData && orderStatusData.some(d => d.value > 0) ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={orderStatusData.filter(d => d.value > 0)}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={80}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {orderStatusData.filter(d => d.value > 0).map((entry) => (
-                      <Cell key={`cell-${entry.name}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#565449', borderRadius: '12px', color: '#F7F4EB', borderColor: '#A0988A' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="text-center p-4">
-                <Package className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                <p className="text-xs text-slate-400 font-medium">No order data yet</p>
-              </div>
+          {/* Allocation Categories Breakdown */}
+          <div className="space-y-2 pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#FF5C39]" />
+                Footwear Stock
+              </span>
+              <span className="font-bold text-zinc-900 dark:text-zinc-100">
+                Rs. {totalSupplierInvestment.toLocaleString()}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                Packaging &amp; Unboxing
+              </span>
+              <span className="font-bold text-zinc-900 dark:text-zinc-100">
+                Rs. {packagingInvestment.toLocaleString()}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-purple-500" />
+                Monetization &amp; Ads
+              </span>
+              <span className="font-bold text-zinc-900 dark:text-zinc-100">
+                Rs. {monetizationInvestment.toLocaleString()}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between text-xs pt-1.5 border-t border-zinc-100 dark:border-zinc-800/80 font-bold">
+              <span className="text-zinc-700 dark:text-zinc-300">Total Combined Capital</span>
+              <span className="text-emerald-600 dark:text-emerald-400">Rs. {grandTotalInvestment.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Right: Recent Activities (Live Orders Table) (lg:col-span-8) ── */}
+        <div className="lg:col-span-8 admin-card p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                Recent Activities
+                {isRefreshing && (
+                  <span className="w-2 h-2 rounded-full bg-[#FF5C39] animate-ping" />
+                )}
+              </h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Customer orders placed and fulfillment updates
+              </p>
+            </div>
+
+            {onNavigateTab && (
+              <button
+                onClick={() => onNavigateTab('orders')}
+                className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
+              >
+                View All Orders
+              </button>
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-100">
-            {orderStatusData.map(item => (
-              <div key={item.name} className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                <span className="text-slate-600 truncate">{item.name}: <strong className="text-slate-900">{item.value}</strong></span>
-              </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-zinc-100 dark:border-zinc-800 text-zinc-400 uppercase tracking-wider font-semibold">
+                  <th className="pb-3 font-semibold">Order</th>
+                  <th className="pb-3 font-semibold">Customer</th>
+                  <th className="pb-3 font-semibold">Date</th>
+                  <th className="pb-3 font-semibold">Status</th>
+                  <th className="pb-3 font-semibold text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100/70 dark:divide-zinc-800/60">
+                {orders.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-zinc-400 italic">
+                      No customer orders placed yet. Live orders will populate here as customers complete checkout.
+                    </td>
+                  </tr>
+                ) : (
+                  orders.slice(0, 5).map(order => (
+                    <tr
+                      key={order.id}
+                      onClick={() => onNavigateTab && onNavigateTab('orders')}
+                      className="hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors"
+                    >
+                      <td className="py-3 font-bold text-zinc-900 dark:text-zinc-100">
+                        {order.orderNumber}
+                      </td>
+                      <td className="py-3 text-zinc-700 dark:text-zinc-300">
+                        {order.shippingAddress?.fullName || 'Store Customer'}
+                      </td>
+                      <td className="py-3 text-zinc-400">
+                        {order.date}
+                      </td>
+                      <td className="py-3">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border inline-flex items-center gap-1 ${
+                          order.status === 'Delivered' 
+                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                            : order.status === 'Cancelled'
+                            ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200 dark:border-rose-800'
+                            : order.status === 'Shipped'
+                            ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+                            : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            order.status === 'Delivered' ? 'bg-emerald-500' :
+                            order.status === 'Cancelled' ? 'bg-rose-500' :
+                            order.status === 'Shipped' ? 'bg-blue-500' : 'bg-amber-500'
+                          }`} />
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="py-3 text-right font-bold text-zinc-900 dark:text-zinc-100">
+                        Rs. {order.total?.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/80 text-[11px]">
+            {orderStatusData.map(st => (
+              <span key={st.name} className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: st.color }} />
+                <span>{st.name}:</span>
+                <strong className="text-zinc-900 dark:text-zinc-100">{st.value}</strong>
+              </span>
             ))}
           </div>
         </div>
+
       </div>
 
-      {/* Secondary Grid: Low-Stock Alerts & Studio Processing & Recent Orders */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-        {/* Low Stock Widget */}
-        <div className="lg:col-span-4 bg-[#F7F4EB] rounded-2xl border border-[#565449]/35 p-6 space-y-4 shadow-sm">
-          <div className="flex items-center justify-between pb-2 border-b border-[#565449]/20">
-            <h3 className="font-serif font-bold text-base text-red-700 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-red-600" /> Low Stock & Restock Alert
-            </h3>
-            <span className="text-[11px] font-bold text-red-700 bg-red-100 px-2.5 py-0.5 rounded-full border border-red-300">
-              {lowStockProducts.length} Below Limit
+      {/* ── Supplementary Widgets: Inventory Alert, AI Studio Status, Reviews ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        
+        {/* Inventory Restock Alert */}
+        <div className="admin-card p-5 space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-zinc-100 dark:border-zinc-800">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              Low Stock Alert
+            </h4>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
+              {lowStockProducts.length} items
             </span>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             {lowStockProducts.length === 0 ? (
-              <div className="text-center py-6 text-slate-400 text-xs">
-                <Box className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                <span>All inventory stock levels are healthy.</span>
+              <div className="text-center py-4 text-zinc-400 text-xs">
+                All inventory levels healthy.
               </div>
             ) : (
               lowStockProducts.slice(0, 3).map(product => {
                 const stock = typeof product.stockCount === 'number' ? product.stockCount : 0;
                 return (
-                  <div key={product.id} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <div className="flex items-center gap-3">
-                      <img src={product.images?.front || ''} alt={product.name} className="w-10 h-10 object-cover rounded-lg bg-slate-100" />
-                      <div>
-                        <h4 className="font-semibold text-xs text-slate-900 line-clamp-1">{product.name}</h4>
-                        <span className="text-[10px] text-slate-500">Category: {product.category || 'General'}</span>
+                  <div key={product.id} className="flex items-center justify-between p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-800">
+                    <div className="flex items-center gap-2.5">
+                      <img src={product.images?.front || ''} alt={product.name} className="w-8 h-8 object-cover rounded-lg bg-zinc-200 dark:bg-zinc-700" />
+                      <div className="line-clamp-1">
+                        <span className="font-semibold text-xs text-zinc-900 dark:text-zinc-100 block truncate max-w-[130px]">{product.name}</span>
+                        <span className="text-[10px] text-zinc-400">{product.category || 'Footwear'}</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-xs font-bold text-red-600 block">{stock} Left</span>
-                      <span className="text-[10px] text-slate-400">Reorder threshold 5</span>
-                    </div>
+                    <span className="text-xs font-bold text-rose-600 dark:text-rose-400">{stock} Left</span>
                   </div>
                 );
               })
@@ -778,151 +986,70 @@ export const DashboardTab: React.FC<{ onNavigateTab?: (tab: string) => void }> =
           </div>
         </div>
 
-        {/* AI & Vision Model Usage */}
-        <div className="lg:col-span-4 bg-[#F7F4EB] rounded-2xl border border-[#565449]/35 p-6 space-y-4 shadow-sm">
-          <div className="flex items-center justify-between pb-2 border-b border-[#565449]/20">
-            <h3 className="font-serif font-bold text-base text-[#1A1A18] flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#1A1A18]" /> AI &amp; Vision Studio Models
-            </h3>
-            <span className="text-[11px] font-bold text-[#1A1A18] bg-[#565449]/15 px-2.5 py-0.5 rounded-full border border-[#565449]/30">
-              Model Usage
+        {/* AI & Vision Studio Pipelines */}
+        <div className="admin-card p-5 space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-zinc-100 dark:border-zinc-800">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-[#FF5C39]" />
+              AI Studio Models
+            </h4>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+              Active
             </span>
           </div>
 
-          <p className="text-xs text-[#1A1A18]/80 leading-relaxed">
-            Live AI model pipelines: Computer Vision Foot Sizing (OpenCV Camera) and AI Outfit Matching engines active.
-          </p>
+          <div className="space-y-2 text-xs">
+            <div className="p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+              <div>
+                <span className="font-bold text-zinc-900 dark:text-zinc-100 block">Foot Sizer Vision</span>
+                <span className="text-[10px] text-zinc-400">OpenCV dimension scan</span>
+              </div>
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#565449]/10 border border-[#565449]/20 text-xs">
+            <div className="p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
               <div>
-                <span className="font-bold text-[#1A1A18] block">OpenCV Foot Landmark Sizer</span>
-                <span className="text-[10px] text-[#1A1A18]/70">Camera dimension scan pipeline</span>
+                <span className="font-bold text-zinc-900 dark:text-zinc-100 block">Outfit Matcher Core</span>
+                <span className="text-[10px] text-zinc-400">Style vectorizer engine</span>
               </div>
-              <span className="px-2 py-0.5 rounded-full bg-[#565449] text-[#F7F4EB] text-[10px] font-bold uppercase">
-                Active
-              </span>
-            </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#565449]/10 border border-[#565449]/20 text-xs">
-              <div>
-                <span className="font-bold text-[#1A1A18] block">AI Outfit Matcher Neural Core</span>
-                <span className="text-[10px] text-[#1A1A18]/70">Color-harmony style vectorizer</span>
-              </div>
-              <span className="px-2 py-0.5 rounded-full bg-[#565449] text-[#F7F4EB] text-[10px] font-bold uppercase">
-                Active
-              </span>
-            </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#565449]/10 border border-[#565449]/20 text-xs">
-              <div>
-                <span className="font-bold text-[#1A1A18] block">Catalog Studio Processing</span>
-                <span className="text-[10px] text-[#1A1A18]/70">Product image asset pipelines</span>
-              </div>
-              <span className="px-2 py-0.5 rounded-full bg-[#565449] text-[#F7F4EB] text-[10px] font-bold uppercase">
-                Ready
-              </span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
             </div>
           </div>
         </div>
 
-        {/* Recent Moderation Feed */}
-        <div className="lg:col-span-4 bg-[#F7F4EB] rounded-2xl border border-[#565449]/35 p-6 space-y-4 shadow-sm">
-          <div className="flex items-center justify-between pb-2 border-b border-[#565449]/20">
-            <h3 className="font-serif font-bold text-base text-[#1A1A18] flex items-center gap-2">
-              <Star className="w-4 h-4 fill-[#D4AF37] text-[#D4AF37]" /> Moderation Feed
-            </h3>
+        {/* Customer Moderation Feed */}
+        <div className="admin-card p-5 space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-zinc-100 dark:border-zinc-800">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+              <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+              Customer Feed
+            </h4>
             {onNavigateTab && (
-              <button onClick={() => onNavigateTab('reviews')} className="text-xs text-[#1A1A18] font-bold hover:underline">
-                View All
+              <button onClick={() => onNavigateTab('reviews')} className="text-[10px] font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-white">
+                View All →
               </button>
             )}
           </div>
 
-          <div className="space-y-2.5 max-h-56 overflow-y-auto">
+          <div className="space-y-2">
             {pendingReviews.length === 0 ? (
-              <div className="text-center py-6 text-slate-400 text-xs">
-                <Star className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                <span>No customer reviews recorded yet.</span>
+              <div className="text-center py-4 text-zinc-400 text-xs">
+                No customer reviews yet.
               </div>
             ) : (
-              pendingReviews.slice(0, 3).map(rev => (
-                <div key={rev.id} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+              pendingReviews.slice(0, 2).map(rev => (
+                <div key={rev.id} className="p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-800 space-y-0.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-900">{rev.userName}</span>
-                    <div className="flex text-[#D4AF37]">
-                      {'★'.repeat(rev.rating)}
-                    </div>
+                    <span className="font-bold text-zinc-900 dark:text-zinc-100">{rev.userName}</span>
+                    <span className="text-amber-500 text-[10px]">{'★'.repeat(rev.rating)}</span>
                   </div>
-                  <p className="text-[11px] text-slate-600 line-clamp-2 italic">"{rev.comment}"</p>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 line-clamp-1 italic">"{rev.comment}"</p>
                 </div>
               ))
             )}
           </div>
         </div>
 
-      </div>
-
-      {/* Orders Summary Quick Table */}
-      <div className="bg-[#F7F4EB] rounded-2xl border border-[#565449]/35 p-6 space-y-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h3 className="font-serif font-bold text-lg text-[#1A1A18] flex items-center gap-2">
-            Recent Customer Orders
-            {isRefreshing && (
-              <span className="w-2 h-2 rounded-full bg-[#565449] animate-ping" />
-            )}
-          </h3>
-          {onNavigateTab && (
-            <button onClick={() => onNavigateTab('orders')} className="btn-copper text-xs py-1.5 px-4">
-              Manage All Orders
-            </button>
-          )}
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
-                <th className="pb-3">Order Number</th>
-                <th className="pb-3">Customer</th>
-                <th className="pb-3">Date</th>
-                <th className="pb-3">Status</th>
-                <th className="pb-3 text-right">Total</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {orders.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-slate-400 italic">
-                    No customer orders placed yet. Live orders will populate here as customers complete checkout.
-                  </td>
-                </tr>
-              ) : (
-                orders.slice(0, 5).map(order => (
-                  <tr
-                    key={order.id}
-                    onClick={() => onNavigateTab && onNavigateTab('orders')}
-                    className="hover:bg-slate-50/80 cursor-pointer transition-colors"
-                    title="Click to view order details"
-                  >
-                    <td className="py-3 font-serif font-bold text-slate-900">{order.orderNumber}</td>
-                    <td className="py-3 text-slate-800">{order.shippingAddress?.fullName || 'Customer'}</td>
-                    <td className="py-3 text-slate-500">{order.date}</td>
-                    <td className="py-3">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
-                        order.status === 'Delivered' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : order.status === 'Cancelled' ? 'bg-rose-50 text-rose-700 border-rose-200'
-                        : order.status === 'Shipped' ? 'bg-amber-50 text-amber-700 border-amber-200'
-                        : 'bg-blue-50 text-blue-600 border-blue-200'
-                      }`}>
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="py-3 text-right font-serif font-bold text-slate-900">Rs. {order.total?.toLocaleString()}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
       </div>
 
     </div>
