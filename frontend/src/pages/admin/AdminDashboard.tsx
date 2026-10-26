@@ -144,6 +144,7 @@ const playNotificationChime = () => {
 export const AdminDashboard: React.FC = () => {
   const { user, logout } = useAdminAuth();
   const [activeTab, setActiveTabState] = useState<AdminTab>(getInitialTab);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
 
   const setActiveTab = (tab: AdminTab) => {
     setActiveTabState(tab);
@@ -297,9 +298,9 @@ export const AdminDashboard: React.FC = () => {
 
   const unreadNotifCount = notifications.filter(n => !n.read).length;
 
-  // Render navigation links list (used for both desktop fixed sidebar and mobile drawer)
-  const renderNavList = () => (
-    <div className="space-y-6">
+  // Render navigation links list (supports both collapsed icon-rail and expanded hover mode)
+  const renderNavList = (isExpanded: boolean) => (
+    <div className="space-y-4">
       {NAV_SECTIONS.map((section) => {
         // Filter out restricted items for managers
         const visibleItems = section.items.filter(item => {
@@ -313,10 +314,16 @@ export const AdminDashboard: React.FC = () => {
 
         return (
           <div key={section.title} className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 px-3 block">
-              {section.title}
-            </span>
-            <div className="space-y-1 pt-1">
+            {/* Section title visible only when expanded; clean divider when collapsed */}
+            {isExpanded ? (
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 px-3 block transition-opacity duration-200 whitespace-nowrap">
+                {section.title}
+              </span>
+            ) : (
+              <div className="w-6 h-px bg-zinc-200/80 dark:border-zinc-800 mx-auto my-1.5" />
+            )}
+
+            <div className="space-y-1 pt-0.5">
               {visibleItems.map(item => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
@@ -325,13 +332,18 @@ export const AdminDashboard: React.FC = () => {
                 return (
                   <motion.button
                     key={item.id}
-                    whileHover={{ x: 3 }}
-                    whileTap={{ scale: 0.98 }}
+                    whileHover={{ scale: 1.05, x: isExpanded ? 3 : 0 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => {
                       setActiveTab(item.id);
                       setMobileMenuOpen(false);
                     }}
-                    className={`relative w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer z-10 text-left ${
+                    title={!isExpanded ? item.label : undefined}
+                    className={`relative rounded-xl text-xs font-semibold flex items-center transition-colors cursor-pointer z-10 ${
+                      isExpanded 
+                        ? 'w-full px-3 py-2 justify-between text-left' 
+                        : 'w-10 h-10 mx-auto justify-center'
+                    } ${
                       isActive
                         ? 'text-white dark:text-zinc-900 font-bold'
                         : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60'
@@ -346,19 +358,29 @@ export const AdminDashboard: React.FC = () => {
                       />
                     )}
 
-                    <div className="flex items-center gap-2.5">
-                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white dark:text-zinc-900' : 'text-zinc-400 dark:text-zinc-500'}`} />
-                      <span>{item.label}</span>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white dark:text-zinc-900' : 'text-zinc-500 dark:text-zinc-400'}`} />
+                      {isExpanded && (
+                        <span className="truncate whitespace-nowrap transition-opacity duration-200">
+                          {item.label}
+                        </span>
+                      )}
                     </div>
 
                     {showBadge && (
-                      <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${
-                        isActive 
-                          ? 'bg-orange-500 text-white' 
-                          : 'bg-orange-500/15 text-orange-600 dark:text-orange-400'
-                      }`}>
-                        {liveOrderCount}
-                      </span>
+                      isExpanded ? (
+                        <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${
+                          isActive 
+                            ? 'bg-orange-500 text-white' 
+                            : 'bg-orange-500/15 text-orange-600 dark:text-orange-400'
+                        }`}>
+                          {liveOrderCount}
+                        </span>
+                      ) : (
+                        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-orange-500 text-white text-[9px] font-extrabold flex items-center justify-center">
+                          {liveOrderCount}
+                        </span>
+                      )
                     )}
                   </motion.button>
                 );
@@ -422,119 +444,161 @@ export const AdminDashboard: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Fixed Left Sidebar (Desktop) ── */}
-      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 z-40 bg-white dark:bg-zinc-900 border-r border-zinc-200/80 dark:border-zinc-800 flex-col justify-between py-5 px-4 overflow-y-auto">
-        
+      {/* ── Hover Sidebar with Icons (Desktop) ── */}
+      <aside 
+        onMouseEnter={() => setIsSidebarHovered(true)}
+        onMouseLeave={() => setIsSidebarHovered(false)}
+        className={`hidden lg:flex fixed left-0 top-0 bottom-0 z-50 bg-white dark:bg-zinc-900 border-r border-zinc-200/80 dark:border-zinc-800 flex-col justify-between py-4 transition-all duration-300 ease-in-out ${
+          isSidebarHovered ? 'w-64 px-4 shadow-2xl' : 'w-16 px-2.5 shadow-sm'
+        }`}
+      >
         {/* Top: Brand & Theme Toggle */}
-        <div className="space-y-5">
+        <div className="space-y-4">
           {/* Brand Header */}
-          <div className="flex items-center justify-between px-2">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#FF5C39] to-[#E03A14] flex items-center justify-center text-white font-black text-sm shadow-md shadow-orange-500/20">
+          <div className={`flex items-center ${isSidebarHovered ? 'justify-between px-2' : 'justify-center'} transition-all`}>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#FF5C39] to-[#E03A14] flex items-center justify-center text-white font-black text-sm shadow-md shadow-orange-500/20 shrink-0">
                 V
               </div>
-              <div>
-                <span className="font-extrabold text-sm tracking-tight text-zinc-900 dark:text-zinc-100 block leading-tight">
-                  KhyberSole
-                </span>
-                <span className="text-[10px] text-zinc-400 dark:text-zinc-500 block leading-tight font-medium">
-                  {currentRole === 'superadmin' ? 'Super Admin Portal' : 'Manager Portal'}
-                </span>
-              </div>
+              {isSidebarHovered && (
+                <div className="min-w-0">
+                  <span className="font-extrabold text-sm tracking-tight text-zinc-900 dark:text-zinc-100 block leading-tight truncate">
+                    KhyberSole
+                  </span>
+                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 block leading-tight font-medium truncate">
+                    {currentRole === 'superadmin' ? 'Super Admin' : 'Manager'}
+                  </span>
+                </div>
+              )}
             </div>
 
-            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              <Radio className={`w-2.5 h-2.5 text-emerald-500 ${isLivePulse ? 'scale-125' : ''} transition-transform`} />
-              Live
-            </span>
+            {isSidebarHovered && (
+              <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                <Radio className={`w-2.5 h-2.5 text-emerald-500 ${isLivePulse ? 'scale-125' : ''} transition-transform`} />
+                Live
+              </span>
+            )}
           </div>
 
-          {/* Theme Switcher Pill (Light / Dark) */}
-          <div className="flex items-center justify-between bg-zinc-100 dark:bg-zinc-800/80 rounded-xl p-1 border border-zinc-200/80 dark:border-zinc-700/80">
-            <button
-              onClick={() => setIsDarkMode(false)}
-              className={`relative flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer z-10 ${
-                !isDarkMode ? 'text-zinc-900 font-bold' : 'text-zinc-400 hover:text-zinc-600'
-              }`}
-            >
-              {!isDarkMode && (
-                <motion.div
-                  layoutId="sidebarThemePill"
-                  className="absolute inset-0 bg-white rounded-lg shadow-xs -z-10"
-                  transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-                />
-              )}
-              <Sun className="w-3.5 h-3.5 text-amber-500" />
-              <span>Light</span>
-            </button>
+          {/* Theme Switcher (Mini button when collapsed, full segment switcher when hovered) */}
+          {isSidebarHovered ? (
+            <div className="flex items-center justify-between bg-zinc-100 dark:bg-zinc-800/80 rounded-xl p-1 border border-zinc-200/80 dark:border-zinc-700/80 animate-in fade-in duration-150">
+              <button
+                onClick={() => setIsDarkMode(false)}
+                className={`relative flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer z-10 ${
+                  !isDarkMode ? 'text-zinc-900 font-bold' : 'text-zinc-400 hover:text-zinc-600'
+                }`}
+              >
+                {!isDarkMode && (
+                  <motion.div
+                    layoutId="sidebarThemePill"
+                    className="absolute inset-0 bg-white rounded-lg shadow-xs -z-10"
+                    transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                  />
+                )}
+                <Sun className="w-3.5 h-3.5 text-amber-500" />
+                <span>Light</span>
+              </button>
 
-            <button
-              onClick={() => setIsDarkMode(true)}
-              className={`relative flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer z-10 ${
-                isDarkMode ? 'text-zinc-100 font-bold' : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              {isDarkMode && (
-                <motion.div
-                  layoutId="sidebarThemePill"
-                  className="absolute inset-0 bg-zinc-900 rounded-lg shadow-xs -z-10"
-                  transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-                />
-              )}
-              <Moon className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Dark</span>
-            </button>
-          </div>
-
-          {/* All Page Navigation Links */}
-          {renderNavList()}
-        </div>
-
-        {/* Bottom User Profile & Sign Out Block */}
-        <div className="pt-4 mt-6 border-t border-zinc-200/70 dark:border-zinc-800 space-y-2">
-          <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold text-xs flex items-center justify-center shrink-0">
-                {(user?.username || 'A')[0].toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block truncate">
-                  {user?.username || 'Admin'}
-                </span>
-                <span className="text-[10px] text-zinc-400 block truncate">
-                  {currentRole}
-                </span>
-              </div>
+              <button
+                onClick={() => setIsDarkMode(true)}
+                className={`relative flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer z-10 ${
+                  isDarkMode ? 'text-zinc-100 font-bold' : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                {isDarkMode && (
+                  <motion.div
+                    layoutId="sidebarThemePill"
+                    className="absolute inset-0 bg-zinc-900 rounded-lg shadow-xs -z-10"
+                    transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                  />
+                )}
+                <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Dark</span>
+              </button>
             </div>
-
+          ) : (
             <button
-              onClick={() => setShowCredentialsModal(true)}
-              title="Change Password"
-              className="p-1 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+              onClick={() => setIsDarkMode(prev => !prev)}
+              title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              className="w-10 h-10 mx-auto rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer border border-zinc-200/80 dark:border-zinc-700/80"
             >
-              <KeyRound className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {currentRole === 'superadmin' && (
-            <button
-              onClick={() => setShowManagersModal(true)}
-              className="w-full px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-2 transition-colors cursor-pointer text-left"
-            >
-              <UserCog className="w-3.5 h-3.5" />
-              <span>Manage Store Managers</span>
+              {isDarkMode ? <Moon className="w-4 h-4 text-indigo-400" /> : <Sun className="w-4 h-4 text-amber-500" />}
             </button>
           )}
 
-          <button
-            onClick={() => logout()}
-            className="w-full px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2 transition-colors cursor-pointer text-left"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Sign Out</span>
-          </button>
+          {/* All Page Navigation Links */}
+          <div className="overflow-y-auto max-h-[calc(100vh-220px)] pr-0.5">
+            {renderNavList(isSidebarHovered)}
+          </div>
         </div>
 
+        {/* Bottom User Profile & Sign Out */}
+        <div className="pt-3 border-t border-zinc-200/70 dark:border-zinc-800">
+          {isSidebarHovered ? (
+            <div className="space-y-2 animate-in fade-in duration-150">
+              <div className="p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-7 h-7 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold text-xs flex items-center justify-center shrink-0">
+                    {(user?.username || 'A')[0].toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block truncate">
+                      {user?.username || 'Admin'}
+                    </span>
+                    <span className="text-[10px] text-zinc-400 block truncate">
+                      {currentRole}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowCredentialsModal(true)}
+                  title="Change Password"
+                  className="p-1 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {currentRole === 'superadmin' && (
+                <button
+                  onClick={() => setShowManagersModal(true)}
+                  className="w-full px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-2 transition-colors cursor-pointer text-left"
+                >
+                  <UserCog className="w-3.5 h-3.5" />
+                  <span>Manage Store Managers</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => logout()}
+                className="w-full px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2 transition-colors cursor-pointer text-left"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={() => setShowCredentialsModal(true)}
+                title={`User: ${user?.username || 'Admin'} (${currentRole}) - Click to Change Password`}
+                className="w-10 h-10 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold text-xs flex items-center justify-center hover:scale-105 transition-transform"
+              >
+                {(user?.username || 'A')[0].toUpperCase()}
+              </button>
+
+              <button
+                onClick={() => logout()}
+                title="Sign Out"
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
       </aside>
 
       {/* ── Mobile Sidebar Drawer (Mobile Screens) ── */}
@@ -573,7 +637,7 @@ export const AdminDashboard: React.FC = () => {
                   </button>
                 </div>
 
-                {renderNavList()}
+                {renderNavList(true)}
               </div>
 
               <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
@@ -590,8 +654,8 @@ export const AdminDashboard: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Main Layout: Offset with lg:pl-64 for Fixed Sidebar ── */}
-      <div className="lg:pl-64 flex flex-col min-h-screen min-w-0 transition-all">
+      {/* ── Main Layout: Offset with lg:pl-16 for Slim Hover Icon Sidebar ── */}
+      <div className="lg:pl-16 flex flex-col min-h-screen min-w-0 transition-all">
 
         {/* ── Top Header Bar (No page nav tabs - clean executive bar) ── */}
         <header className="sticky top-0 z-30 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800 px-4 sm:px-8 py-3 flex items-center justify-between gap-4 transition-colors">
